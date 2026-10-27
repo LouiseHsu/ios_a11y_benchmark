@@ -146,4 +146,48 @@ void main() {
       handle.dispose();
     },
   );
+
+  testWidgets(
+    'modal barrier exposes anchored popup menu options and updates selection',
+    (WidgetTester tester) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      await tester.pumpWidget(const FlutterA11yBenchmarkApp());
+      await tester.tap(find.bySemanticsIdentifier('menu.modalBarrier'));
+      await tester.pumpAndSettle();
+
+      expect(traversalContains(tester, 'modal.popupMenuButton'), isTrue);
+      await tester.tap(find.bySemanticsIdentifier('modal.popupMenuButton'));
+      await tester.pumpAndSettle();
+
+      expect(traversalContains(tester, 'modal.popupOption.1'), isTrue);
+      await tester.tap(find.bySemanticsIdentifier('modal.popupOption.1'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Popup Selected: Option Beta'), findsOneWidget);
+      handle.dispose();
+    },
+  );
+
+  testWidgets(
+    'focus keyboard exposes live region status label and polite announcement button',
+    (WidgetTester tester) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      await tester.pumpWidget(const FlutterA11yBenchmarkApp());
+      await tester.tap(find.bySemanticsIdentifier('menu.focusKeyboard'));
+      await tester.pumpAndSettle();
+
+      final SemanticsNode liveNode = tester.semantics
+          .simulatedAccessibilityTraversal()
+          .firstWhere(
+            (SemanticsNode n) =>
+                n.getSemanticsData().identifier == 'focus.liveStatusLabel',
+          );
+      expect(liveNode.getSemanticsData().flagsCollection.isLiveRegion, isTrue);
+
+      await tester.tap(find.bySemanticsIdentifier('focus.announceButton'));
+      await tester.pump();
+      expect(find.text('Live Status: Polite Announcement #1'), findsOneWidget);
+      handle.dispose();
+    },
+  );
 }

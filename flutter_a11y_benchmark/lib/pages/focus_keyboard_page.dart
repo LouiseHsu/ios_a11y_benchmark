@@ -1,3 +1,4 @@
+import 'package:flutter/semantics.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../a11y/a11y_action_observer.dart';
@@ -40,6 +41,8 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
   final List<String> _logEntries = <String>[];
   double _sliderValue = 0.25;
   bool _sliderDragging = false;
+  String _liveStatus = 'Live Status: Username length 1 chars';
+  int _announcementCount = 0;
 
   @override
   void initState() {
@@ -110,10 +113,34 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
     TextEditingController controller,
     String placeholder,
   ) {
+    final String text = controller.text;
     _appendLog(
-      "$name text changed (isEmpty=${controller.text.isEmpty}, "
+      "$name text changed (isEmpty=${text.isEmpty}, "
       "placeholder='$placeholder')",
     );
+    if (identical(controller, _topController) && mounted) {
+      final String statusMessage =
+          'Live Status: Username length ${text.length} chars';
+      setState(() => _liveStatus = statusMessage);
+      SemanticsService.sendAnnouncement(
+        View.of(context),
+        statusMessage,
+        Directionality.of(context),
+      );
+    }
+  }
+
+  void _postPoliteAnnouncement() {
+    _announcementCount += 1;
+    final String message =
+        'Live Status: Polite Announcement #$_announcementCount';
+    setState(() => _liveStatus = message);
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      message,
+      Directionality.of(context),
+    );
+    _appendLog('Posted polite announcement #$_announcementCount');
   }
 
   void _handleSliderChanged(double value) {
@@ -168,6 +195,30 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
                     border: OutlineInputBorder(),
                     suffixIcon: _ClearButtonPlaceholder(),
                   ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              A11yProbe(
+                identifier: 'focus.liveStatusLabel',
+                container: true,
+                liveRegion: true,
+                child: Text(
+                  _liveStatus,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontFeatures: const <FontFeature>[
+                      FontFeature.tabularFigures(),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              A11yProbe(
+                identifier: 'focus.announceButton',
+                mergeDescendants: true,
+                child: FilledButton.tonal(
+                  onPressed: _postPoliteAnnouncement,
+                  child: const Text('Post Polite Announcement'),
                 ),
               ),
               const SizedBox(height: 20),

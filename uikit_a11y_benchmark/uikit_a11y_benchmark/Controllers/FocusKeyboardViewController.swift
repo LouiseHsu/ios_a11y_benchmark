@@ -8,12 +8,15 @@ final class FocusKeyboardViewController: UIViewController {
     private let scrollView = UIScrollView()
     private let contentStackView = UIStackView()
     private let topTextField = FocusLoggingTextField(fieldName: "Top Username Field")
+    private let liveStatusLabel = UILabel()
+    private let announceButton = UIButton(type: .system)
     private let sliderValueLabel = UILabel()
     private let slider = FocusLoggingSlider(controlName: "Benchmark Slider")
     private let bottomTextField = FocusLoggingTextField(fieldName: "Bottom Password Field")
     private let eventLogTextView = UITextView()
 
     private var logEntries: [String] = []
+    private var announcementCount = 0
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -68,6 +71,25 @@ final class FocusKeyboardViewController: UIViewController {
             isSecure: false
         )
 
+        // Live status banner + polite announcement trigger to benchmark announcement
+        // contention during typing and focus changes.
+        liveStatusLabel.font = .monospacedDigitSystemFont(ofSize: 13, weight: .medium)
+        liveStatusLabel.textColor = .secondaryLabel
+        liveStatusLabel.numberOfLines = 0
+        liveStatusLabel.text = "Live Status: Username length 1 chars"
+        liveStatusLabel.accessibilityIdentifier = "focus.liveStatusLabel"
+        liveStatusLabel.accessibilityTraits = .updatesFrequently
+
+        var announceConfig = UIButton.Configuration.tinted()
+        announceConfig.title = "Post Polite Announcement"
+        announceButton.configuration = announceConfig
+        announceButton.accessibilityIdentifier = "focus.announceButton"
+        announceButton.addTarget(
+            self,
+            action: #selector(postPoliteAnnouncement),
+            for: .touchUpInside
+        )
+
         // UISlider between the two TextFields initialized to value = 0.25 (25%)
         sliderValueLabel.font = .monospacedDigitSystemFont(ofSize: 14, weight: .medium)
         sliderValueLabel.text = "Slider Value: 0.25 (25%)"
@@ -104,6 +126,8 @@ final class FocusKeyboardViewController: UIViewController {
 
         contentStackView.addArrangedSubview(makeLabel("Top Input Region (Pre-filled + Placeholder)"))
         contentStackView.addArrangedSubview(topTextField)
+        contentStackView.addArrangedSubview(liveStatusLabel)
+        contentStackView.addArrangedSubview(announceButton)
         contentStackView.addArrangedSubview(makeLabel("Intermediate Slider (Initial Value 25%)"))
         contentStackView.addArrangedSubview(sliderValueLabel)
         contentStackView.addArrangedSubview(slider)
@@ -186,10 +210,24 @@ final class FocusKeyboardViewController: UIViewController {
 
     @objc private func textFieldEditingChanged(_ sender: UITextField) {
         let name = (sender as? FocusLoggingTextField)?.fieldName ?? "TextField"
-        let isEmpty = (sender.text ?? "").isEmpty
+        let text = sender.text ?? ""
+        let isEmpty = text.isEmpty
         appendLog(
             "\(name) text changed (isEmpty=\(isEmpty), placeholder='\(sender.placeholder ?? "")')"
         )
+        if sender === topTextField {
+            let statusMessage = "Live Status: Username length \(text.count) chars"
+            liveStatusLabel.text = statusMessage
+            UIAccessibility.post(notification: .announcement, argument: statusMessage)
+        }
+    }
+
+    @objc private func postPoliteAnnouncement() {
+        announcementCount += 1
+        let message = "Live Status: Polite Announcement #\(announcementCount)"
+        liveStatusLabel.text = message
+        UIAccessibility.post(notification: .announcement, argument: message)
+        appendLog("Posted polite announcement #\(announcementCount)")
     }
 
     @objc private func handleAccessibilityElementFocused(_ notification: Notification) {

@@ -5,12 +5,16 @@ final class ModalBarrierViewController: UIViewController {
 
     private static let logger = Logger(subsystem: "com.example.uikit-a11y-benchmark", category: "ModalBarrier")
 
+    private static let popupOptions = ["Option Alpha", "Option Beta", "Option Gamma"]
+
     private let statusLabel = UILabel()
     private let backgroundButton1 = UIButton(type: .system)
     private let backgroundButton2 = UIButton(type: .system)
+    private let popupMenuButton = UIButton(type: .system)
     private let presentModalButton = UIButton(type: .system)
 
     private var backgroundTapCount = 0
+    private var selectedPopupOption = ModalBarrierViewController.popupOptions[0]
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -48,6 +52,10 @@ final class ModalBarrierViewController: UIViewController {
             for: .touchUpInside
         )
 
+        popupMenuButton.accessibilityIdentifier = "modal.popupMenuButton"
+        popupMenuButton.showsMenuAsPrimaryAction = true
+        rebuildPopupMenu()
+
         var presentConfig = UIButton.Configuration.filled()
         presentConfig.title = "Present Modal Sheet"
         presentModalButton.configuration = presentConfig
@@ -62,6 +70,7 @@ final class ModalBarrierViewController: UIViewController {
             statusLabel,
             backgroundButton1,
             backgroundButton2,
+            popupMenuButton,
             presentModalButton,
         ])
         stackView.translatesAutoresizingMaskIntoConstraints = false
@@ -89,6 +98,30 @@ final class ModalBarrierViewController: UIViewController {
         let message = "Background Button 2 Tapped (Count: \(backgroundTapCount))"
         statusLabel.text = message
         Self.logger.info("[ModalBarrier] \(message, privacy: .public)")
+    }
+
+    private func rebuildPopupMenu() {
+        var menuConfig = UIButton.Configuration.tinted()
+        menuConfig.title = "Anchored Popup Menu: \(selectedPopupOption)"
+        popupMenuButton.configuration = menuConfig
+        popupMenuButton.accessibilityValue = selectedPopupOption
+
+        let actions: [UIAction] = Self.popupOptions.enumerated().map { index, option in
+            let action = UIAction(
+                title: option,
+                state: option == selectedPopupOption ? .on : .off
+            ) { [weak self] _ in
+                guard let self else { return }
+                self.selectedPopupOption = option
+                let message = "Popup Selected: \(option)"
+                self.statusLabel.text = message
+                self.rebuildPopupMenu()
+                Self.logger.info("[ModalBarrier] \(message, privacy: .public)")
+            }
+            action.accessibilityIdentifier = "modal.popupOption.\(index)"
+            return action
+        }
+        popupMenuButton.menu = UIMenu(title: "Anchored Options", children: actions)
     }
 
     @objc private func presentModalSheet() {

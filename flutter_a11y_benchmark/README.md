@@ -15,8 +15,8 @@ first-party home of the Material widgets on this SDK).
 | `menu.*` | `MenuPage` | `MenuViewController` | Root list of destinations |
 | `scroll.*` | `ScrollBaselinePage` | `ScrollBaselineViewController` | `contentOffset.y`, viewport height, Δy, `Δy / viewportHeight` (100% native vs. 80% Flutter page scroll), "Page X of Y" |
 | `traversal.*` | `TraversalHierarchyPage` | `TraversalHierarchyViewController` | Natural geometric Row-Major (`sortKey: null` ≈ `accessibilityElements = nil`) vs. explicit Column-Major (`OrdinalSortKey` ≈ `accessibilityElements`), headers, stateful Buttons A/B/C |
-| `focus.*` | `FocusKeyboardPage` | `FocusKeyboardViewController` | Pre-filled + placeholder field, 25% slider, secure field; `FocusNode` ≈ first responder, `FocusManager` ≈ `didUpdateFocus(in:with:)` |
-| `modal.*` | `ModalBarrierPage` | `ModalBarrierViewController` | Modal route `BlockSemantics` ≈ `accessibilityViewIsModal`, `DraggableScrollableSheet` 50%/100% ≈ `.medium()/.large()` detents, `showDragHandle` ≈ grabber |
+| `focus.*` | `FocusKeyboardPage` | `FocusKeyboardViewController` | Pre-filled + placeholder field, live status banner + polite announcement (`SemanticsService.sendAnnouncement` / `liveRegion: true` ≈ `UIAccessibility.post(notification: .announcement)` / `.updatesFrequently`), 25% slider, secure field; `FocusNode` ≈ first responder, `FocusManager` ≈ `didUpdateFocus(in:with:)` |
+| `modal.*` | `ModalBarrierPage` | `ModalBarrierViewController` | Modal route `BlockSemantics` ≈ `accessibilityViewIsModal`, `MenuAnchor` overlay portal ≈ anchored `UIMenu` popup, `DraggableScrollableSheet` 50%/100% ≈ `.medium()/.large()` detents, `showDragHandle` ≈ grabber |
 
 ## Instrumentation
 

@@ -31,6 +31,7 @@ class A11yProbe extends StatelessWidget {
     this.mergeDescendants = false,
     this.trackFocus = true,
     this.header = false,
+    this.liveRegion = false,
     this.selected,
     this.label,
     this.value,
@@ -45,6 +46,7 @@ class A11yProbe extends StatelessWidget {
   final bool mergeDescendants;
   final bool trackFocus;
   final bool header;
+  final bool liveRegion;
   final bool? selected;
   final String? label;
   final String? value;
@@ -61,6 +63,7 @@ class A11yProbe extends StatelessWidget {
       explicitChildNodes: explicitChildNodes,
       identifier: identifier,
       header: header,
+      liveRegion: liveRegion,
       selected: selected,
       label: label,
       value: value,
