@@ -15,17 +15,20 @@ import 'package:flutter/widgets.dart';
 /// changes for this node to [A11yActionObserver]. Leave it false for widgets
 /// that already declare those handlers themselves (e.g. [TextField], [Slider]).
 ///
-/// Placement matters in Flutter: configuration merges *upward* into the
-/// nearest semantics boundary. Put this widget *inside* a button's `child`
-/// (so it merges into the button's own node), set [container] when wrapping
-/// leaf widgets such as `Text` or `TextField`, or combine it with
-/// [MergeSemantics] when a whole cell should become one element.
+/// Placement matters in Flutter: setting [identifier] implicitly marks a
+/// [Semantics] node as a semantic boundary (`isSemanticBoundary = true`).
+/// When annotating a widget that already creates its own semantics boundary
+/// (such as `FilledButton`, `OutlinedButton`, `TextButton`, `ListTile`, or
+/// `Slider`), wrap the widget with [A11yProbe] and set `mergeDescendants: true`
+/// so the probe's identifier, traits, actions, and [sortKey] merge with the
+/// control into a single platform accessibility element.
 class A11yProbe extends StatelessWidget {
   const A11yProbe({
     super.key,
     required this.identifier,
     this.container = false,
     this.explicitChildNodes = false,
+    this.mergeDescendants = false,
     this.trackFocus = true,
     this.header = false,
     this.selected,
@@ -39,6 +42,7 @@ class A11yProbe extends StatelessWidget {
   final String identifier;
   final bool container;
   final bool explicitChildNodes;
+  final bool mergeDescendants;
   final bool trackFocus;
   final bool header;
   final bool? selected;
@@ -52,7 +56,7 @@ class A11yProbe extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
+    Widget result = Semantics(
       container: container,
       explicitChildNodes: explicitChildNodes,
       identifier: identifier,
@@ -60,11 +64,21 @@ class A11yProbe extends StatelessWidget {
       selected: selected,
       label: label,
       value: value,
-      sortKey: sortKey,
+      sortKey: mergeDescendants ? null : sortKey,
       customSemanticsActions: customSemanticsActions,
       onDidGainAccessibilityFocus: trackFocus ? _noop : null,
       onDidLoseAccessibilityFocus: trackFocus ? _noop : null,
       child: child,
     );
+    if (mergeDescendants) {
+      if (sortKey != null) {
+        // Place sortKey on a non-boundary Semantics directly under
+        // MergeSemantics so RenderMergeSemantics absorbs sortKey onto the
+        // merged SemanticsNode itself.
+        result = Semantics(sortKey: sortKey, child: result);
+      }
+      result = MergeSemantics(child: result);
+    }
+    return result;
   }
 }

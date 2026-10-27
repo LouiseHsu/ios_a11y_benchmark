@@ -134,11 +134,12 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
       appBar: AppBar(
         title: const Text('Focus & Keyboard'),
         actions: <Widget>[
-          TextButton(
-            onPressed: () => FocusManager.instance.primaryFocus?.unfocus(),
-            child: const A11yProbe(
-              identifier: 'focus.dismissKeyboardButton',
-              child: Text('Dismiss Keyboard'),
+          A11yProbe(
+            identifier: 'focus.dismissKeyboardButton',
+            mergeDescendants: true,
+            child: TextButton(
+              onPressed: () => FocusManager.instance.primaryFocus?.unfocus(),
+              child: const Text('Dismiss Keyboard'),
             ),
           ),
         ],

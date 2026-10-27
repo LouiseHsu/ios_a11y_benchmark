@@ -1,7 +1,7 @@
 # flutter_a11y_benchmark
 
-Flutter twin of [`uikit_a11y_benchmark`](../uikit_a11y_benchmark): the same six
-accessibility "ruler" screens, the same control structure, and the same
+Flutter twin of [`uikit_a11y_benchmark`](../uikit_a11y_benchmark): the same four
+core accessibility "ruler" screens, the same control structure, and the same
 `accessibilityIdentifier`s, so iOS VoiceOver, Full Keyboard Access (FKA) and
 Voice Control behaviour can be compared control-for-control against pure UIKit.
 
@@ -13,22 +13,20 @@ first-party home of the Material widgets on this SDK).
 | Identifier prefix | Flutter page | UIKit twin | What it benchmarks |
 | --- | --- | --- | --- |
 | `menu.*` | `MenuPage` | `MenuViewController` | Root list of destinations |
-| `scroll.*` | `ScrollBaselinePage` | `ScrollBaselineViewController` | `contentOffset.y`, viewport height, Δy, `Δy / viewportHeight` (100% native vs. 80% Flutter page scroll), "Page X of Y", `primary: false` ≈ `scrollsToTop = false` |
-| `traversal.*` | `TraversalHierarchyPage` | `TraversalHierarchyViewController` | `OrdinalSortKey` ≈ `accessibilityElements` ordering, `Directionality` ≈ `semanticContentAttribute`, headers, zero-rect sentinels, stateful Buttons A/B/C |
+| `scroll.*` | `ScrollBaselinePage` | `ScrollBaselineViewController` | `contentOffset.y`, viewport height, Δy, `Δy / viewportHeight` (100% native vs. 80% Flutter page scroll), "Page X of Y" |
+| `traversal.*` | `TraversalHierarchyPage` | `TraversalHierarchyViewController` | Natural geometric Row-Major (`sortKey: null` ≈ `accessibilityElements = nil`) vs. explicit Column-Major (`OrdinalSortKey` ≈ `accessibilityElements`), headers, stateful Buttons A/B/C |
 | `focus.*` | `FocusKeyboardPage` | `FocusKeyboardViewController` | Pre-filled + placeholder field, 25% slider, secure field; `FocusNode` ≈ first responder, `FocusManager` ≈ `didUpdateFocus(in:with:)` |
 | `modal.*` | `ModalBarrierPage` | `ModalBarrierViewController` | Modal route `BlockSemantics` ≈ `accessibilityViewIsModal`, `DraggableScrollableSheet` 50%/100% ≈ `.medium()/.large()` detents, `showDragHandle` ≈ grabber |
-| `customActions.*` | `CustomActionsPage` | `CustomActionsViewController` | `MergeSemantics` + `CustomSemanticsAction` ≈ merged cell + `UIAccessibilityCustomAction` |
-| `composite.*` | `CompositeArenaPage` | `CompositeArenaViewController` | Visual vs. tree focus order, concurrent `unfocus()` + `AlertDialog` ≈ `resignFirstResponder()` + `UIAlertController` |
 
 ## Instrumentation
 
 * `lib/a11y/a11y_probe.dart` — attaches identifier / value / traits / sort key /
   custom actions to the semantics node a widget contributes to (placement
-  rules are documented in the file).
+  rules are documented in the file, including `mergeDescendants: true` for buttons).
 * `lib/a11y/a11y_action_observer.dart` — wraps
   `PlatformDispatcher.onSemanticsActionEvent` and logs every semantics action the
   platform sends (`didGainAccessibilityFocus`, `increase`, `scrollUp`, custom
-  actions, …) with the targeted node's identifier. This is the Flutter stand-in
+  actions, …) with the targeted node's merged identifier. This is the Flutter stand-in
   for UIKit's global `UIAccessibility.elementFocusedNotification` observer. All
   logs are prefixed `[A11yAction]`, `[ScrollBaseline]`, `[FocusKeyboard]`, etc.
 
@@ -56,10 +54,6 @@ to benchmark local `SemanticsObject.mm` changes.
 
 ## Known, intentional differences
 
-* Flutter's iOS embedder posts `UIAccessibilityPageScrolledNotification` with an
-  empty string; the "Page X of Y" status is therefore displayed but cannot be
-  announced from Dart.
-* Flutter drops semantics nodes whose rect is empty, so the zero-rect sentinels
-  are configured identically but never reach the platform.
-* Flutter cannot post `UIAccessibilityLayoutChangedNotification` with a focus
-  target after the RTL toggle; UIKit does.
+* Flutter's iOS embedder posts `UIAccessibilityPageScrolledNotification` with a
+  `SemanticsObject*` instead of an `NSString*`; the "Page X of Y" status is
+  therefore displayed on screen and announced in UIKit, while silent in Flutter.

@@ -13,7 +13,6 @@ final class ScrollBaselineViewController: UIViewController {
     private let deltaLabel = UILabel()
     private let ratioLabel = UILabel()
     private let pageScrolledLabel = UILabel()
-    private let secondaryScrollView = UIScrollView()
     private let tableView = BaselineTableView(frame: .zero, style: .plain)
 
     private var previousFrameOffsetY: CGFloat = 0
@@ -27,7 +26,6 @@ final class ScrollBaselineViewController: UIViewController {
         view.backgroundColor = .systemBackground
 
         configureHeader()
-        configureSecondaryScrollView()
         configureTableView()
         updateMetricsDisplay(contentOffsetY: 0, viewportHeight: 0, deltaY: 0, stepDeltaY: 0)
     }
@@ -71,7 +69,12 @@ final class ScrollBaselineViewController: UIViewController {
         ratioLabel.accessibilityIdentifier = "scroll.ratioLabel"
         pageScrolledLabel.accessibilityIdentifier = "scroll.pageScrolledLabel"
 
+        let separator = UIView()
+        separator.translatesAutoresizingMaskIntoConstraints = false
+        separator.backgroundColor = .separator
+
         headerContainerView.addSubview(metricsStack)
+        headerContainerView.addSubview(separator)
         view.addSubview(headerContainerView)
 
         NSLayoutConstraint.activate([
@@ -82,56 +85,7 @@ final class ScrollBaselineViewController: UIViewController {
             metricsStack.topAnchor.constraint(equalTo: headerContainerView.topAnchor, constant: 10),
             metricsStack.leadingAnchor.constraint(equalTo: headerContainerView.leadingAnchor, constant: 16),
             metricsStack.trailingAnchor.constraint(equalTo: headerContainerView.trailingAnchor, constant: -16),
-        ])
-    }
-
-    private func configureSecondaryScrollView() {
-        // Secondary nested horizontal UIScrollView with scrollsToTop = false
-        // so status-bar tap scroll-to-top remains deterministic on the primary UITableView.
-        secondaryScrollView.translatesAutoresizingMaskIntoConstraints = false
-        secondaryScrollView.scrollsToTop = false
-        secondaryScrollView.showsHorizontalScrollIndicator = false
-        secondaryScrollView.accessibilityIdentifier = "scroll.secondaryScrollView"
-        secondaryScrollView.backgroundColor = .tertiarySystemBackground
-        secondaryScrollView.layer.cornerRadius = 6
-
-        let chipStack = UIStackView()
-        chipStack.translatesAutoresizingMaskIntoConstraints = false
-        chipStack.axis = .horizontal
-        chipStack.spacing = 8
-
-        for index in 1...8 {
-            let chipLabel = UILabel()
-            chipLabel.font = .systemFont(ofSize: 12, weight: .medium)
-            chipLabel.text = "Tag #\(index) (scrollsToTop=false)"
-            chipLabel.textColor = .secondaryLabel
-            chipLabel.backgroundColor = .quaternarySystemFill
-            chipLabel.layer.cornerRadius = 4
-            chipLabel.clipsToBounds = true
-            chipLabel.accessibilityIdentifier = "scroll.secondaryChip.\(index)"
-            chipStack.addArrangedSubview(chipLabel)
-        }
-
-        let separator = UIView()
-        separator.translatesAutoresizingMaskIntoConstraints = false
-        separator.backgroundColor = .separator
-
-        secondaryScrollView.addSubview(chipStack)
-        headerContainerView.addSubview(secondaryScrollView)
-        headerContainerView.addSubview(separator)
-
-        NSLayoutConstraint.activate([
-            secondaryScrollView.topAnchor.constraint(equalTo: pageScrolledLabel.bottomAnchor, constant: 8),
-            secondaryScrollView.leadingAnchor.constraint(equalTo: headerContainerView.leadingAnchor, constant: 16),
-            secondaryScrollView.trailingAnchor.constraint(equalTo: headerContainerView.trailingAnchor, constant: -16),
-            secondaryScrollView.heightAnchor.constraint(equalToConstant: 32),
-            secondaryScrollView.bottomAnchor.constraint(equalTo: headerContainerView.bottomAnchor, constant: -10),
-
-            chipStack.topAnchor.constraint(equalTo: secondaryScrollView.contentLayoutGuide.topAnchor, constant: 4),
-            chipStack.leadingAnchor.constraint(equalTo: secondaryScrollView.contentLayoutGuide.leadingAnchor, constant: 8),
-            chipStack.trailingAnchor.constraint(equalTo: secondaryScrollView.contentLayoutGuide.trailingAnchor, constant: -8),
-            chipStack.bottomAnchor.constraint(equalTo: secondaryScrollView.contentLayoutGuide.bottomAnchor, constant: -4),
-            chipStack.heightAnchor.constraint(equalTo: secondaryScrollView.frameLayoutGuide.heightAnchor, constant: -8),
+            metricsStack.bottomAnchor.constraint(equalTo: headerContainerView.bottomAnchor, constant: -10),
 
             separator.leadingAnchor.constraint(equalTo: headerContainerView.leadingAnchor),
             separator.trailingAnchor.constraint(equalTo: headerContainerView.trailingAnchor),

@@ -1,8 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../a11y/a11y_probe.dart';
-import 'composite_arena_page.dart';
-import 'custom_actions_page.dart';
 import 'focus_keyboard_page.dart';
 import 'modal_barrier_page.dart';
 import 'scroll_baseline_page.dart';
@@ -23,7 +21,7 @@ class MenuDestination {
   final WidgetBuilder builder;
 }
 
-/// Root screen: a list with the six benchmark destinations.
+/// Root screen: a list with the four benchmark destinations.
 ///
 /// UIKit twin: `MenuViewController` (inset-grouped `UITableView`).
 class MenuPage extends StatelessWidget {
@@ -33,14 +31,13 @@ class MenuPage extends StatelessWidget {
     MenuDestination(
       title: 'Scroll Baseline',
       subtitle:
-          '100-cell list with Δy/viewportHeight ratio & secondary scroll view',
+          '100-cell list with Δy/viewportHeight ratio & page scroll status',
       identifier: 'menu.scrollBaseline',
       builder: (_) => const ScrollBaselinePage(),
     ),
     MenuDestination(
       title: 'Traversal Hierarchy',
-      subtitle:
-          '3x3 grid with RTL toggle, headers, zero-rect & stateful buttons',
+      subtitle: '3x3 grid with headers, container ordering & stateful buttons',
       identifier: 'menu.traversalHierarchy',
       builder: (_) => const TraversalHierarchyPage(),
     ),
@@ -56,18 +53,6 @@ class MenuPage extends StatelessWidget {
       subtitle: 'Background buttons & draggable modal sheet barrier',
       identifier: 'menu.modalBarrier',
       builder: (_) => const ModalBarrierPage(),
-    ),
-    MenuDestination(
-      title: 'Custom Actions',
-      subtitle: 'Merged-label cells with Primary & Secondary rotor actions',
-      identifier: 'menu.customActions',
-      builder: (_) => const CustomActionsPage(),
-    ),
-    MenuDestination(
-      title: 'Composite Arena',
-      subtitle: 'Floating launcher & concurrent unfocus + modal present',
-      identifier: 'menu.compositeArena',
-      builder: (_) => const CompositeArenaPage(),
     ),
   ];
 

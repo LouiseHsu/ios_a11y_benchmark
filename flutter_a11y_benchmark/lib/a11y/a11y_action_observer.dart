@@ -78,7 +78,11 @@ class A11yActionObserver extends ChangeNotifier {
     if (nodeId == null) {
       return false;
     }
-    return _findNode(nodeId)?.identifier == identifier;
+    final SemanticsNode? node = _findNode(nodeId);
+    if (node == null) {
+      return false;
+    }
+    return node.getSemanticsData().identifier == identifier;
   }
 
   /// Human readable description of the currently VoiceOver-focused node.
@@ -143,16 +147,17 @@ class A11yActionObserver extends ChangeNotifier {
     return found;
   }
 
-  /// Describes [node] using its identifier, label and value (in that order of
-  /// preference), falling back to the raw node id.
+  /// Describes [node] using its merged identifier, label and value (in that
+  /// order of preference), falling back to the raw node id.
   static String describeNode(SemanticsNode? node, int nodeId) {
     if (node == null) {
       return 'node#$nodeId';
     }
+    final SemanticsData data = node.getSemanticsData();
     final List<String> parts = <String>[
-      if (node.identifier.isNotEmpty) node.identifier,
-      if (node.label.isNotEmpty) '"${node.label.replaceAll('\n', ' / ')}"',
-      if (node.value.isNotEmpty) 'value=${node.value}',
+      if (data.identifier.isNotEmpty) data.identifier,
+      if (data.label.isNotEmpty) '"${data.label.replaceAll('\n', ' / ')}"',
+      if (data.value.isNotEmpty) 'value=${data.value}',
     ];
     if (parts.isEmpty) {
       return 'node#$nodeId';

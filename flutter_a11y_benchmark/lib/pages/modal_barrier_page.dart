@@ -61,27 +61,30 @@ class _ModalBarrierPageState extends State<ModalBarrierPage> {
               ),
             ),
             const SizedBox(height: 16),
-            OutlinedButton(
-              onPressed: () => _backgroundButtonTapped(1),
-              child: const A11yProbe(
-                identifier: 'modal.backgroundButton1',
-                child: Text('Background Button 1'),
+            A11yProbe(
+              identifier: 'modal.backgroundButton1',
+              mergeDescendants: true,
+              child: OutlinedButton(
+                onPressed: () => _backgroundButtonTapped(1),
+                child: const Text('Background Button 1'),
               ),
             ),
             const SizedBox(height: 16),
-            OutlinedButton(
-              onPressed: () => _backgroundButtonTapped(2),
-              child: const A11yProbe(
-                identifier: 'modal.backgroundButton2',
-                child: Text('Background Button 2'),
+            A11yProbe(
+              identifier: 'modal.backgroundButton2',
+              mergeDescendants: true,
+              child: OutlinedButton(
+                onPressed: () => _backgroundButtonTapped(2),
+                child: const Text('Background Button 2'),
               ),
             ),
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: _presentModalSheet,
-              child: const A11yProbe(
-                identifier: 'modal.presentButton',
-                child: Text('Present Modal Sheet'),
+            A11yProbe(
+              identifier: 'modal.presentButton',
+              mergeDescendants: true,
+              child: FilledButton(
+                onPressed: _presentModalSheet,
+                child: const Text('Present Modal Sheet'),
               ),
             ),
           ],

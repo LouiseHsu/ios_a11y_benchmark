@@ -15,8 +15,6 @@
 		A10000050000000000000001 /* TraversalHierarchyViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000050000000000000001 /* TraversalHierarchyViewController.swift */; };
 		A10000060000000000000001 /* FocusKeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000060000000000000001 /* FocusKeyboardViewController.swift */; };
 		A10000070000000000000001 /* ModalBarrierViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000070000000000000001 /* ModalBarrierViewController.swift */; };
-		A10000080000000000000001 /* CustomActionsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000080000000000000001 /* CustomActionsViewController.swift */; };
-		A10000090000000000000001 /* CompositeArenaViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000090000000000000001 /* CompositeArenaViewController.swift */; };
 		A10000100000000000000001 /* UIKitA11yBenchmarkUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000100000000000000001 /* UIKitA11yBenchmarkUITests.swift */; };
 /* End PBXBuildFile section */
 
@@ -39,8 +37,6 @@
 		A20000050000000000000001 /* TraversalHierarchyViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraversalHierarchyViewController.swift; sourceTree = "<group>"; };
 		A20000060000000000000001 /* FocusKeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusKeyboardViewController.swift; sourceTree = "<group>"; };
 		A20000070000000000000001 /* ModalBarrierViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModalBarrierViewController.swift; sourceTree = "<group>"; };
-		A20000080000000000000001 /* CustomActionsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomActionsViewController.swift; sourceTree = "<group>"; };
-		A20000090000000000000001 /* CompositeArenaViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompositeArenaViewController.swift; sourceTree = "<group>"; };
 		A20000100000000000000001 /* UIKitA11yBenchmarkUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIKitA11yBenchmarkUITests.swift; sourceTree = "<group>"; };
 		A20000110000000000000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A20000120000000000000001 /* uikit_a11y_benchmark.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = uikit_a11y_benchmark.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -93,8 +89,6 @@
 				A20000050000000000000001 /* TraversalHierarchyViewController.swift */,
 				A20000060000000000000001 /* FocusKeyboardViewController.swift */,
 				A20000070000000000000001 /* ModalBarrierViewController.swift */,
-				A20000080000000000000001 /* CustomActionsViewController.swift */,
-				A20000090000000000000001 /* CompositeArenaViewController.swift */,
 			);
 			path = Controllers;
 			sourceTree = "<group>";
@@ -222,8 +216,6 @@
 				A10000050000000000000001 /* TraversalHierarchyViewController.swift in Sources */,
 				A10000060000000000000001 /* FocusKeyboardViewController.swift in Sources */,
 				A10000070000000000000001 /* ModalBarrierViewController.swift in Sources */,
-				A10000080000000000000001 /* CustomActionsViewController.swift in Sources */,
-				A10000090000000000000001 /* CompositeArenaViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

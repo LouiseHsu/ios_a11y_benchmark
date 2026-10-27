@@ -213,8 +213,6 @@ class _MetricsHeader extends StatelessWidget {
                     value: pageStatus,
                     secondary: true,
                   ),
-                  const SizedBox(height: 8),
-                  const _SecondaryTagStrip(),
                 ],
               ),
             ),
@@ -260,61 +258,6 @@ class _MetricLabel extends StatelessWidget {
                 ? colorScheme.onSurfaceVariant
                 : colorScheme.onSurface,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Secondary nested horizontal scroll view.
-///
-/// UIKit twin sets `scrollsToTop = false` so a status-bar tap deterministically
-/// targets the primary table view. Flutter's equivalent is `primary: false`
-/// (not attached to the [PrimaryScrollController]).
-class _SecondaryTagStrip extends StatelessWidget {
-  const _SecondaryTagStrip();
-
-  @override
-  Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    return Semantics(
-      container: true,
-      identifier: 'scroll.secondaryScrollView',
-      child: Container(
-        height: 32,
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(6),
-        ),
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          primary: false,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          itemCount: 8,
-          separatorBuilder: (_, _) => const SizedBox(width: 8),
-          itemBuilder: (BuildContext context, int index) {
-            final int number = index + 1;
-            return A11yProbe(
-              identifier: 'scroll.secondaryChip.$number',
-              container: true,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  'Tag #$number (primary: false)',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            );
-          },
         ),
       ),
     );

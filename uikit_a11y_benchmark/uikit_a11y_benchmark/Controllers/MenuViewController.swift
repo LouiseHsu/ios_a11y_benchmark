@@ -16,13 +16,13 @@ final class MenuViewController: UIViewController {
     private let destinations: [Destination] = [
         Destination(
             title: "Scroll Baseline",
-            subtitle: "100-cell table with Δy/viewportHeight ratio & secondary scrollView",
+            subtitle: "100-cell table with Δy/viewportHeight ratio & page scroll status",
             accessibilityIdentifier: "menu.scrollBaseline",
             makeViewController: { ScrollBaselineViewController() }
         ),
         Destination(
             title: "Traversal Hierarchy",
-            subtitle: "3x3 grid with RTL toggle, headers, zero-rect & stateful buttons",
+            subtitle: "3x3 grid with headers, container ordering & stateful buttons",
             accessibilityIdentifier: "menu.traversalHierarchy",
             makeViewController: { TraversalHierarchyViewController() }
         ),
@@ -37,18 +37,6 @@ final class MenuViewController: UIViewController {
             subtitle: "Background buttons & UISheetPresentationController modal barrier",
             accessibilityIdentifier: "menu.modalBarrier",
             makeViewController: { ModalBarrierViewController() }
-        ),
-        Destination(
-            title: "Custom Actions",
-            subtitle: "Merged-label cells with Primary & Secondary rotor actions",
-            accessibilityIdentifier: "menu.customActions",
-            makeViewController: { CustomActionsViewController() }
-        ),
-        Destination(
-            title: "Composite Arena",
-            subtitle: "Floating launcher & concurrent resignFirstResponder + modal present",
-            accessibilityIdentifier: "menu.compositeArena",
-            makeViewController: { CompositeArenaViewController() }
         ),
     ]
 

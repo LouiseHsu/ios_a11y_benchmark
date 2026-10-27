@@ -8,28 +8,15 @@ final class TraversalHierarchyViewController: UIViewController {
     private let gridContainerView = TraversalGridContainerView()
     private let orderingControl = UISegmentedControl(items: ["Row-Major", "Column-Major"])
     private let statusLabel = UILabel()
-    private var isRightToLeft = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Traversal Hierarchy"
         view.backgroundColor = .systemBackground
 
-        configureNavigationBar()
         configureViews()
         registerNotifications()
         updateOrderingStatus()
-    }
-
-    private func configureNavigationBar() {
-        let rtlToggleItem = UIBarButtonItem(
-            title: "Direction: LTR",
-            style: .plain,
-            target: self,
-            action: #selector(toggleLayoutDirection)
-        )
-        rtlToggleItem.accessibilityIdentifier = "traversal.directionToggleButton"
-        navigationItem.rightBarButtonItem = rtlToggleItem
     }
 
     private func configureViews() {
@@ -89,16 +76,6 @@ final class TraversalHierarchyViewController: UIViewController {
         Self.logger.info("[TraversalHierarchy] VoiceOver focused element: \(label, privacy: .public)")
     }
 
-    @objc private func toggleLayoutDirection() {
-        isRightToLeft.toggle()
-        let attribute: UISemanticContentAttribute = isRightToLeft ? .forceRightToLeft : .forceLeftToRight
-        navigationItem.rightBarButtonItem?.title = isRightToLeft ? "Direction: RTL" : "Direction: LTR"
-        view.semanticContentAttribute = attribute
-        gridContainerView.applySemanticContentAttribute(attribute, isRTL: isRightToLeft)
-        updateOrderingStatus()
-        UIAccessibility.post(notification: .layoutChanged, argument: gridContainerView)
-    }
-
     @objc private func orderingChanged(_ sender: UISegmentedControl) {
         let mode: TraversalGridContainerView.TraversalMode =
             sender.selectedSegmentIndex == 0 ? .rowMajor : .columnMajor
@@ -108,11 +85,11 @@ final class TraversalHierarchyViewController: UIViewController {
     }
 
     private func updateOrderingStatus() {
-        let count = gridContainerView.accessibilityElementCount()
-        let directionText = isRightToLeft ? "RTL" : "LTR"
-        recordEvent(
-            "Mode: \(gridContainerView.traversalMode.rawValue) | \(directionText) (\(count) container elements)"
-        )
+        let mode = gridContainerView.traversalMode
+        let detail = mode == .rowMajor
+            ? "natural geometric order"
+            : "explicit UIAccessibilityContainer order"
+        recordEvent("Mode: \(mode.rawValue) (\(detail))")
     }
 
     private func recordEvent(_ message: String) {
@@ -139,13 +116,10 @@ final class TraversalGridContainerView: UIView {
 
     var onStatusEvent: ((String) -> Void)?
 
-    private var isRightToLeft = false
     private let outerStack = UIStackView()
     private var rowStacks: [UIStackView] = []
     private var rowHeaderLabels: [UILabel] = []
     private var gridButtons: [[UIButton]] = []
-    private var zeroRectViews: [UIView] = []
-    private var orderedAccessibilityElements: [Any] = []
 
     // Stateful buttons in Row 1 (indices [0][0], [0][1], [0][2]):
     // Button A: Mutating Icon Button
@@ -167,19 +141,6 @@ final class TraversalGridContainerView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func applySemanticContentAttribute(_ attribute: UISemanticContentAttribute, isRTL: Bool) {
-        isRightToLeft = isRTL
-        semanticContentAttribute = attribute
-        outerStack.semanticContentAttribute = attribute
-        for rowStack in rowStacks {
-            rowStack.semanticContentAttribute = attribute
-        }
-        for headerLabel in rowHeaderLabels {
-            headerLabel.semanticContentAttribute = attribute
-        }
-        rebuildAccessibilityOrder()
-    }
-
     private func setupHierarchy() {
         outerStack.translatesAutoresizingMaskIntoConstraints = false
         outerStack.axis = .vertical
@@ -194,14 +155,6 @@ final class TraversalGridContainerView: UIView {
             headerLabel.accessibilityIdentifier = "traversal.header.\(row)"
             rowHeaderLabels.append(headerLabel)
             outerStack.addArrangedSubview(headerLabel)
-
-            // Zero-rect accessibility element placed between header and row buttons
-            let zeroRectView = UIView(frame: .zero)
-            zeroRectView.isAccessibilityElement = true
-            zeroRectView.accessibilityLabel = "Zero-Rect Sentinel \(row + 1)"
-            zeroRectView.accessibilityIdentifier = "traversal.zeroRect.\(row)"
-            zeroRectViews.append(zeroRectView)
-            addSubview(zeroRectView)
 
             let rowStack = UIStackView()
             rowStack.axis = .horizontal
@@ -315,45 +268,19 @@ final class TraversalGridContainerView: UIView {
     }
 
     private func rebuildAccessibilityOrder() {
-        let colIndices = isRightToLeft ? Array((0..<3).reversed()) : Array(0..<3)
-        var elements: [Any] = []
-
         switch traversalMode {
         case .rowMajor:
-            for row in 0..<3 {
-                elements.append(rowHeaderLabels[row])
-                elements.append(zeroRectViews[row])
-                for col in colIndices {
-                    elements.append(gridButtons[row][col])
-                }
-            }
+            // Nil restores UIKit's default geometric/subview traversal order.
+            accessibilityElements = nil
         case .columnMajor:
-            for col in colIndices {
+            var elements: [Any] = []
+            for col in 0..<3 {
                 elements.append(rowHeaderLabels[col])
                 for row in 0..<3 {
                     elements.append(gridButtons[row][col])
                 }
-                elements.append(zeroRectViews[col])
             }
+            accessibilityElements = elements
         }
-
-        orderedAccessibilityElements = elements
-        accessibilityElements = elements
-    }
-
-    // MARK: - UIAccessibilityContainer
-
-    override func accessibilityElementCount() -> Int {
-        return orderedAccessibilityElements.count
-    }
-
-    override func accessibilityElement(at index: Int) -> Any? {
-        guard orderedAccessibilityElements.indices.contains(index) else { return nil }
-        return orderedAccessibilityElements[index]
-    }
-
-    override func index(ofAccessibilityElement element: Any) -> Int {
-        guard let object = element as AnyObject? else { return NSNotFound }
-        return orderedAccessibilityElements.firstIndex { ($0 as AnyObject) === object } ?? NSNotFound
     }
 }

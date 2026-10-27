@@ -9,8 +9,6 @@ void main() {
     'menu.traversalHierarchy',
     'menu.focusKeyboard',
     'menu.modalBarrier',
-    'menu.customActions',
-    'menu.compositeArena',
   ];
 
   bool traversalContains(WidgetTester tester, String identifier) {
@@ -26,7 +24,7 @@ void main() {
     );
   }
 
-  testWidgets('menu exposes the six destinations with shared identifiers', (
+  testWidgets('menu exposes the four destinations with shared identifiers', (
     WidgetTester tester,
   ) async {
     final SemanticsHandle handle = tester.ensureSemantics();
@@ -90,4 +88,62 @@ void main() {
     expect(traversalContains(tester, 'modal.backgroundButton2'), isTrue);
     handle.dispose();
   });
+
+  testWidgets(
+    'traversal hierarchy merges button semantics and reorders row vs column major',
+    (WidgetTester tester) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      await tester.pumpWidget(const FlutterA11yBenchmarkApp());
+      await tester.tap(find.bySemanticsIdentifier('menu.traversalHierarchy'));
+      await tester.pumpAndSettle();
+
+      List<String> gridIdentifiersInTraversalOrder() {
+        return tester.semantics
+            .simulatedAccessibilityTraversal()
+            .map((SemanticsNode node) => node.getSemanticsData().identifier)
+            .where(
+              (String id) =>
+                  id.startsWith('traversal.header.') ||
+                  id.startsWith('traversal.button'),
+            )
+            .toList();
+      }
+
+      // Verify buttonA merges the button trait with the probe's identifier.
+      final SemanticsNode buttonANode = tester.semantics
+          .simulatedAccessibilityTraversal()
+          .firstWhere(
+            (SemanticsNode n) =>
+                n.getSemanticsData().identifier == 'traversal.buttonA',
+          );
+      expect(buttonANode.getSemanticsData().flagsCollection.isButton, isTrue);
+
+      // Default Row-Major order: Row 0 buttons precede Row 1 header/buttons.
+      final List<String> rowMajor = gridIdentifiersInTraversalOrder();
+      expect(
+        rowMajor.indexOf('traversal.buttonB'),
+        lessThan(rowMajor.indexOf('traversal.header.1')),
+      );
+      expect(
+        rowMajor.indexOf('traversal.header.1'),
+        lessThan(rowMajor.indexOf('traversal.button.1.0')),
+      );
+
+      // Switch to Column-Major order: Column 0 buttons (buttonA, button.1.0,
+      // button.2.0) precede Column 1 (header.1, buttonB).
+      await tester.tap(find.text('Column-Major'));
+      await tester.pumpAndSettle();
+
+      final List<String> columnMajor = gridIdentifiersInTraversalOrder();
+      expect(
+        columnMajor.indexOf('traversal.button.1.0'),
+        lessThan(columnMajor.indexOf('traversal.header.1')),
+      );
+      expect(
+        columnMajor.indexOf('traversal.button.2.0'),
+        lessThan(columnMajor.indexOf('traversal.buttonB')),
+      );
+      handle.dispose();
+    },
+  );
 }

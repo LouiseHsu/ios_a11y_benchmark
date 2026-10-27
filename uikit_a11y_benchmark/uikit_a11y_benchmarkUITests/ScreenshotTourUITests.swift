@@ -52,25 +52,6 @@ final class ScreenshotTourUITests: XCTestCase {
             },
             interactionName: "04b_modal_barrier_sheet_presented"
         ),
-        Stop(
-            menuIdentifier: "menu.customActions",
-            readyIdentifier: "customActions.statusLabel",
-            name: "05_custom_actions",
-            interaction: nil,
-            interactionName: nil
-        ),
-        Stop(
-            menuIdentifier: "menu.compositeArena",
-            readyIdentifier: "composite.launchModalButton",
-            name: "06_composite_arena",
-            interaction: { app in
-                app.descendants(matching: .any).matching(identifier: "composite.textField.1").firstMatch.tap()
-                app.descendants(matching: .any).matching(identifier: "composite.resignAndPresentButton").firstMatch.tap()
-                _ = app.descendants(matching: .any).matching(identifier: "composite.alertOkButton").firstMatch
-                    .waitForExistence(timeout: 10)
-            },
-            interactionName: "06b_composite_arena_alert_after_unfocus"
-        ),
     ]
 
     override func setUpWithError() throws {

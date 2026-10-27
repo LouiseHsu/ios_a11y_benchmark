@@ -85,20 +85,22 @@ class _BarrierModalSheetState extends State<BarrierModalSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            FilledButton.tonal(
-              onPressed: () =>
-                  setState(() => _title = 'Modal Action Triggered'),
-              child: const A11yProbe(
-                identifier: 'modal.sheetActionButton',
-                child: Text('Modal Sheet Action'),
+            A11yProbe(
+              identifier: 'modal.sheetActionButton',
+              mergeDescendants: true,
+              child: FilledButton.tonal(
+                onPressed: () =>
+                    setState(() => _title = 'Modal Action Triggered'),
+                child: const Text('Modal Sheet Action'),
               ),
             ),
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const A11yProbe(
-                identifier: 'modal.dismissButton',
-                child: Text('Dismiss Modal Sheet'),
+            A11yProbe(
+              identifier: 'modal.dismissButton',
+              mergeDescendants: true,
+              child: FilledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Dismiss Modal Sheet'),
               ),
             ),
           ],

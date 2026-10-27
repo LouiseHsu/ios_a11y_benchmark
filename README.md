@@ -9,7 +9,7 @@ act as an accessibility "ruler" for comparing VoiceOver, Full Keyboard Access
 | [`uikit_a11y_benchmark/`](uikit_a11y_benchmark) | Swift + UIKit, iOS 16+, no dependencies | `com.example.uikit-a11y-benchmark` |
 | [`flutter_a11y_benchmark/`](flutter_a11y_benchmark) | Flutter (`package:flutter` + `material_ui`), iOS 16+ | `com.example.flutterA11yBenchmark` |
 
-Both apps expose the same six screens, the same control structure, and the same
+Both apps expose the same four core screens, the same control structure, and the same
 `accessibilityIdentifier`s (Flutter: `SemanticsProperties.identifier`), so the
 XCUITests in each project make the same assertions and can be diffed line by line.
 
@@ -18,12 +18,10 @@ XCUITests in each project make the same assertions and can be diffed line by lin
 | Prefix | UIKit | Flutter | Benchmarks |
 | --- | --- | --- | --- |
 | `menu.*` | `MenuViewController` | `MenuPage` | Root list of destinations |
-| `scroll.*` | `ScrollBaselineViewController` | `ScrollBaselinePage` | `contentOffset.y`, viewport height, Δy, `Δy / viewportHeight` (100% native vs. 80% Flutter page scroll), "Page X of Y", `scrollsToTop = false` ≈ `primary: false` |
-| `traversal.*` | `TraversalHierarchyViewController` | `TraversalHierarchyPage` | `accessibilityElements` ordering ≈ `OrdinalSortKey`, `semanticContentAttribute` ≈ `Directionality`, `.header` trait, zero-rect elements, stateful Buttons A/B/C (selected trait + mutating icon, enable/disable) |
+| `scroll.*` | `ScrollBaselineViewController` | `ScrollBaselinePage` | `contentOffset.y`, viewport height, Δy, `Δy / viewportHeight` (100% native vs. 80% Flutter page scroll), "Page X of Y" |
+| `traversal.*` | `TraversalHierarchyViewController` | `TraversalHierarchyPage` | Natural geometric Row-Major (`accessibilityElements = nil` ≈ `sortKey: null`) vs. explicit Column-Major (`accessibilityElements` ≈ `OrdinalSortKey`), `.header` trait, stateful Buttons A/B/C (selected trait + mutating icon, enable/disable) |
 | `focus.*` | `FocusKeyboardViewController` | `FocusKeyboardPage` | Pre-filled + placeholder field, 25% slider, secure field; first responder ≈ `FocusNode`, `didUpdateFocus(in:with:)` ≈ `FocusManager` |
 | `modal.*` | `ModalBarrierViewController` | `ModalBarrierPage` | `accessibilityViewIsModal` ≈ modal-route `BlockSemantics`, `.medium()/.large()` detents ≈ 50%/100% `DraggableScrollableSheet`, grabber ≈ `showDragHandle` |
-| `customActions.*` | `CustomActionsViewController` | `CustomActionsPage` | Merged cell + two `UIAccessibilityCustomAction`s ≈ `MergeSemantics` + `CustomSemanticsAction` |
-| `composite.*` | `CompositeArenaViewController` | `CompositeArenaPage` | Visual vs. hierarchy focus order (floating bar), concurrent `resignFirstResponder()` + alert ≈ `unfocus()` + `AlertDialog` |
 
 ## Tests
 

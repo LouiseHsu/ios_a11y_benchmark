@@ -15,13 +15,13 @@ enum TraversalMode {
   final String label;
 }
 
-/// 3x3 grid with section headers, zero-rect sentinels and three stateful
-/// buttons, exercising explicit traversal ordering and RTL layout.
+/// 3x3 grid with section headers and three stateful buttons, exercising
+/// natural geometric traversal vs. explicit container ordering.
 ///
 /// UIKit twin: `TraversalHierarchyViewController` + `TraversalGridContainerView`
-/// (a `UIAccessibilityContainer` that rebuilds `accessibilityElements`).
-/// Flutter's equivalent of a custom element order is [OrdinalSortKey]; the
-/// equivalent of `semanticContentAttribute` is [Directionality].
+/// (a `UIAccessibilityContainer` that sets `accessibilityElements` in
+/// Column-Major mode and leaves it `nil` in Row-Major mode).
+/// Flutter's equivalent of an explicit element order is [OrdinalSortKey].
 class TraversalHierarchyPage extends StatefulWidget {
   const TraversalHierarchyPage({super.key});
 
@@ -33,7 +33,6 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
   static const int gridSize = 3;
 
   TraversalMode _mode = TraversalMode.rowMajor;
-  bool _isRightToLeft = false;
   bool _buttonASelected = false;
   bool _buttonBEnabled = false;
   String _status = '';
@@ -63,34 +62,28 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
     }
   }
 
-  /// Explicit traversal order, identical to the UIKit container's
-  /// `rebuildAccessibilityOrder()`.
+  /// Explicit traversal ordinals for Column-Major mode; empty in Row-Major mode
+  /// so Flutter uses its natural geometric traversal order (matching UIKit's
+  /// `accessibilityElements = nil`).
   Map<String, double> _ordinals() {
-    final List<int> columns = _isRightToLeft
-        ? List<int>.generate(gridSize, (int i) => gridSize - 1 - i)
-        : List<int>.generate(gridSize, (int i) => i);
+    if (_mode == TraversalMode.rowMajor) {
+      return const <String, double>{};
+    }
     final List<String> keys = <String>[];
-    switch (_mode) {
-      case TraversalMode.rowMajor:
-        for (int row = 0; row < gridSize; row += 1) {
-          keys.add('header.$row');
-          keys.add('zeroRect.$row');
-          for (final int col in columns) {
-            keys.add('button.$row.$col');
-          }
-        }
-      case TraversalMode.columnMajor:
-        for (final int col in columns) {
-          keys.add('header.$col');
-          for (int row = 0; row < gridSize; row += 1) {
-            keys.add('button.$row.$col');
-          }
-          keys.add('zeroRect.$col');
-        }
+    for (int col = 0; col < gridSize; col += 1) {
+      keys.add('header.$col');
+      for (int row = 0; row < gridSize; row += 1) {
+        keys.add('button.$row.$col');
+      }
     }
     return <String, double>{
       for (int i = 0; i < keys.length; i += 1) keys[i]: i.toDouble(),
     };
+  }
+
+  SemanticsSortKey? _sortKeyFor(Map<String, double> ordinals, String key) {
+    final double? order = ordinals[key];
+    return order != null ? OrdinalSortKey(order) : null;
   }
 
   void _recordEvent(String message) {
@@ -99,17 +92,10 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
   }
 
   void _updateOrderingStatus() {
-    final int count = gridSize * 2 + gridSize * gridSize;
-    final String direction = _isRightToLeft ? 'RTL' : 'LTR';
-    _recordEvent(
-      'Mode: ${_mode.label} | $direction ($count container elements incl. '
-      'headers & zero-rect sentinels)',
-    );
-  }
-
-  void _toggleLayoutDirection() {
-    setState(() => _isRightToLeft = !_isRightToLeft);
-    _updateOrderingStatus();
+    final String detail = _mode == TraversalMode.rowMajor
+        ? 'natural geometric order'
+        : 'explicit OrdinalSortKey order';
+    _recordEvent('Mode: ${_mode.label} ($detail)');
   }
 
   void _onButtonATapped() {
@@ -150,20 +136,8 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
 
   @override
   Widget build(BuildContext context) {
-    final Map<String, double> ordinals = _ordinals();
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Traversal Hierarchy'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: _toggleLayoutDirection,
-            child: A11yProbe(
-              identifier: 'traversal.directionToggleButton',
-              child: Text(_isRightToLeft ? 'Direction: RTL' : 'Direction: LTR'),
-            ),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Traversal Hierarchy')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -189,40 +163,27 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
               ),
             ),
             const SizedBox(height: 20),
-            // UIKit: TraversalGridContainerView with semanticContentAttribute.
-            Directionality(
-              textDirection: _isRightToLeft
-                  ? TextDirection.rtl
-                  : TextDirection.ltr,
-              child: A11yProbe(
-                identifier: 'traversal.gridContainer',
-                container: true,
-                explicitChildNodes: true,
-                trackFocus: false,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    for (int row = 0; row < gridSize; row += 1) ...<Widget>[
-                      if (row > 0) const SizedBox(height: 12),
-                      _buildHeader(row, ordinals),
-                      _buildZeroRectSentinel(row, ordinals),
-                      Row(
-                        children: <Widget>[
-                          for (
-                            int col = 0;
-                            col < gridSize;
-                            col += 1
-                          ) ...<Widget>[
-                            if (col > 0) const SizedBox(width: 8),
-                            Expanded(
-                              child: _buildGridButton(row, col, ordinals),
-                            ),
-                          ],
+            A11yProbe(
+              identifier: 'traversal.gridContainer',
+              container: true,
+              explicitChildNodes: true,
+              trackFocus: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  for (int row = 0; row < gridSize; row += 1) ...<Widget>[
+                    if (row > 0) const SizedBox(height: 12),
+                    _buildHeader(row),
+                    Row(
+                      children: <Widget>[
+                        for (int col = 0; col < gridSize; col += 1) ...<Widget>[
+                          if (col > 0) const SizedBox(width: 8),
+                          Expanded(child: _buildGridButton(row, col)),
                         ],
-                      ),
-                    ],
+                      ],
+                    ),
                   ],
-                ),
+                ],
               ),
             ),
             const SizedBox(height: 20),
@@ -243,14 +204,14 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
     );
   }
 
-  Widget _buildHeader(int row, Map<String, double> ordinals) {
+  Widget _buildHeader(int row) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: A11yProbe(
         identifier: 'traversal.header.$row',
         container: true,
         header: true,
-        sortKey: OrdinalSortKey(ordinals['header.$row']!),
+        sortKey: _sortKeyFor('header.$row'),
         child: Text(
           'Section Header ${row + 1}',
           style: Theme.of(context).textTheme.titleMedium,
@@ -259,23 +220,8 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
     );
   }
 
-  /// Zero-rect element placed between the header and its row of buttons.
-  /// UIKit keeps zero-frame `accessibilityElements`; Flutter drops semantics
-  /// nodes with an empty rect before they reach the platform.
-  Widget _buildZeroRectSentinel(int row, Map<String, double> ordinals) {
-    return A11yProbe(
-      identifier: 'traversal.zeroRect.$row',
-      container: true,
-      label: 'Zero-Rect Sentinel ${row + 1}',
-      sortKey: OrdinalSortKey(ordinals['zeroRect.$row']!),
-      child: const SizedBox.shrink(),
-    );
-  }
-
-  Widget _buildGridButton(int row, int col, Map<String, double> ordinals) {
-    final OrdinalSortKey sortKey = OrdinalSortKey(
-      ordinals['button.$row.$col']!,
-    );
+  Widget _buildGridButton(int row, int col) {
+    final OrdinalSortKey? sortKey = _sortKeyFor('button.$row.$col');
     const TextStyle labelStyle = TextStyle(
       fontSize: 12,
       fontWeight: FontWeight.w600,
@@ -288,13 +234,14 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
     if (row == 0 && col == 0) {
       // Button A ("Mutating Icon Button"): toggles `.selected` and a leading
       // checkmark icon via the button content, like UIButton.Configuration.
-      return FilledButton.tonal(
-        style: gridButtonStyle,
-        onPressed: _onButtonATapped,
-        child: A11yProbe(
-          identifier: 'traversal.buttonA',
-          sortKey: sortKey,
-          selected: _buttonASelected,
+      return A11yProbe(
+        identifier: 'traversal.buttonA',
+        mergeDescendants: true,
+        sortKey: sortKey,
+        selected: _buttonASelected,
+        child: FilledButton.tonal(
+          style: gridButtonStyle,
+          onPressed: _onButtonATapped,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
@@ -316,12 +263,13 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
     }
     if (row == 0 && col == 1) {
       // Button B ("Target Enableable Button"): starts disabled.
-      return FilledButton.tonal(
-        style: gridButtonStyle,
-        onPressed: _buttonBEnabled ? _onButtonBTapped : null,
-        child: A11yProbe(
-          identifier: 'traversal.buttonB',
-          sortKey: sortKey,
+      return A11yProbe(
+        identifier: 'traversal.buttonB',
+        mergeDescendants: true,
+        sortKey: sortKey,
+        child: FilledButton.tonal(
+          style: gridButtonStyle,
+          onPressed: _buttonBEnabled ? _onButtonBTapped : null,
           child: const Text(
             'Target Enableable Button',
             style: labelStyle,
@@ -332,12 +280,13 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
     }
     if (row == 0 && col == 2) {
       // Button C ("Toggle Button B").
-      return FilledButton.tonal(
-        style: gridButtonStyle,
-        onPressed: _onButtonCTapped,
-        child: A11yProbe(
-          identifier: 'traversal.buttonC',
-          sortKey: sortKey,
+      return A11yProbe(
+        identifier: 'traversal.buttonC',
+        mergeDescendants: true,
+        sortKey: sortKey,
+        child: FilledButton.tonal(
+          style: gridButtonStyle,
+          onPressed: _onButtonCTapped,
           child: const Text(
             'Toggle Button B',
             style: labelStyle,
@@ -346,14 +295,15 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
         ),
       );
     }
-    return FilledButton.tonal(
-      style: gridButtonStyle,
-      onPressed: () =>
-          _recordEvent('Activated Grid Button R${row + 1}C${col + 1}'),
-      child: A11yProbe(
-        identifier: 'traversal.button.$row.$col',
-        sortKey: sortKey,
-        label: 'Grid Button Row ${row + 1} Column ${col + 1}',
+    return A11yProbe(
+      identifier: 'traversal.button.$row.$col',
+      mergeDescendants: true,
+      sortKey: sortKey,
+      label: 'Grid Button Row ${row + 1} Column ${col + 1}',
+      child: FilledButton.tonal(
+        style: gridButtonStyle,
+        onPressed: () =>
+            _recordEvent('Activated Grid Button R${row + 1}C${col + 1}'),
         child: ExcludeSemantics(
           child: Text(
             'R${row + 1}C${col + 1}',
