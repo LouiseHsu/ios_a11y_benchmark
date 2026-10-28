@@ -13,6 +13,9 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_ui: ^1.1.4
+  # Bundles the CupertinoIcons glyph font (chevrons, check mark, tab icons,
+  # navigation-bar back button).
+  cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_test:

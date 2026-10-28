@@ -79,6 +79,9 @@ extension MenuViewController: UITableViewDataSource {
         var content = cell.defaultContentConfiguration()
         content.text = destination.title
         content.secondaryText = destination.subtitle
+        // Pin the fonts explicitly so both benchmark twins use identical metrics.
+        content.textProperties.font = .preferredFont(forTextStyle: .body)
+        content.secondaryTextProperties.font = .preferredFont(forTextStyle: .subheadline)
         content.secondaryTextProperties.color = .secondaryLabel
         cell.contentConfiguration = content
         cell.accessoryType = .disclosureIndicator

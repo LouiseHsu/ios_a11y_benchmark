@@ -306,7 +306,7 @@ class _BaselineRow extends StatelessWidget {
               Text(
                 'Baseline scroll row ${index + 1} of '
                 '${_ScrollBaselinePageState.rowCount}',
-                style: TextStyle(fontSize: 13, color: secondaryColor),
+                style: TextStyle(fontSize: 15, color: secondaryColor),
               ),
             ],
           ),

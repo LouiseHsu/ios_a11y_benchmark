@@ -315,9 +315,9 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
   }
 
   Widget _buildHeader(int row) {
-    final TextStyle titleStyle = CupertinoTheme.of(
-      context,
-    ).textTheme.navTitleTextStyle;
+    final TextStyle titleStyle = CupertinoTheme.of(context)
+        .textTheme
+        .navTitleTextStyle;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: A11yProbe(

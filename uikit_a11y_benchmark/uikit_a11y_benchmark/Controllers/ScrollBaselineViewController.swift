@@ -182,6 +182,9 @@ extension ScrollBaselineViewController: UITableViewDataSource {
         var content = cell.defaultContentConfiguration()
         content.text = "Item #\(indexPath.row)"
         content.secondaryText = "Baseline scroll row \(indexPath.row + 1) of \(Self.rowCount)"
+        content.textProperties.font = .preferredFont(forTextStyle: .body)
+        content.secondaryTextProperties.font = .preferredFont(forTextStyle: .subheadline)
+        content.secondaryTextProperties.color = .secondaryLabel
         cell.contentConfiguration = content
         cell.accessibilityIdentifier = "scroll.cell.\(indexPath.row)"
         return cell

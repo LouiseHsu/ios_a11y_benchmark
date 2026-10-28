@@ -314,9 +314,9 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle titleStyle = CupertinoTheme.of(
-      context,
-    ).textTheme.navTitleTextStyle;
+    final TextStyle titleStyle = CupertinoTheme.of(context)
+        .textTheme
+        .navTitleTextStyle;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(text, style: titleStyle),

@@ -77,10 +77,8 @@ class MenuPage extends StatelessWidget {
                     A11yProbe(
                       identifier: destination.identifier,
                       mergeDescendants: true,
-                      child: CupertinoListTile(
-                        title: Text(destination.title),
-                        subtitle: Text(destination.subtitle),
-                        trailing: const CupertinoListTileChevron(),
+                      child: _MenuRow(
+                        destination: destination,
                         onTap: () {
                           Navigator.of(context).push(
                             CupertinoPageRoute<void>(
@@ -94,6 +92,55 @@ class MenuPage extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A `UITableViewCell` + `defaultContentConfiguration()` look-alike.
+///
+/// [CupertinoListTile] forces a single-line 12pt subtitle and a 48pt minimum
+/// height, so the row is built by hand to match the UIKit twin's metrics:
+/// 17pt body title, wrapping 15pt subheadline secondary text, 16pt horizontal
+/// and 11pt vertical layout margins, and a disclosure chevron.
+class _MenuRow extends StatelessWidget {
+  const _MenuRow({required this.destination, required this.onTap});
+
+  final MenuDestination destination;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle base = CupertinoTheme.of(context).textTheme.textStyle;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsetsDirectional.fromSTEB(16, 11, 16, 11),
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(destination.title, style: base.copyWith(fontSize: 17)),
+                  const SizedBox(height: 3),
+                  Text(
+                    destination.subtitle,
+                    style: base.copyWith(
+                      fontSize: 15,
+                      color: CupertinoColors.secondaryLabel.resolveFrom(
+                        context,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const CupertinoListTileChevron(),
+          ],
         ),
       ),
     );

@@ -12,9 +12,10 @@ Future<void> showBarrierModalSheet(BuildContext context) {
   return showCupertinoSheet<void>(
     context: context,
     showDragHandle: true,
-    scrollableBuilder: (BuildContext context, ScrollController scrollController) {
-      return BarrierModalSheet(scrollController: scrollController);
-    },
+    scrollableBuilder:
+        (BuildContext context, ScrollController scrollController) {
+          return BarrierModalSheet(scrollController: scrollController);
+        },
   );
 }
 
@@ -35,9 +36,8 @@ class _BarrierModalSheetState extends State<BarrierModalSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final CupertinoTextThemeData textTheme = CupertinoTheme.of(
-      context,
-    ).textTheme;
+    final CupertinoTextThemeData textTheme = CupertinoTheme.of(context)
+        .textTheme;
     final Color secondaryLabelColor = CupertinoColors.secondaryLabel
         .resolveFrom(context);
     return CupertinoPageScaffold(

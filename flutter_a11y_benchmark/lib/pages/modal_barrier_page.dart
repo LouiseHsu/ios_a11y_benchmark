@@ -107,9 +107,9 @@ class _ModalBarrierPageState extends State<ModalBarrierPage> {
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle titleStyle = CupertinoTheme.of(
-      context,
-    ).textTheme.navTitleTextStyle;
+    final TextStyle titleStyle = CupertinoTheme.of(context)
+        .textTheme
+        .navTitleTextStyle;
     return CupertinoPageScaffold(
       navigationBar: const CupertinoNavigationBar(
         middle: Text('Modal Barrier'),

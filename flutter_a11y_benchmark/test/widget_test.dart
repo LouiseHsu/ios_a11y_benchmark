@@ -1,3 +1,5 @@
+import 'dart:ui' show Tristate;
+
 import 'package:flutter/semantics.dart';
 import 'package:flutter_a11y_benchmark/main.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -151,9 +153,11 @@ void main() {
             (SemanticsNode n) =>
                 n.getSemanticsData().identifier == 'traversal.disclosureHeader',
           );
+      // `isExpanded` is a tri-state: `isFalse` means "has an expanded state
+      // and is currently collapsed" (≈ UIKit's collapsed disclosure).
       expect(
         disclosureCollapsed.getSemanticsData().flagsCollection.isExpanded,
-        isFalse,
+        Tristate.isFalse,
       );
       expect(traversalContains(tester, 'traversal.disclosureBody'), isFalse);
 
