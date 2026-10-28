@@ -1,17 +1,21 @@
 import UIKit
 import os
 
-final class ModalBarrierViewController: UIViewController {
+final class ModalBarrierViewController: UIViewController, UITabBarDelegate {
 
     private static let logger = Logger(subsystem: "com.example.uikit-a11y-benchmark", category: "ModalBarrier")
 
     private static let popupOptions = ["Option Alpha", "Option Beta", "Option Gamma"]
+    private static let tabTitles = ["Overview", "Details", "Settings"]
+    private static let tabSymbols = ["list.bullet", "doc.text", "gearshape"]
 
     private let statusLabel = UILabel()
     private let backgroundButton1 = UIButton(type: .system)
     private let backgroundButton2 = UIButton(type: .system)
     private let popupMenuButton = UIButton(type: .system)
+    private let presentAlertButton = UIButton(type: .system)
     private let presentModalButton = UIButton(type: .system)
+    private let bottomTabBar = UITabBar()
 
     private var backgroundTapCount = 0
     private var selectedPopupOption = ModalBarrierViewController.popupOptions[0]
@@ -56,6 +60,16 @@ final class ModalBarrierViewController: UIViewController {
         popupMenuButton.showsMenuAsPrimaryAction = true
         rebuildPopupMenu()
 
+        var alertConfig = UIButton.Configuration.tinted()
+        alertConfig.title = "Present Alert Dialog"
+        presentAlertButton.configuration = alertConfig
+        presentAlertButton.accessibilityIdentifier = "modal.presentAlertButton"
+        presentAlertButton.addTarget(
+            self,
+            action: #selector(presentAlertDialog),
+            for: .touchUpInside
+        )
+
         var presentConfig = UIButton.Configuration.filled()
         presentConfig.title = "Present Modal Sheet"
         presentModalButton.configuration = presentConfig
@@ -66,11 +80,27 @@ final class ModalBarrierViewController: UIViewController {
             for: .touchUpInside
         )
 
+        let tabItems: [UITabBarItem] = Self.tabTitles.enumerated().map { index, title in
+            let item = UITabBarItem(
+                title: title,
+                image: UIImage(systemName: Self.tabSymbols[index]),
+                tag: index
+            )
+            item.accessibilityIdentifier = "modal.tab.\(index)"
+            return item
+        }
+        bottomTabBar.translatesAutoresizingMaskIntoConstraints = false
+        bottomTabBar.items = tabItems
+        bottomTabBar.selectedItem = tabItems.first
+        bottomTabBar.delegate = self
+        bottomTabBar.accessibilityIdentifier = "modal.tabBar"
+
         let stackView = UIStackView(arrangedSubviews: [
             statusLabel,
             backgroundButton1,
             backgroundButton2,
             popupMenuButton,
+            presentAlertButton,
             presentModalButton,
         ])
         stackView.translatesAutoresizingMaskIntoConstraints = false
@@ -78,11 +108,16 @@ final class ModalBarrierViewController: UIViewController {
         stackView.spacing = 16
         stackView.alignment = .fill
         view.addSubview(stackView)
+        view.addSubview(bottomTabBar)
 
         NSLayoutConstraint.activate([
             stackView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 24),
             stackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
             stackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+
+            bottomTabBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            bottomTabBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bottomTabBar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
         ])
     }
 
@@ -122,6 +157,40 @@ final class ModalBarrierViewController: UIViewController {
             return action
         }
         popupMenuButton.menu = UIMenu(title: "Anchored Options", children: actions)
+    }
+
+    @objc private func presentAlertDialog() {
+        let alert = UIAlertController(
+            title: "Benchmark Alert Dialog",
+            message: "Tests alert dialog announcement, Voice Control dismissal, and focus restoration on close.",
+            preferredStyle: .alert
+        )
+        let cancelAction = UIAlertAction(title: "Cancel", style: .cancel) { [weak self] _ in
+            let message = "Alert Dialog: Cancel"
+            self?.statusLabel.text = message
+            Self.logger.info("[ModalBarrier] \(message, privacy: .public)")
+        }
+        cancelAction.accessibilityIdentifier = "modal.alertCancelButton"
+
+        let confirmAction = UIAlertAction(title: "Confirm", style: .default) { [weak self] _ in
+            let message = "Alert Dialog: Confirm"
+            self?.statusLabel.text = message
+            Self.logger.info("[ModalBarrier] \(message, privacy: .public)")
+        }
+        confirmAction.accessibilityIdentifier = "modal.alertConfirmButton"
+
+        alert.addAction(cancelAction)
+        alert.addAction(confirmAction)
+        Self.logger.info("[ModalBarrier] Presenting UIAlertController (.alert)")
+        present(alert, animated: true)
+    }
+
+    func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
+        let title = item.title ?? "Tab"
+        let index = item.tag + 1
+        let message = "Selected Tab: \(title) (\(index) of \(Self.tabTitles.count))"
+        statusLabel.text = message
+        Self.logger.info("[ModalBarrier] \(message, privacy: .public)")
     }
 
     @objc private func presentModalSheet() {

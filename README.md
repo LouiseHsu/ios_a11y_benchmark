@@ -19,9 +19,9 @@ XCUITests in each project make the same assertions and can be diffed line by lin
 | --- | --- | --- | --- |
 | `menu.*` | `MenuViewController` | `MenuPage` | Root list of destinations |
 | `scroll.*` | `ScrollBaselineViewController` | `ScrollBaselinePage` | `contentOffset.y`, viewport height, Δy, `Δy / viewportHeight` (100% native vs. 80% Flutter page scroll), "Page X of Y" |
-| `traversal.*` | `TraversalHierarchyViewController` | `TraversalHierarchyPage` | Natural geometric Row-Major (`accessibilityElements = nil` ≈ `sortKey: null`) vs. explicit Column-Major (`accessibilityElements` ≈ `OrdinalSortKey`), `.header` trait, stateful Buttons A/B/C (selected trait + mutating icon, enable/disable) |
+| `traversal.*` | `TraversalHierarchyViewController` | `TraversalHierarchyPage` | Natural geometric Row-Major (`accessibilityElements = nil` ≈ `sortKey: null`) vs. explicit Column-Major (`accessibilityElements` ≈ `OrdinalSortKey`), `.header` trait, stateful Buttons A/B/C (selected trait + mutating icon, enable/disable), expandable disclosure (`accessibilityValue` ≈ `Semantics(expanded: ...)`), multi-link paragraph (`UITextView` attributed links ≈ `Text.rich` `TapGestureRecognizer` spans) |
 | `focus.*` | `FocusKeyboardViewController` | `FocusKeyboardPage` | Pre-filled + placeholder field, live status banner + polite announcement (`UIAccessibility.post(notification: .announcement)` / `.updatesFrequently` ≈ `SemanticsService.sendAnnouncement` / `liveRegion: true`), 25% slider, secure field; first responder ≈ `FocusNode`, `didUpdateFocus(in:with:)` ≈ `FocusManager` |
-| `modal.*` | `ModalBarrierViewController` | `ModalBarrierPage` | `accessibilityViewIsModal` ≈ modal-route `BlockSemantics`, anchored `UIMenu` popup ≈ `MenuAnchor` overlay portal, `.medium()/.large()` detents ≈ 50%/100% `DraggableScrollableSheet`, grabber ≈ `showDragHandle` |
+| `modal.*` | `ModalBarrierViewController` | `ModalBarrierPage` | `accessibilityViewIsModal` ≈ modal-route `BlockSemantics`, anchored `UIMenu` popup ≈ `MenuAnchor` overlay portal, `UIAlertController(.alert)` ≈ `AlertDialog`, `UITabBar` ≈ `BottomNavigationBar`, `.medium()/.large()` detents ≈ 50%/100% `DraggableScrollableSheet`, grabber ≈ `showDragHandle` |
 
 ## Tests
 

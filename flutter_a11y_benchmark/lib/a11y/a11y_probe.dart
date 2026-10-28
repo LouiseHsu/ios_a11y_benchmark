@@ -32,6 +32,7 @@ class A11yProbe extends StatelessWidget {
     this.trackFocus = true,
     this.header = false,
     this.liveRegion = false,
+    this.expanded,
     this.selected,
     this.label,
     this.value,
@@ -47,6 +48,7 @@ class A11yProbe extends StatelessWidget {
   final bool trackFocus;
   final bool header;
   final bool liveRegion;
+  final bool? expanded;
   final bool? selected;
   final String? label;
   final String? value;
@@ -64,6 +66,7 @@ class A11yProbe extends StatelessWidget {
       identifier: identifier,
       header: header,
       liveRegion: liveRegion,
+      expanded: expanded,
       selected: selected,
       label: label,
       value: value,

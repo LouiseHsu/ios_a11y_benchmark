@@ -143,12 +143,31 @@ void main() {
         columnMajor.indexOf('traversal.button.2.0'),
         lessThan(columnMajor.indexOf('traversal.buttonB')),
       );
+
+      // Verify disclosure header exposes expanded state and reveals body.
+      final SemanticsNode disclosureCollapsed = tester.semantics
+          .simulatedAccessibilityTraversal()
+          .firstWhere(
+            (SemanticsNode n) =>
+                n.getSemanticsData().identifier == 'traversal.disclosureHeader',
+          );
+      expect(
+        disclosureCollapsed.getSemanticsData().flagsCollection.isExpanded,
+        isFalse,
+      );
+      expect(traversalContains(tester, 'traversal.disclosureBody'), isFalse);
+
+      await tester.tap(
+        find.bySemanticsIdentifier('traversal.disclosureHeader'),
+      );
+      await tester.pumpAndSettle();
+      expect(traversalContains(tester, 'traversal.disclosureBody'), isTrue);
       handle.dispose();
     },
   );
 
   testWidgets(
-    'modal barrier exposes anchored popup menu options and updates selection',
+    'modal barrier exposes anchored popup menu, alert dialog, and bottom tab bar',
     (WidgetTester tester) async {
       final SemanticsHandle handle = tester.ensureSemantics();
       await tester.pumpWidget(const FlutterA11yBenchmarkApp());
@@ -164,6 +183,17 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Popup Selected: Option Beta'), findsOneWidget);
+
+      await tester.tap(find.bySemanticsIdentifier('modal.presentAlertButton'));
+      await tester.pumpAndSettle();
+      expect(traversalContains(tester, 'modal.alertConfirmButton'), isTrue);
+      await tester.tap(find.bySemanticsIdentifier('modal.alertConfirmButton'));
+      await tester.pumpAndSettle();
+      expect(find.text('Alert Dialog: Confirm'), findsOneWidget);
+
+      await tester.tap(find.text('Details'));
+      await tester.pumpAndSettle();
+      expect(find.text('Selected Tab: Details (2 of 3)'), findsOneWidget);
       handle.dispose();
     },
   );
@@ -183,6 +213,21 @@ void main() {
                 n.getSemanticsData().identifier == 'focus.liveStatusLabel',
           );
       expect(liveNode.getSemanticsData().flagsCollection.isLiveRegion, isTrue);
+
+      final SemanticsNode bottomFieldNode = tester.semantics
+          .simulatedAccessibilityTraversal()
+          .firstWhere(
+            (SemanticsNode n) =>
+                n.getSemanticsData().identifier == 'focus.bottomTextField',
+          );
+      expect(
+        bottomFieldNode.getSemanticsData().flagsCollection.isTextField,
+        isTrue,
+      );
+      expect(
+        bottomFieldNode.getSemanticsData().flagsCollection.isObscured,
+        isTrue,
+      );
 
       await tester.tap(find.bySemanticsIdentifier('focus.announceButton'));
       await tester.pump();

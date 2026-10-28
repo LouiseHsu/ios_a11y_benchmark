@@ -1,7 +1,8 @@
 import 'dart:async';
 
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/semantics.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../a11y/a11y_action_observer.dart';
 import '../a11y/a11y_probe.dart';
@@ -35,12 +36,19 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
   TraversalMode _mode = TraversalMode.rowMajor;
   bool _buttonASelected = false;
   bool _buttonBEnabled = false;
+  bool _disclosureExpanded = false;
   String _status = '';
   Timer? _anchorCheckTimer;
+  late final TapGestureRecognizer _termsLinkRecognizer;
+  late final TapGestureRecognizer _privacyLinkRecognizer;
 
   @override
   void initState() {
     super.initState();
+    _termsLinkRecognizer = TapGestureRecognizer()
+      ..onTap = () => _recordEvent('Link Activated: Terms of Service');
+    _privacyLinkRecognizer = TapGestureRecognizer()
+      ..onTap = () => _recordEvent('Link Activated: Privacy Policy');
     A11yActionObserver.instance.addListener(_handleA11yAction);
     _updateOrderingStatus();
   }
@@ -48,6 +56,8 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
   @override
   void dispose() {
     _anchorCheckTimer?.cancel();
+    _termsLinkRecognizer.dispose();
+    _privacyLinkRecognizer.dispose();
     A11yActionObserver.instance.removeListener(_handleA11yAction);
     super.dispose();
   }
@@ -81,8 +91,8 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
     };
   }
 
-  SemanticsSortKey? _sortKeyFor(Map<String, double> ordinals, String key) {
-    final double? order = ordinals[key];
+  OrdinalSortKey? _sortKeyFor(String key) {
+    final double? order = _ordinals()[key];
     return order != null ? OrdinalSortKey(order) : null;
   }
 
@@ -134,8 +144,19 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
     _recordEvent('Button C toggled Button B -> isEnabled = $_buttonBEnabled');
   }
 
+  void _toggleDisclosure() {
+    setState(() => _disclosureExpanded = !_disclosureExpanded);
+    final String state = _disclosureExpanded ? 'Expanded' : 'Collapsed';
+    _recordEvent('Disclosure toggled -> $state');
+  }
+
   @override
   Widget build(BuildContext context) {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+    final TextStyle linkStyle = TextStyle(
+      color: colors.primary,
+      decoration: TextDecoration.underline,
+    );
     return Scaffold(
       appBar: AppBar(title: const Text('Traversal Hierarchy')),
       body: Padding(
@@ -186,16 +207,80 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
+            // Expandable disclosure header: benchmarks Semantics(expanded: ...)
+            // on iOS (#138891, #132264, #175907).
+            A11yProbe(
+              identifier: 'traversal.disclosureHeader',
+              mergeDescendants: true,
+              expanded: _disclosureExpanded,
+              child: OutlinedButton(
+                onPressed: _toggleDisclosure,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    const Text('Expandable Disclosure Section'),
+                    ExcludeSemantics(
+                      child: Icon(
+                        _disclosureExpanded
+                            ? Icons.expand_less
+                            : Icons.expand_more,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (_disclosureExpanded) ...<Widget>[
+              const SizedBox(height: 6),
+              A11yProbe(
+                identifier: 'traversal.disclosureBody',
+                container: true,
+                child: Text(
+                  'Hidden detail content revealed when expanded.',
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: colors.onSurfaceVariant),
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            // Paragraph with two inline links: benchmarks multi-link RichText
+            // traversal and the VoiceOver Links rotor (#159127, #166750, #18760).
+            A11yProbe(
+              identifier: 'traversal.linksParagraph',
+              container: true,
+              explicitChildNodes: true,
+              trackFocus: false,
+              child: Text.rich(
+                TextSpan(
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  children: <InlineSpan>[
+                    const TextSpan(text: 'Read our '),
+                    TextSpan(
+                      text: 'Terms of Service',
+                      style: linkStyle,
+                      recognizer: _termsLinkRecognizer,
+                    ),
+                    const TextSpan(text: ' and '),
+                    TextSpan(
+                      text: 'Privacy Policy',
+                      style: linkStyle,
+                      recognizer: _privacyLinkRecognizer,
+                    ),
+                    const TextSpan(text: '.'),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             A11yProbe(
               identifier: 'traversal.statusLabel',
               container: true,
               child: Text(
                 _status,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(color: colors.onSurfaceVariant),
               ),
             ),
           ],

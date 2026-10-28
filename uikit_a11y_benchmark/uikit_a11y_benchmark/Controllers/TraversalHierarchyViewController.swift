@@ -1,13 +1,18 @@
 import UIKit
 import os
 
-final class TraversalHierarchyViewController: UIViewController {
+final class TraversalHierarchyViewController: UIViewController, UITextViewDelegate {
 
     private static let logger = Logger(subsystem: "com.example.uikit-a11y-benchmark", category: "TraversalHierarchy")
 
     private let gridContainerView = TraversalGridContainerView()
     private let orderingControl = UISegmentedControl(items: ["Row-Major", "Column-Major"])
+    private let disclosureHeaderButton = UIButton(type: .system)
+    private let disclosureBodyLabel = UILabel()
+    private let linksTextView = UITextView()
     private let statusLabel = UILabel()
+
+    private var isDisclosureExpanded = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -42,8 +47,39 @@ final class TraversalHierarchyViewController: UIViewController {
             self?.recordEvent(eventMessage)
         }
 
+        disclosureHeaderButton.translatesAutoresizingMaskIntoConstraints = false
+        disclosureHeaderButton.accessibilityIdentifier = "traversal.disclosureHeader"
+        disclosureHeaderButton.accessibilityLabel = "Expandable Disclosure Section"
+        disclosureHeaderButton.addTarget(
+            self,
+            action: #selector(toggleDisclosure),
+            for: .touchUpInside
+        )
+        updateDisclosureAppearance()
+
+        disclosureBodyLabel.translatesAutoresizingMaskIntoConstraints = false
+        disclosureBodyLabel.text = "Hidden detail content revealed when expanded."
+        disclosureBodyLabel.font = .preferredFont(forTextStyle: .footnote)
+        disclosureBodyLabel.textColor = .secondaryLabel
+        disclosureBodyLabel.numberOfLines = 0
+        disclosureBodyLabel.isHidden = true
+        disclosureBodyLabel.accessibilityIdentifier = "traversal.disclosureBody"
+
+        linksTextView.translatesAutoresizingMaskIntoConstraints = false
+        linksTextView.isEditable = false
+        linksTextView.isScrollEnabled = false
+        linksTextView.backgroundColor = .clear
+        linksTextView.textContainerInset = .zero
+        linksTextView.textContainer.lineFragmentPadding = 0
+        linksTextView.delegate = self
+        linksTextView.accessibilityIdentifier = "traversal.linksParagraph"
+        linksTextView.attributedText = makeLinksAttributedString()
+
         view.addSubview(orderingControl)
         view.addSubview(gridContainerView)
+        view.addSubview(disclosureHeaderButton)
+        view.addSubview(disclosureBodyLabel)
+        view.addSubview(linksTextView)
         view.addSubview(statusLabel)
 
         NSLayoutConstraint.activate([
@@ -55,10 +91,69 @@ final class TraversalHierarchyViewController: UIViewController {
             gridContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             gridContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
 
-            statusLabel.topAnchor.constraint(equalTo: gridContainerView.bottomAnchor, constant: 20),
+            disclosureHeaderButton.topAnchor.constraint(equalTo: gridContainerView.bottomAnchor, constant: 16),
+            disclosureHeaderButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            disclosureHeaderButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+
+            disclosureBodyLabel.topAnchor.constraint(equalTo: disclosureHeaderButton.bottomAnchor, constant: 6),
+            disclosureBodyLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            disclosureBodyLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+
+            linksTextView.topAnchor.constraint(equalTo: disclosureBodyLabel.bottomAnchor, constant: 12),
+            linksTextView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            linksTextView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+
+            statusLabel.topAnchor.constraint(equalTo: linksTextView.bottomAnchor, constant: 16),
             statusLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             statusLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
         ])
+    }
+
+    @objc private func toggleDisclosure() {
+        isDisclosureExpanded.toggle()
+        disclosureBodyLabel.isHidden = !isDisclosureExpanded
+        updateDisclosureAppearance()
+        let state = isDisclosureExpanded ? "Expanded" : "Collapsed"
+        recordEvent("Disclosure toggled -> \(state)")
+        UIAccessibility.post(notification: .layoutChanged, argument: disclosureHeaderButton)
+    }
+
+    private func updateDisclosureAppearance() {
+        var config = UIButton.Configuration.bordered()
+        config.title = "Expandable Disclosure Section"
+        config.image = UIImage(systemName: isDisclosureExpanded ? "chevron.up" : "chevron.down")
+        config.imagePlacement = .trailing
+        config.imagePadding = 8
+        disclosureHeaderButton.configuration = config
+        disclosureHeaderButton.accessibilityValue = isDisclosureExpanded ? "Expanded" : "Collapsed"
+    }
+
+    private func makeLinksAttributedString() -> NSAttributedString {
+        let fullText = "Read our Terms of Service and Privacy Policy."
+        let attributed = NSMutableAttributedString(
+            string: fullText,
+            attributes: [
+                .font: UIFont.preferredFont(forTextStyle: .subheadline),
+                .foregroundColor: UIColor.label,
+            ]
+        )
+        let nsString = fullText as NSString
+        let termsRange = nsString.range(of: "Terms of Service")
+        let privacyRange = nsString.range(of: "Privacy Policy")
+        attributed.addAttribute(.link, value: URL(string: "benchmark://terms")!, range: termsRange)
+        attributed.addAttribute(.link, value: URL(string: "benchmark://privacy")!, range: privacyRange)
+        return attributed
+    }
+
+    func textView(
+        _ textView: UITextView,
+        shouldInteractWith URL: URL,
+        in characterRange: NSRange,
+        interaction: UITextItemInteraction
+    ) -> Bool {
+        let name = URL.host == "terms" ? "Terms of Service" : "Privacy Policy"
+        recordEvent("Link Activated: \(name)")
+        return false
     }
 
     private func registerNotifications() {

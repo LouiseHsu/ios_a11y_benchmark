@@ -184,7 +184,7 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
               _SectionLabel('Top Input Region (Pre-filled + Placeholder)'),
               A11yProbe(
                 identifier: 'focus.topTextField',
-                container: true,
+                mergeDescendants: true,
                 trackFocus: false,
                 child: TextField(
                   controller: _topController,
@@ -283,7 +283,7 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
               _SectionLabel('Bottom Input Region (Secure Text Entry)'),
               A11yProbe(
                 identifier: 'focus.bottomTextField',
-                container: true,
+                mergeDescendants: true,
                 trackFocus: false,
                 child: TextField(
                   controller: _bottomController,

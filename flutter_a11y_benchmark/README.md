@@ -14,9 +14,9 @@ first-party home of the Material widgets on this SDK).
 | --- | --- | --- | --- |
 | `menu.*` | `MenuPage` | `MenuViewController` | Root list of destinations |
 | `scroll.*` | `ScrollBaselinePage` | `ScrollBaselineViewController` | `contentOffset.y`, viewport height, Δy, `Δy / viewportHeight` (100% native vs. 80% Flutter page scroll), "Page X of Y" |
-| `traversal.*` | `TraversalHierarchyPage` | `TraversalHierarchyViewController` | Natural geometric Row-Major (`sortKey: null` ≈ `accessibilityElements = nil`) vs. explicit Column-Major (`OrdinalSortKey` ≈ `accessibilityElements`), headers, stateful Buttons A/B/C |
+| `traversal.*` | `TraversalHierarchyPage` | `TraversalHierarchyViewController` | Natural geometric Row-Major (`sortKey: null` ≈ `accessibilityElements = nil`) vs. explicit Column-Major (`OrdinalSortKey` ≈ `accessibilityElements`), headers, stateful Buttons A/B/C, expandable disclosure (`Semantics(expanded: ...)` ≈ `accessibilityValue`), multi-link `Text.rich` (`TapGestureRecognizer` ≈ `UITextView` attributed links) |
 | `focus.*` | `FocusKeyboardPage` | `FocusKeyboardViewController` | Pre-filled + placeholder field, live status banner + polite announcement (`SemanticsService.sendAnnouncement` / `liveRegion: true` ≈ `UIAccessibility.post(notification: .announcement)` / `.updatesFrequently`), 25% slider, secure field; `FocusNode` ≈ first responder, `FocusManager` ≈ `didUpdateFocus(in:with:)` |
-| `modal.*` | `ModalBarrierPage` | `ModalBarrierViewController` | Modal route `BlockSemantics` ≈ `accessibilityViewIsModal`, `MenuAnchor` overlay portal ≈ anchored `UIMenu` popup, `DraggableScrollableSheet` 50%/100% ≈ `.medium()/.large()` detents, `showDragHandle` ≈ grabber |
+| `modal.*` | `ModalBarrierPage` | `ModalBarrierViewController` | Modal route `BlockSemantics` ≈ `accessibilityViewIsModal`, `MenuAnchor` overlay portal ≈ anchored `UIMenu` popup, `AlertDialog` ≈ `UIAlertController(.alert)`, `BottomNavigationBar` ≈ `UITabBar`, `DraggableScrollableSheet` 50%/100% ≈ `.medium()/.large()` detents, `showDragHandle` ≈ grabber |
 
 ## Instrumentation
 

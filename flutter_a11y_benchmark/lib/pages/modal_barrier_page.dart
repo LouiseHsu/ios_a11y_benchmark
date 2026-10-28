@@ -21,10 +21,16 @@ class _ModalBarrierPageState extends State<ModalBarrierPage> {
     'Option Beta',
     'Option Gamma',
   ];
+  static const List<String> _tabTitles = <String>[
+    'Overview',
+    'Details',
+    'Settings',
+  ];
 
   String _status = 'Background Action Count: 0';
   int _backgroundTapCount = 0;
   String _selectedPopupOption = _popupOptions.first;
+  int _selectedTabIndex = 0;
 
   void _setStatus(String message) {
     setState(() => _status = message);
@@ -43,6 +49,50 @@ class _ModalBarrierPageState extends State<ModalBarrierPage> {
     _setStatus('Popup Selected: $option');
   }
 
+  void _selectTab(int index) {
+    setState(() => _selectedTabIndex = index);
+    _setStatus(
+      'Selected Tab: ${_tabTitles[index]} (${index + 1} of ${_tabTitles.length})',
+    );
+  }
+
+  Future<void> _presentAlertDialog() async {
+    debugPrint('[ModalBarrier] Presenting AlertDialog');
+    final String? result = await showDialog<String>(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Benchmark Alert Dialog'),
+          content: const Text(
+            'Tests alert dialog announcement, Voice Control dismissal, and '
+            'focus restoration on close.',
+          ),
+          actions: <Widget>[
+            A11yProbe(
+              identifier: 'modal.alertCancelButton',
+              mergeDescendants: true,
+              child: TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop('Cancel'),
+                child: const Text('Cancel'),
+              ),
+            ),
+            A11yProbe(
+              identifier: 'modal.alertConfirmButton',
+              mergeDescendants: true,
+              child: FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop('Confirm'),
+                child: const Text('Confirm'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+    if (mounted && result != null) {
+      _setStatus('Alert Dialog: $result');
+    }
+  }
+
   Future<void> _presentModalSheet() async {
     debugPrint(
       '[ModalBarrier] Presenting draggable modal sheet '
@@ -58,6 +108,27 @@ class _ModalBarrierPageState extends State<ModalBarrierPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Modal Barrier')),
+      bottomNavigationBar: A11yProbe(
+        identifier: 'modal.tabBar',
+        container: true,
+        explicitChildNodes: true,
+        trackFocus: false,
+        child: BottomNavigationBar(
+          currentIndex: _selectedTabIndex,
+          onTap: _selectTab,
+          items: const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Overview'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.description_outlined),
+              label: 'Details',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined),
+              label: 'Settings',
+            ),
+          ],
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -130,6 +201,15 @@ class _ModalBarrierPageState extends State<ModalBarrierPage> {
                       ),
                     );
                   },
+            ),
+            const SizedBox(height: 16),
+            A11yProbe(
+              identifier: 'modal.presentAlertButton',
+              mergeDescendants: true,
+              child: FilledButton.tonal(
+                onPressed: _presentAlertDialog,
+                child: const Text('Present Alert Dialog'),
+              ),
             ),
             const SizedBox(height: 16),
             A11yProbe(
