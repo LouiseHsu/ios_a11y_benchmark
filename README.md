@@ -1,70 +1,347 @@
-# ios_a11y_benchmark
+# `ios_a11y_benchmark`: iOS Accessibility Benchmark & Issue Coverage Showcase
 
-Two deliberately identical iOS apps — one in pure UIKit, one in Flutter — that
-act as an accessibility "ruler" for comparing VoiceOver, Full Keyboard Access
-(FKA) and Voice Control behaviour control-for-control.
+Two deliberately identical iOS apps — one in pure UIKit ([`uikit_a11y_benchmark/`](uikit_a11y_benchmark)), one in Flutter ([`flutter_a11y_benchmark/`](flutter_a11y_benchmark)) — that act as an accessibility "ruler" for comparing **VoiceOver**, **Full Keyboard Access (FKA)**, **Voice Control**, and **Switch Control** behavior control-for-control across 4 core screens.
 
 | App | Stack | Bundle ID |
-| --- | --- | --- |
+| :--- | :--- | :--- |
 | [`uikit_a11y_benchmark/`](uikit_a11y_benchmark) | Swift + UIKit, iOS 16+, no dependencies | `com.example.uikit-a11y-benchmark` |
-| [`flutter_a11y_benchmark/`](flutter_a11y_benchmark) | Flutter (`package:flutter` + `material_ui`), iOS 16+ | `com.example.flutterA11yBenchmark` |
+| [`flutter_a11y_benchmark/`](flutter_a11y_benchmark) | Flutter (`package:flutter` + `material`), iOS 16+ | `com.example.flutterA11yBenchmark` |
 
-Both apps expose the same four core screens, the same control structure, and the same
-`accessibilityIdentifier`s (Flutter: `SemanticsProperties.identifier`), so the
-XCUITests in each project make the same assertions and can be diffed line by line.
+Both apps expose the same 4 screens, the same control hierarchy, and identical `accessibilityIdentifier`s (Flutter: `SemanticsProperties.identifier`).
 
-## Screens
+## 1. Executive Summary & Coverage Statistics
 
-| Prefix | UIKit | Flutter | Benchmarks |
-| --- | --- | --- | --- |
-| `menu.*` | `MenuViewController` | `MenuPage` | Root list of destinations |
-| `scroll.*` | `ScrollBaselineViewController` | `ScrollBaselinePage` | `contentOffset.y`, viewport height, Δy, `Δy / viewportHeight` (100% native vs. 80% Flutter page scroll), "Page X of Y" |
-| `traversal.*` | `TraversalHierarchyViewController` | `TraversalHierarchyPage` | Natural geometric Row-Major (`accessibilityElements = nil` ≈ `sortKey: null`) vs. explicit Column-Major (`accessibilityElements` ≈ `OrdinalSortKey`), `.header` trait, stateful Buttons A/B/C (selected trait + mutating icon, enable/disable), expandable disclosure (`accessibilityValue` ≈ `Semantics(expanded: ...)`), multi-link paragraph (`UITextView` attributed links ≈ `Text.rich` `TapGestureRecognizer` spans) |
-| `focus.*` | `FocusKeyboardViewController` | `FocusKeyboardPage` | Pre-filled + placeholder field, live status banner + polite announcement (`UIAccessibility.post(notification: .announcement)` / `.updatesFrequently` ≈ `SemanticsService.sendAnnouncement` / `liveRegion: true`), 25% slider, secure field; first responder ≈ `FocusNode`, `didUpdateFocus(in:with:)` ≈ `FocusManager` |
-| `modal.*` | `ModalBarrierViewController` | `ModalBarrierPage` | `accessibilityViewIsModal` ≈ modal-route `BlockSemantics`, anchored `UIMenu` popup ≈ `MenuAnchor` overlay portal, `UIAlertController(.alert)` ≈ `AlertDialog`, `UITabBar` ≈ `BottomNavigationBar`, `.medium()/.large()` detents ≈ 50%/100% `DraggableScrollableSheet`, grabber ≈ `showDragHandle` |
+We audited **234 strictly iOS & Cupertino accessibility issues** in `flutter/flutter` (all `a: accessibility` issues from 2023–2026 across `platform-ios`, `f: cupertino`, VoiceOver, Full Keyboard Access `[FKA]`, Voice Control, and Switch Control, plus all still-open historical `platform-ios` accessibility issues across P0–P3).
 
-## Tests
+> **Note on "UI-Benchmarkable" Issues**: Out of 234 total iOS accessibility issues, **52 issues (22.2%)** are non-widget/non-UI issues that no pure UIKit-vs-Flutter UI screen can test (14 `WKWebView`/`UiKitView`/Add-to-App lifecycle bugs, 15 C++ engine crashes/assertions/test-infra tickets, and 23 unimplemented iOS OS hardware features like Eye Tracking, Audio Graphs, Reachability, or Smart Invert). The remaining **182 issues** are UI-benchmarkable.
 
-Each project has an XCUITest bundle with the same three tests:
+### Coverage by Slice
 
-| Test | Checks |
-| --- | --- |
-| `testScrollBaselineUpdatesContentOffsetAndDelta` | viewport height > 0; offset, Δy and ratio grow after a swipe |
-| `testModalBarrierIsolatesBackgroundButtons` | background buttons hittable → isolated while the sheet is up → back after dismiss |
-| `ScreenshotTourUITests.testCaptureEveryScreen` | visits every screen (+ one interaction each) and attaches screenshots |
+| Dataset Slice | Total Issues | UI-Benchmarkable Issues | Revealed by 4-Screen Ruler | % of All Issues | % of UI-Benchmarkable |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| **Last 12 Months (Oct 2025 – Oct 2026)** | 50 | 40 | **37** | **74.0%** | **92.5%** |
+| **All P0 & P1 iOS Issues** | 35 | 32 | **30** | **85.7%** | **93.8%** |
+| **Customer-Reported (`customer:*`)** | 61 | 52 | **46** | **75.4%** | **88.5%** |
+| **All Still-Open iOS Backlog (`OPEN`)** | 142 | 107 | **93** | **65.5%** | **86.9%** |
+| **Full Multi-Year Dataset (2023–2026 + Open Backlog)** | 234 | 182 | **162** | **69.2%** | **89.0%** |
 
-The Flutter app additionally has widget-level twins in `test/widget_test.dart`.
+### Yield by Benchmark Screen (162 Revealed Issues)
 
-```sh
-# UIKit
-cd uikit_a11y_benchmark
-xcodebuild test -project uikit_a11y_benchmark.xcodeproj -scheme uikit_a11y_benchmark \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
+| Benchmark Screen | UIKit / Flutter Twin | Issues Revealed | Share of Revealed Issues | Key Surfaces Tested |
+| :--- | :--- | ---: | ---: | :--- |
+| **1. Scroll Baseline** (`scroll.*`) | `ScrollBaselineViewController` / `ScrollBaselinePage` | **44** (`32 OPEN`) | **27.2%** | 100-row lazy list, 3-finger page scroll ("Page X of Y"), `Δy / viewportHeight` (100% vs 80%), status-bar tap scroll-to-top |
+| **3. Focus & Keyboard** (`focus.*`) | `FocusKeyboardViewController` / `FocusKeyboardPage` | **41** (`23 OPEN`) | **25.3%** | Pre-filled + placeholder `TextField`, unfocused/focused secure password field, 25% `Slider`, FKA `Tab` + auto-scroll, live region & polite announcements |
+| **2. Traversal Hierarchy** (`traversal.*`) | `TraversalHierarchyViewController` / `TraversalHierarchyPage` | **41** (`20 OPEN`) | **25.3%** | 3×3 grid (Row-Major geometric vs Column-Major container sort), headers, stateful Buttons A/B/C (Voice Control badges + mutating icon), expandable disclosure, 2-link `RichText` |
+| **4. Modal Barrier** (`modal.*`) | `ModalBarrierViewController` / `ModalBarrierPage` | **29** (`15 OPEN`) | **17.9%** | Modal bottom sheet (`BlockSemantics` + grabber/detents) vs `MenuAnchor` popup vs `AlertDialog`, plus 3-tab `BottomNavigationBar` |
+| **0. Root Menu & Nav** (`menu.*`) | `MenuViewController` / `MenuPage` | **7** (`3 OPEN`) | **4.3%** | Initial semantics startup flush, route push/pop focus restoration, Back button announcement |
 
-# Flutter
-cd flutter_a11y_benchmark
-flutter pub get && flutter test
-xcodebuild test -workspace ios/Runner.xcworkspace -scheme Runner \
-  -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:RunnerUITests
+### Manual QA Verification Guide: Top 8 Open Issues to Check Live on Device
 
-# Export the screenshot tour from a result bundle
-xcodebuild test ... -only-testing:<bundle>/ScreenshotTourUITests -resultBundlePath tour.xcresult
-xcrun xcresulttool export attachments --path tour.xcresult --output-path screenshots/
-```
+| Screen | Open Issue | Assistive Tech | Exact Action to Perform | UIKit (Expected) | Flutter (Bug Observed) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **1. Scroll Baseline** | [#189285](https://github.com/flutter/flutter/issues/189285) (`P1`) & [#193541](https://github.com/flutter/flutter/issues/193541) (`P2`) | VoiceOver | Focus `Item 2`, then 3-finger swipe up | Announces **"Page 2 of 12"** and scrolls **100%** of viewport | Silent scroll (`#189285`), moves only **80%** of viewport (`#193541`) |
+| **1. Scroll Baseline** | [#191565](https://github.com/flutter/flutter/issues/191565) (`P2`) | VoiceOver | Scroll down to `Item 30`, focus status bar, double-tap | Scrolls back to `Item 0` | Intercepted by nested `FlutterSemanticsScrollView`; nothing happens |
+| **2. Traversal Hierarchy** | [#138891](https://github.com/flutter/flutter/issues/138891) (`P2`) & [#175907](https://github.com/flutter/flutter/issues/175907) (`P2`) | VoiceOver | Focus `Advanced Options` disclosure (`traversal.disclosureHeader`) and double-tap | Announces **"Collapsed"** / **"Expanded"** | Never announces expanded/collapsed state (`SemanticsObject.mm` ignores `isExpanded`) |
+| **2. Traversal Hierarchy** | [#159127](https://github.com/flutter/flutter/issues/159127) (`P2`) & [#166750](https://github.com/flutter/flutter/issues/166750) (`P2`) | VoiceOver | Swipe through `Terms of Service and Privacy Policy` (`traversal.linksParagraph`) or switch Rotor to **Links** | Both links individually focusable and listed in **Links** Rotor | Second link (`Privacy Policy`) is unreachable or missing from Rotor |
+| **2. Traversal Hierarchy** | [#183821](https://github.com/flutter/flutter/issues/183821) (`P2`, `customer: google`) | Voice Control | Enable Voice Control (`Show Numbers`) and look at `Button A` / `Button B` / `Button C` | Number badge sits directly on each button | Number badge offset / mismatched from visual button |
+| **3. Focus & Keyboard** | [#192171](https://github.com/flutter/flutter/issues/192171) (`P2`) & [#192159](https://github.com/flutter/flutter/issues/192159) (`P2`) | Full Keyboard Access | Press `Tab` repeatedly through `TextField` → `Password` → `Slider` → `Submit` | Focus ring visits `UISlider` (`focus.volumeSlider`) and auto-scrolls offscreen controls | `Tab` skips `Slider` (`#192171`) and does not auto-scroll (`#192159`) |
+| **3. Focus & Keyboard** | [#150260](https://github.com/flutter/flutter/issues/150260) (`P2`) & [#190320](https://github.com/flutter/flutter/issues/190320) (`P2`) | VoiceOver | Focus `Full Name` (`focus.topTextField`, pre-filled `"Jane Doe"`) before editing; type into `Password` (`focus.bottomTextField`) | Reads `"Jane Doe"` immediately; reads bullets for password | Value blank before keyboard focus (`#150260`); echoes plaintext characters (`#190320`) |
+| **4. Modal Barrier** | [#171548](https://github.com/flutter/flutter/issues/171548) (`P2`, `customer: google`) & [#186544](https://github.com/flutter/flutter/issues/186544) (`P3`) | VoiceOver | Activate `Open Popup Menu` (`modal.popupMenuButton`), then swipe right past `Share`, `Duplicate`, `Delete` | Focus lands on first menu item and is trapped inside popup | Initial focus jumps to `(0,0)` (`#186544`) and swiping escapes into background buttons (`#171548`) |
 
-## Instrumentation worth knowing about
+---
 
-* UIKit observes assistive-tech focus globally via
-  `UIAccessibility.elementFocusedNotification`; Flutter has no public equivalent,
-  so `flutter_a11y_benchmark/lib/a11y/a11y_action_observer.dart` wraps
-  `PlatformDispatcher.onSemanticsActionEvent` and logs every semantics action
-  the platform sends, resolved to the target node's identifier.
-* `flutter_a11y_benchmark/lib/a11y/a11y_probe.dart` documents where a
-  `Semantics` annotation has to live for identifiers/sort keys to land on the
-  intended node (inside a button's child, `container: true` around leaves,
-  `MergeSemantics` for cells).
-* All diagnostic logs are prefixed per screen (`[ScrollBaseline]`,
-  `[FocusKeyboard]`, `[A11yAction]`, …) in both apps.
+## 2. Last 12 Months (Oct 2025 – Oct 2026): 50 Issues (37 Revealed)
 
-Known, intentional platform gaps are listed in
-[`flutter_a11y_benchmark/README.md`](flutter_a11y_benchmark/README.md).
+| Issue | State | Prio | Created | Customer | Revealed? | Screen | Title |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| [#195019](https://github.com/flutter/flutter/issues/195019) | `OPEN` | `P2` | 2026-10-22 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | [cupertino_ui] CupertinoActionSheet semantics label is hardcoded to 'Alert' instead of using CupertinoLocalizations.alertDialogLabel |
+| [#194904](https://github.com/flutter/flutter/issues/194904) | `OPEN` | `P2` | 2026-10-21 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | [material_ui] DrawerButton and NavigationRail omit Semantics states |
+| [#194657](https://github.com/flutter/flutter/issues/194657) | `OPEN` | `P2` | 2026-10-17 | - | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | [material_ui] CalendarDatePicker day numbers are cut off with large text scale on narrow screens |
+| [#194541](https://github.com/flutter/flutter/issues/194541) | `OPEN` | `-` | 2026-10-16 | - | 🚫 Out of Scope | N/A (Engine Crash / Infra / Docs) | [iOS] AccessibilityBridge::GetOrCreateObject inserts an empty root node (id 0) for unknown child ids, wiping the accessibility tree until restart |
+| [#194389](https://github.com/flutter/flutter/issues/194389) | `OPEN` | `P2` | 2026-10-14 | - | 🚫 Out of Scope | N/A (PlatformView / Add-to-App) | [iOS] Accessibility hit test in a scrollable never reaches a platform view's native subviews |
+| [#193677](https://github.com/flutter/flutter/issues/193677) | `OPEN` | `-` | 2026-10-01 | - | 🚫 Out of Scope | N/A (Engine Crash / Infra / Docs) | Spurious assertion "traversalParentIdentifier must be unique" when a keyed row with a Tooltip moves to a lower index in a ListView |
+| [#193541](https://github.com/flutter/flutter/issues/193541) | `OPEN` | `P2` | 2026-09-30 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [a11y][iOS] VoiceOver scroll move 80% of the viewport, while native iOS moves a full screen |
+| [#193535](https://github.com/flutter/flutter/issues/193535) | `CLOSED` | `-` | 2026-09-29 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [iOS][a11y] VoiceOver focus jumps to the first element on screen after a three-finger scroll |
+| [#193410](https://github.com/flutter/flutter/issues/193410) | `CLOSED` | `-` | 2026-09-27 | - | 🚫 Out of Scope | N/A (Engine Crash / Infra / Docs) | Resizing the window crashes with an access violation when an IndexedStack contains Sliders. |
+| [#192774](https://github.com/flutter/flutter/issues/192774) | `OPEN` | `P1` | 2026-09-14 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [iOS 27] VoiceOver's implicit-scroll-into-view no longer works - single-finger swipe never advances past the visible boundary of a Scrollable |
+| [#192376](https://github.com/flutter/flutter/issues/192376) | `OPEN` | `P2` | 2026-09-07 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | [FKA ] Autocomplete suggestions cannot be navigated or selected using Up/Down arrow keys with Full Keyboard Access |
+| [#192182](https://github.com/flutter/flutter/issues/192182) | `OPEN` | `P2` | 2026-09-02 | - | ✅ Yes | Menu & Navigation (`menu.*`) | [FKA] Keyboard focus resets to the top of the list after navigating back |
+| [#192178](https://github.com/flutter/flutter/issues/192178) | `OPEN` | `P2` | 2026-09-02 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [FKA]“Typing mode enabled” Alert  is not provided when pressing Tab after activating Password TextField with Space |
+| [#192171](https://github.com/flutter/flutter/issues/192171) | `OPEN` | `P2` | 2026-09-02 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [FKA]Slider cannot be focused using Tab key with Full Keyboard Access enabled |
+| [#192159](https://github.com/flutter/flutter/issues/192159) | `OPEN` | `P2` | 2026-09-02 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [FKA] Keyboard focus does not auto-scroll to focused elements when navigating with Tab / Shift+Tab |
+| [#191565](https://github.com/flutter/flutter/issues/191565) | `OPEN` | `P2` | 2026-08-24 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [iOS][a11y] Status bar tap (scroll-to-top) is intercepted by FlutterSemanticsScrollView when accessibility is enabled, because scrollsToTop is left at its default |
+| [#190320](https://github.com/flutter/flutter/issues/190320) | `OPEN` | `P2` | 2026-07-30 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | VoiceOver read characters when we set `obscureText: true` in `TextField` |
+| [#190244](https://github.com/flutter/flutter/issues/190244) | `CLOSED` | `P2` | 2026-07-29 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | Password field announced as "Text field" instead of "Secure text field" by voiceover unless focused |
+| [#190193](https://github.com/flutter/flutter/issues/190193) | `OPEN` | `P3` | 2026-07-29 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | Proposal: Flutter accessibility tooling should expose Audio Graph feature on iOS. |
+| [#189285](https://github.com/flutter/flutter/issues/189285) | `OPEN` | `P1` | 2026-07-10 | blue | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [iOS][a11y] VoiceOver three-finger scroll never announces scroll status ("Page X of Y") |
+| [#187792](https://github.com/flutter/flutter/issues/187792) | `OPEN` | `P2` | 2026-06-10 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | [iOS][a11y] Investigate accessibilityActivationPoint in UIAccessibility |
+| [#187791](https://github.com/flutter/flutter/issues/187791) | `OPEN` | `P2` | 2026-06-10 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | [iOS][A11y] Investigating UIAccessibilityTraitAllowsDirectInteraction in semantics |
+| [#187611](https://github.com/flutter/flutter/issues/187611) | `OPEN` | `P2` | 2026-06-05 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | [iOS] DropdownMenu selection tears down the entire iOS accessibility tree when the app uses the Router API (go_router / MaterialApp.router) |
+| [#187055](https://github.com/flutter/flutter/issues/187055) | `OPEN` | `P2` | 2026-05-25 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [iOS][FKA] Full Keyboard Access does not scroll to offscreen Semantics nodes in SingleChildScrollView and does not trigger focus callbacks |
+| [#186582](https://github.com/flutter/flutter/issues/186582) | `CLOSED` | `P1` | 2026-05-15 | - | 🚫 Out of Scope | N/A (PlatformView / Add-to-App) | [iOS] Accessibility tree is lost after reusing a FlutterEngine with a new FlutterViewController |
+| [#186544](https://github.com/flutter/flutter/issues/186544) | `OPEN` | `P3` | 2026-05-14 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | [iOS][Accessibility] VoiceOver focus defaults to top-left (0,0) when opening PopupMenuButton |
+| [#186472](https://github.com/flutter/flutter/issues/186472) | `CLOSED` | `P1` | 2026-05-13 | google | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [Google3 Bug][A11y]: Slider reads "50, Slider" on initial focus with screenreader |
+| [#186178](https://github.com/flutter/flutter/issues/186178) | `CLOSED` | `P2` | 2026-05-07 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | Accessibility focus positions not updated after keyboard dismiss when dialog is shown immediately |
+| [#186043](https://github.com/flutter/flutter/issues/186043) | `CLOSED` | `P3` | 2026-05-05 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [Feature Request][A11y][DatePicker] Expose or fix expanded/collapsed semantics for showDatePicker expand control |
+| [#185894](https://github.com/flutter/flutter/issues/185894) | `OPEN` | `P2` | 2026-05-01 | - | ✅ Yes | Menu & Navigation (`menu.*`) | [a11y] AppBar.title is not mapped to the native screen title — screen readers announce it as a heading, not a page title |
+| [#184898](https://github.com/flutter/flutter/issues/184898) | `CLOSED` | `P1` | 2026-04-10 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | App crashes when using TalkBack, misbehaves with VoiceOver |
+| [#184305](https://github.com/flutter/flutter/issues/184305) | `CLOSED` | `P3` | 2026-03-29 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [Cupertino] Architecture for Cupertino focus halos and Full Keyboard Access (FKA) |
+| [#184077](https://github.com/flutter/flutter/issues/184077) | `OPEN` | `P1` | 2026-03-24 | google | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [Google3 Bug]: Illogical keyboard navigation order for FloatingActionButton when placed visually before a long scrollable list |
+| [#183833](https://github.com/flutter/flutter/issues/183833) | `CLOSED` | `P1` | 2026-03-18 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | MergeSemantics fails to resolve the correct handler when multiple custom semantics actions are present |
+| [#183821](https://github.com/flutter/flutter/issues/183821) | `OPEN` | `P2` | 2026-03-18 | google | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [Google3 Bug]: iOS Voice Control number overlay on buttons mismatch |
+| [#183808](https://github.com/flutter/flutter/issues/183808) | `OPEN` | `P2` | 2026-03-17 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [A11y] Unify Talkback and voice over Textfield announcements |
+| [#183498](https://github.com/flutter/flutter/issues/183498) | `CLOSED` | `-` | 2026-03-11 | - | 🚫 Out of Scope | N/A (PlatformView / Add-to-App) | iOS Accessibility/Semantics not exposed for child pages after UISceneDelegate migration in Flutter 3.41 |
+| [#183415](https://github.com/flutter/flutter/issues/183415) | `OPEN` | `P2` | 2026-03-09 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | FKA Tab navigation does not dispatch `onDidGainAccessibilityFocus` / `SemanticsAction.didGainAccessibilityFocus` to the Dart layer |
+| [#182909](https://github.com/flutter/flutter/issues/182909) | `OPEN` | `P2` | 2026-02-25 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | Screenreader should announce changes in selection for `SelectableRegion` |
+| [#180081](https://github.com/flutter/flutter/issues/180081) | `OPEN` | `P2` | 2025-12-18 | - | 🚫 Out of Scope | N/A (Engine Crash / Infra / Docs) | textContrastGuideline does not detect violations (white text on white background) in common use cases |
+| [#180025](https://github.com/flutter/flutter/issues/180025) | `OPEN` | `P2` | 2025-12-17 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [iOS][a11y] SemanticsProperties.headingLevel doesn't wire up to accessibilityHeading |
+| [#179687](https://github.com/flutter/flutter/issues/179687) | `CLOSED` | `P2` | 2025-12-10 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [Accessibility] SliverResizingHeader captures semantic focus before list is fully scrolled |
+| [#179638](https://github.com/flutter/flutter/issues/179638) | `OPEN` | `P2` | 2025-12-09 | google | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [Google3 Bug]:  [Accessibility] RangeSlider does not respond to keyboard interactions |
+| [#179358](https://github.com/flutter/flutter/issues/179358) | `CLOSED` | `P1` | 2025-12-02 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | [CupertinoSheet] Add native styled drag handles |
+| [#179022](https://github.com/flutter/flutter/issues/179022) | `CLOSED` | `P2` | 2025-11-24 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [Accessibility] PinnedHeaderSliver captures semantic focus before list is fully scrolled |
+| [#178713](https://github.com/flutter/flutter/issues/178713) | `CLOSED` | `P2` | 2025-11-18 | - | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | CupertinoDatePicker reads disabled dates when VoiceOver is on. |
+| [#178432](https://github.com/flutter/flutter/issues/178432) | `CLOSED` | `-` | 2025-11-13 | thoughts (g3) | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | Screen reader does not scroll a list when using `Localizations.override` |
+| [#177801](https://github.com/flutter/flutter/issues/177801) | `OPEN` | `P2` | 2025-10-30 | - | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | [A11y] User's bold text preference not respected if `TextSpan.style` has a custom font weight |
+| [#177309](https://github.com/flutter/flutter/issues/177309) | `CLOSED` | `P2` | 2025-10-21 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [a11y] Scrollable TabBar with `tabAlignment: TabAlignment.center` can't travel to the end of list |
+| [#177025](https://github.com/flutter/flutter/issues/177025) | `OPEN` | `P2` | 2025-10-14 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [A11y][iOS] unexpected hittest order when using voiceover |
+
+---
+
+## 3. Complete Multi-Year Dataset (All 234 iOS Accessibility Issues)
+
+| Issue | State | Prio | Created | Customer | Revealed? | Screen | Title |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| [#195019](https://github.com/flutter/flutter/issues/195019) | `OPEN` | `P2` | 2026-10-22 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | [cupertino_ui] CupertinoActionSheet semantics label is hardcoded to 'Alert' instead of using CupertinoLocalizations.alertDialogLabel |
+| [#194904](https://github.com/flutter/flutter/issues/194904) | `OPEN` | `P2` | 2026-10-21 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | [material_ui] DrawerButton and NavigationRail omit Semantics states |
+| [#194657](https://github.com/flutter/flutter/issues/194657) | `OPEN` | `P2` | 2026-10-17 | - | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | [material_ui] CalendarDatePicker day numbers are cut off with large text scale on narrow screens |
+| [#194541](https://github.com/flutter/flutter/issues/194541) | `OPEN` | `-` | 2026-10-16 | - | 🚫 Out of Scope | N/A (Engine Crash / Infra / Docs) | [iOS] AccessibilityBridge::GetOrCreateObject inserts an empty root node (id 0) for unknown child ids, wiping the accessibility tree until restart |
+| [#194389](https://github.com/flutter/flutter/issues/194389) | `OPEN` | `P2` | 2026-10-14 | - | 🚫 Out of Scope | N/A (PlatformView / Add-to-App) | [iOS] Accessibility hit test in a scrollable never reaches a platform view's native subviews |
+| [#193677](https://github.com/flutter/flutter/issues/193677) | `OPEN` | `-` | 2026-10-01 | - | 🚫 Out of Scope | N/A (Engine Crash / Infra / Docs) | Spurious assertion "traversalParentIdentifier must be unique" when a keyed row with a Tooltip moves to a lower index in a ListView |
+| [#193541](https://github.com/flutter/flutter/issues/193541) | `OPEN` | `P2` | 2026-09-30 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [a11y][iOS] VoiceOver scroll move 80% of the viewport, while native iOS moves a full screen |
+| [#193535](https://github.com/flutter/flutter/issues/193535) | `CLOSED` | `-` | 2026-09-29 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [iOS][a11y] VoiceOver focus jumps to the first element on screen after a three-finger scroll |
+| [#193410](https://github.com/flutter/flutter/issues/193410) | `CLOSED` | `-` | 2026-09-27 | - | 🚫 Out of Scope | N/A (Engine Crash / Infra / Docs) | Resizing the window crashes with an access violation when an IndexedStack contains Sliders. |
+| [#192774](https://github.com/flutter/flutter/issues/192774) | `OPEN` | `P1` | 2026-09-14 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [iOS 27] VoiceOver's implicit-scroll-into-view no longer works - single-finger swipe never advances past the visible boundary of a Scrollable |
+| [#192376](https://github.com/flutter/flutter/issues/192376) | `OPEN` | `P2` | 2026-09-07 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | [FKA ] Autocomplete suggestions cannot be navigated or selected using Up/Down arrow keys with Full Keyboard Access |
+| [#192182](https://github.com/flutter/flutter/issues/192182) | `OPEN` | `P2` | 2026-09-02 | - | ✅ Yes | Menu & Navigation (`menu.*`) | [FKA] Keyboard focus resets to the top of the list after navigating back |
+| [#192178](https://github.com/flutter/flutter/issues/192178) | `OPEN` | `P2` | 2026-09-02 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [FKA]“Typing mode enabled” Alert  is not provided when pressing Tab after activating Password TextField with Space |
+| [#192171](https://github.com/flutter/flutter/issues/192171) | `OPEN` | `P2` | 2026-09-02 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [FKA]Slider cannot be focused using Tab key with Full Keyboard Access enabled |
+| [#192159](https://github.com/flutter/flutter/issues/192159) | `OPEN` | `P2` | 2026-09-02 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [FKA] Keyboard focus does not auto-scroll to focused elements when navigating with Tab / Shift+Tab |
+| [#191565](https://github.com/flutter/flutter/issues/191565) | `OPEN` | `P2` | 2026-08-24 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [iOS][a11y] Status bar tap (scroll-to-top) is intercepted by FlutterSemanticsScrollView when accessibility is enabled, because scrollsToTop is left at its default |
+| [#190320](https://github.com/flutter/flutter/issues/190320) | `OPEN` | `P2` | 2026-07-30 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | VoiceOver read characters when we set `obscureText: true` in `TextField` |
+| [#190244](https://github.com/flutter/flutter/issues/190244) | `CLOSED` | `P2` | 2026-07-29 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | Password field announced as "Text field" instead of "Secure text field" by voiceover unless focused |
+| [#190193](https://github.com/flutter/flutter/issues/190193) | `OPEN` | `P3` | 2026-07-29 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | Proposal: Flutter accessibility tooling should expose Audio Graph feature on iOS. |
+| [#189285](https://github.com/flutter/flutter/issues/189285) | `OPEN` | `P1` | 2026-07-10 | blue | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [iOS][a11y] VoiceOver three-finger scroll never announces scroll status ("Page X of Y") |
+| [#187792](https://github.com/flutter/flutter/issues/187792) | `OPEN` | `P2` | 2026-06-10 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | [iOS][a11y] Investigate accessibilityActivationPoint in UIAccessibility |
+| [#187791](https://github.com/flutter/flutter/issues/187791) | `OPEN` | `P2` | 2026-06-10 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | [iOS][A11y] Investigating UIAccessibilityTraitAllowsDirectInteraction in semantics |
+| [#187611](https://github.com/flutter/flutter/issues/187611) | `OPEN` | `P2` | 2026-06-05 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | [iOS] DropdownMenu selection tears down the entire iOS accessibility tree when the app uses the Router API (go_router / MaterialApp.router) |
+| [#187055](https://github.com/flutter/flutter/issues/187055) | `OPEN` | `P2` | 2026-05-25 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [iOS][FKA] Full Keyboard Access does not scroll to offscreen Semantics nodes in SingleChildScrollView and does not trigger focus callbacks |
+| [#186582](https://github.com/flutter/flutter/issues/186582) | `CLOSED` | `P1` | 2026-05-15 | - | 🚫 Out of Scope | N/A (PlatformView / Add-to-App) | [iOS] Accessibility tree is lost after reusing a FlutterEngine with a new FlutterViewController |
+| [#186544](https://github.com/flutter/flutter/issues/186544) | `OPEN` | `P3` | 2026-05-14 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | [iOS][Accessibility] VoiceOver focus defaults to top-left (0,0) when opening PopupMenuButton |
+| [#186472](https://github.com/flutter/flutter/issues/186472) | `CLOSED` | `P1` | 2026-05-13 | google | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [Google3 Bug][A11y]: Slider reads "50, Slider" on initial focus with screenreader |
+| [#186178](https://github.com/flutter/flutter/issues/186178) | `CLOSED` | `P2` | 2026-05-07 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | Accessibility focus positions not updated after keyboard dismiss when dialog is shown immediately |
+| [#186043](https://github.com/flutter/flutter/issues/186043) | `CLOSED` | `P3` | 2026-05-05 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [Feature Request][A11y][DatePicker] Expose or fix expanded/collapsed semantics for showDatePicker expand control |
+| [#185894](https://github.com/flutter/flutter/issues/185894) | `OPEN` | `P2` | 2026-05-01 | - | ✅ Yes | Menu & Navigation (`menu.*`) | [a11y] AppBar.title is not mapped to the native screen title — screen readers announce it as a heading, not a page title |
+| [#184898](https://github.com/flutter/flutter/issues/184898) | `CLOSED` | `P1` | 2026-04-10 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | App crashes when using TalkBack, misbehaves with VoiceOver |
+| [#184305](https://github.com/flutter/flutter/issues/184305) | `CLOSED` | `P3` | 2026-03-29 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [Cupertino] Architecture for Cupertino focus halos and Full Keyboard Access (FKA) |
+| [#184077](https://github.com/flutter/flutter/issues/184077) | `OPEN` | `P1` | 2026-03-24 | google | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [Google3 Bug]: Illogical keyboard navigation order for FloatingActionButton when placed visually before a long scrollable list |
+| [#183833](https://github.com/flutter/flutter/issues/183833) | `CLOSED` | `P1` | 2026-03-18 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | MergeSemantics fails to resolve the correct handler when multiple custom semantics actions are present |
+| [#183821](https://github.com/flutter/flutter/issues/183821) | `OPEN` | `P2` | 2026-03-18 | google | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [Google3 Bug]: iOS Voice Control number overlay on buttons mismatch |
+| [#183808](https://github.com/flutter/flutter/issues/183808) | `OPEN` | `P2` | 2026-03-17 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [A11y] Unify Talkback and voice over Textfield announcements |
+| [#183498](https://github.com/flutter/flutter/issues/183498) | `CLOSED` | `-` | 2026-03-11 | - | 🚫 Out of Scope | N/A (PlatformView / Add-to-App) | iOS Accessibility/Semantics not exposed for child pages after UISceneDelegate migration in Flutter 3.41 |
+| [#183415](https://github.com/flutter/flutter/issues/183415) | `OPEN` | `P2` | 2026-03-09 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | FKA Tab navigation does not dispatch `onDidGainAccessibilityFocus` / `SemanticsAction.didGainAccessibilityFocus` to the Dart layer |
+| [#182909](https://github.com/flutter/flutter/issues/182909) | `OPEN` | `P2` | 2026-02-25 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | Screenreader should announce changes in selection for `SelectableRegion` |
+| [#180081](https://github.com/flutter/flutter/issues/180081) | `OPEN` | `P2` | 2025-12-18 | - | 🚫 Out of Scope | N/A (Engine Crash / Infra / Docs) | textContrastGuideline does not detect violations (white text on white background) in common use cases |
+| [#180025](https://github.com/flutter/flutter/issues/180025) | `OPEN` | `P2` | 2025-12-17 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [iOS][a11y] SemanticsProperties.headingLevel doesn't wire up to accessibilityHeading |
+| [#179687](https://github.com/flutter/flutter/issues/179687) | `CLOSED` | `P2` | 2025-12-10 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [Accessibility] SliverResizingHeader captures semantic focus before list is fully scrolled |
+| [#179638](https://github.com/flutter/flutter/issues/179638) | `OPEN` | `P2` | 2025-12-09 | google | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [Google3 Bug]:  [Accessibility] RangeSlider does not respond to keyboard interactions |
+| [#179358](https://github.com/flutter/flutter/issues/179358) | `CLOSED` | `P1` | 2025-12-02 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | [CupertinoSheet] Add native styled drag handles |
+| [#179022](https://github.com/flutter/flutter/issues/179022) | `CLOSED` | `P2` | 2025-11-24 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [Accessibility] PinnedHeaderSliver captures semantic focus before list is fully scrolled |
+| [#178713](https://github.com/flutter/flutter/issues/178713) | `CLOSED` | `P2` | 2025-11-18 | - | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | CupertinoDatePicker reads disabled dates when VoiceOver is on. |
+| [#178432](https://github.com/flutter/flutter/issues/178432) | `CLOSED` | `-` | 2025-11-13 | thoughts (g3) | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | Screen reader does not scroll a list when using `Localizations.override` |
+| [#177801](https://github.com/flutter/flutter/issues/177801) | `OPEN` | `P2` | 2025-10-30 | - | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | [A11y] User's bold text preference not respected if `TextSpan.style` has a custom font weight |
+| [#177309](https://github.com/flutter/flutter/issues/177309) | `CLOSED` | `P2` | 2025-10-21 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [a11y] Scrollable TabBar with `tabAlignment: TabAlignment.center` can't travel to the end of list |
+| [#177025](https://github.com/flutter/flutter/issues/177025) | `OPEN` | `P2` | 2025-10-14 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [A11y][iOS] unexpected hittest order when using voiceover |
+| [#175950](https://github.com/flutter/flutter/issues/175950) | `CLOSED` | `P1` | 2025-09-24 | google, chalk (g3) | ✅ Yes | 4. Modal Barrier (`modal.*`) | [Google3 Bug]: Unable to get DropdownMenu semantics for initial selection announced together |
+| [#175907](https://github.com/flutter/flutter/issues/175907) | `OPEN` | `P2` | 2025-09-24 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [a11y] Add semantics to the Expansible widget. |
+| [#175530](https://github.com/flutter/flutter/issues/175530) | `CLOSED` | `P1` | 2025-09-17 | google | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [Google3 Bug]: TextField's HintText isn't announced upon deleting text with Screen Reader enabled. |
+| [#175191](https://github.com/flutter/flutter/issues/175191) | `CLOSED` | `-` | 2025-09-10 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [A11Y] [iOS only] - Inconsistent VoiceOver focus/tap behavior for items loaded after scrolling |
+| [#175184](https://github.com/flutter/flutter/issues/175184) | `CLOSED` | `P1` | 2025-09-10 | chalk (g3) | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | DropdownMenu items semantics break if the widget is wrapped inside a scrollable view |
+| [#174842](https://github.com/flutter/flutter/issues/174842) | `CLOSED` | `P0` | 2025-09-02 | - | ✅ Yes | Menu & Navigation (`menu.*`) | [iOS] Flakey race condition between SetSemanticsTreeEnabled and UpdateSemantics |
+| [#173446](https://github.com/flutter/flutter/issues/173446) | `CLOSED` | `P2` | 2025-08-08 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | Add semantics for CupertinoExpansionTile |
+| [#173340](https://github.com/flutter/flutter/issues/173340) | `CLOSED` | `P2` | 2025-08-06 | blue | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | "DELETE" button on numeric keyboard on iOS does not have translation on VoiceOver |
+| [#173302](https://github.com/flutter/flutter/issues/173302) | `CLOSED` | `P1` | 2025-08-05 | google, chalk (g3) | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [Google3 Bug]: State information not announced for AM/PM in Material DateTimePicker |
+| [#173097](https://github.com/flutter/flutter/issues/173097) | `CLOSED` | `P1` | 2025-08-01 | google, thoughts (g3) | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [Google3 Bug]: [Accessibility] Screen reader unable to reach/interact with all items in a scrollable |
+| [#173049](https://github.com/flutter/flutter/issues/173049) | `OPEN` | `P2` | 2025-07-31 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [VPAT][A11y] disabled password Textfield is missing role in voice over |
+| [#172981](https://github.com/flutter/flutter/issues/172981) | `CLOSED` | `P2` | 2025-07-30 | google | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [Google3 Bug]: [Accessibility] With VoiceOver, RangeSlider does not announce the values of the thumbs correctly |
+| [#172918](https://github.com/flutter/flutter/issues/172918) | `OPEN` | `P2` | 2025-07-29 | - | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | Missing Combo Box Role Implementation |
+| [#172489](https://github.com/flutter/flutter/issues/172489) | `CLOSED` | `P1` | 2025-07-21 | google, quake (g3) | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [Google3 Bug][A11Y]: Voiceover focus traversal breaks if a button's state     changes to include an icon |
+| [#171692](https://github.com/flutter/flutter/issues/171692) | `CLOSED` | `-` | 2025-07-07 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | iOS VoiceControl not working when Semantics has ExcludeSemantics as child |
+| [#171548](https://github.com/flutter/flutter/issues/171548) | `OPEN` | `P2` | 2025-07-02 | google | ✅ Yes | 4. Modal Barrier (`modal.*`) | [Google3 Bug][A11Y]: MenuAnchor should not allow focus of background items while open |
+| [#171231](https://github.com/flutter/flutter/issues/171231) | `CLOSED` | `P1` | 2025-06-26 | google | ✅ Yes | 4. Modal Barrier (`modal.*`) | [Google3 Bug]: MenuItemButton voice over/semantics doesn't pronounce disabled buttons |
+| [#170908](https://github.com/flutter/flutter/issues/170908) | `CLOSED` | `P3` | 2025-06-20 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [A11y]: Keyboard Arrow Navigation not working for IndexedStack |
+| [#170674](https://github.com/flutter/flutter/issues/170674) | `OPEN` | `P2` | 2025-06-16 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | PageView loses semantic focus when swiping in VoiceOver and TalkBack |
+| [#170422](https://github.com/flutter/flutter/issues/170422) | `CLOSED` | `P2` | 2025-06-11 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | RadioButton is not vocalized as unselected by VoiceOver. |
+| [#170348](https://github.com/flutter/flutter/issues/170348) | `CLOSED` | `P1` | 2025-06-10 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | CupertinoButton does not handle VoiceOver taps correctly on iOS |
+| [#170177](https://github.com/flutter/flutter/issues/170177) | `CLOSED` | `P2` | 2025-06-06 | google, quake (g3) | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [Google3 Bug]: [Accessibility] RangeSlider does not respond to keyboard focus or interactions |
+| [#169269](https://github.com/flutter/flutter/issues/169269) | `OPEN` | `P2` | 2025-05-22 | - | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | [Accessibility] Problem with text scaling on ios |
+| [#168915](https://github.com/flutter/flutter/issues/168915) | `CLOSED` | `P2` | 2025-05-15 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | [go_router] Voice over drops reading BottomNavigationBar selected tab when it becomes selected |
+| [#168835](https://github.com/flutter/flutter/issues/168835) | `OPEN` | `P3` | 2025-05-14 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | Flutter text should work with iOS's Accessibility Reader feature |
+| [#168255](https://github.com/flutter/flutter/issues/168255) | `CLOSED` | `P2` | 2025-05-03 | - | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | Focused CupertinoSearchTextField does not hide prefix in higher accessibility text scale modes |
+| [#167642](https://github.com/flutter/flutter/issues/167642) | `CLOSED` | `-` | 2025-04-23 | - | ✅ Yes | Menu & Navigation (`menu.*`) | [Semantics] iOS: Navigating between Pages/Bottom sheet in accessibility mode cause focus set to an invisible element |
+| [#167248](https://github.com/flutter/flutter/issues/167248) | `CLOSED` | `P2` | 2025-04-16 | - | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | CupertinoSliverNavigationBar should respect accessibility text scaling |
+| [#166750](https://github.com/flutter/flutter/issues/166750) | `OPEN` | `P2` | 2025-04-08 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | Links don't show up in Screenreader rotors on iOS and Android |
+| [#166707](https://github.com/flutter/flutter/issues/166707) | `OPEN` | `P3` | 2025-04-07 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | Accessibility keyboard shortcut cannot reach `Table` when outside of the current viewport |
+| [#166683](https://github.com/flutter/flutter/issues/166683) | `OPEN` | `P2` | 2025-04-07 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | Full Keyboard Access on iOS Breaks External Keyboard Navigation in Flutter App |
+| [#165857](https://github.com/flutter/flutter/issues/165857) | `CLOSED` | `P1` | 2025-03-25 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | Add unfocusable semantic property to force non-focus on widgets |
+| [#165851](https://github.com/flutter/flutter/issues/165851) | `OPEN` | `P2` | 2025-03-25 | castaway | 🚫 Out of Scope | N/A (Engine Crash / Infra / Docs) | VoiceOver Native iOS app crash with cacheExtent: double.infinity |
+| [#164623](https://github.com/flutter/flutter/issues/164623) | `CLOSED` | `-` | 2025-03-05 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [Semantics] SingleChildScrollView requests focus in accessibility mode in iOS |
+| [#164589](https://github.com/flutter/flutter/issues/164589) | `CLOSED` | `P2` | 2025-03-05 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [a11y] apply radioGroup role to cupertino widgets |
+| [#164544](https://github.com/flutter/flutter/issues/164544) | `OPEN` | `P2` | 2025-03-04 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | iPad VoiceOver Not Announcing Characters During Cursor Navigation in TextField using external keyboard |
+| [#164483](https://github.com/flutter/flutter/issues/164483) | `CLOSED` | `P2` | 2025-03-03 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [iOS] Extra silent accessibility focus before first ListView item |
+| [#164281](https://github.com/flutter/flutter/issues/164281) | `CLOSED` | `P2` | 2025-02-27 | - | 🚫 Out of Scope | N/A (PlatformView / Add-to-App) | iOS add2app : app hangs when accessibility is turned ON |
+| [#164249](https://github.com/flutter/flutter/issues/164249) | `OPEN` | `P3` | 2025-02-27 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | Provide the necessary semantics for denoting tab bars for accessibility - wire up iOS/Android |
+| [#164107](https://github.com/flutter/flutter/issues/164107) | `CLOSED` | `-` | 2025-02-25 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | Semantics aren't read with the correct labels context in French (and probably some other languages) |
+| [#162804](https://github.com/flutter/flutter/issues/162804) | `OPEN` | `P3` | 2025-02-06 | - | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | boldText set to false does not work on iOS |
+| [#162067](https://github.com/flutter/flutter/issues/162067) | `CLOSED` | `-` | 2025-01-23 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [A11y]: Slider labels not included in the `Semantics` widget |
+| [#161430](https://github.com/flutter/flutter/issues/161430) | `CLOSED` | `P2` | 2025-01-10 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | [ally][iOS] : ModalBottomSheet's DragHandle missing semantic information |
+| [#161081](https://github.com/flutter/flutter/issues/161081) | `OPEN` | `P2` | 2025-01-03 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | [Accessibility] : AlertDialog semanticLabel not read in iOS 18 |
+| [#160033](https://github.com/flutter/flutter/issues/160033) | `CLOSED` | `P1` | 2024-12-10 | google | ✅ Yes | 4. Modal Barrier (`modal.*`) | [a11y][iOS] bottomNavigationBar cannot be navigated using Switch Control |
+| [#159127](https://github.com/flutter/flutter/issues/159127) | `OPEN` | `P2` | 2024-11-19 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [A11y] Second link is inaccessible in RichText |
+| [#158477](https://github.com/flutter/flutter/issues/158477) | `CLOSED` | `P1` | 2024-11-11 | quake (g3) | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | iOS Voice Control number label shown on parent widget with Semantic label when child widget is actionable |
+| [#158474](https://github.com/flutter/flutter/issues/158474) | `OPEN` | `P2` | 2024-11-11 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | [a11y] When focusing Widget created by showModalBottomSheet, focus is not immediately on contained actions |
+| [#158164](https://github.com/flutter/flutter/issues/158164) | `OPEN` | `P3` | 2024-11-05 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | [a11y][VoiceOver/Talkback] Dismissable ModalBarrier is not announced as a button |
+| [#157894](https://github.com/flutter/flutter/issues/157894) | `OPEN` | `P2` | 2024-10-31 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | Semantics inside RawAutocomplete are displayed behind other UI elements |
+| [#157824](https://github.com/flutter/flutter/issues/157824) | `CLOSED` | `P1` | 2024-10-29 | money (g3) | ✅ Yes | 4. Modal Barrier (`modal.*`) | [a11y][iOS] TabBar does not work with iOS Voice Control |
+| [#157753](https://github.com/flutter/flutter/issues/157753) | `CLOSED` | `P1` | 2024-10-28 | quake (g3) | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [iOS][a11y] Widgets inside OverlayPortal  don't display iOS number labels for VoiceControl |
+| [#157630](https://github.com/flutter/flutter/issues/157630) | `CLOSED` | `P2` | 2024-10-25 | quake (g3) | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [A11y][iOS]: SnackBar shows more Voice Control labels than expected |
+| [#157376](https://github.com/flutter/flutter/issues/157376) | `CLOSED` | `P1` | 2024-10-22 | money (g3) | ✅ Yes | 4. Modal Barrier (`modal.*`) | Unable to dismiss popup menu in specific iOS devices with voiceover |
+| [#156427](https://github.com/flutter/flutter/issues/156427) | `CLOSED` | `-` | 2024-10-08 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [A11y] Double Tap brings the `Slider` thumb to the center of the widget.  |
+| [#156368](https://github.com/flutter/flutter/issues/156368) | `CLOSED` | `P1` | 2024-10-07 | quake (g3) | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | Voice Control shows a number on the character count label, which is misleading |
+| [#156340](https://github.com/flutter/flutter/issues/156340) | `CLOSED` | `P2` | 2024-10-07 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | Form Error Messages Announced All at Once Overwhelming VoiceOver Users. |
+| [#156170](https://github.com/flutter/flutter/issues/156170) | `CLOSED` | `P3` | 2024-10-03 | castaway | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [a11y][iOS] VoiceOver announces unrelated widget after focused widget is removed from the widget tree |
+| [#155928](https://github.com/flutter/flutter/issues/155928) | `OPEN` | `P2` | 2024-09-30 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [Semantics] Add support for setting the heading level on iOS and macOS |
+| [#155224](https://github.com/flutter/flutter/issues/155224) | `OPEN` | `P2` | 2024-09-15 | - | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | Date-picker buttons accessibility issue with icon buttons |
+| [#155063](https://github.com/flutter/flutter/issues/155063) | `OPEN` | `P2` | 2024-09-12 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | VoiceOver Rotor Operations Lack Feedback |
+| [#155061](https://github.com/flutter/flutter/issues/155061) | `OPEN` | `P2` | 2024-09-12 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | VoiceOver rotor actions limited to text fields with active keyboard focus |
+| [#154537](https://github.com/flutter/flutter/issues/154537) | `OPEN` | `P2` | 2024-09-03 | - | 🚫 Out of Scope | N/A (Engine Crash / Infra / Docs) | Figure out a way to inform developer about a11y string requires localizations |
+| [#153573](https://github.com/flutter/flutter/issues/153573) | `OPEN` | `P2` | 2024-08-16 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | [iOS 18] Fix Eye Tracking's scroll to top/bottom |
+| [#153567](https://github.com/flutter/flutter/issues/153567) | `CLOSED` | `P3` | 2024-08-16 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | [iOS 18] Verify Flutter works with the new Eye Tracking feature |
+| [#151822](https://github.com/flutter/flutter/issues/151822) | `OPEN` | `P2` | 2024-07-16 | - | 🚫 Out of Scope | N/A (PlatformView / Add-to-App) | [Flutter WebView] Accessibility not working with Flutter WebView HTML page for both iOS and Android  |
+| [#151686](https://github.com/flutter/flutter/issues/151686) | `CLOSED` | `P2` | 2024-07-12 | google | ✅ Yes | 4. Modal Barrier (`modal.*`) | [DropdownMenu] Semantics still reads out "EditBox" when text editing is disabled |
+| [#151029](https://github.com/flutter/flutter/issues/151029) | `CLOSED` | `-` | 2024-06-29 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | iOS VoiceOver accessibility regression: EditableText rotor actions only available when keyboard is focused |
+| [#150260](https://github.com/flutter/flutter/issues/150260) | `OPEN` | `P2` | 2024-06-14 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | Accessibility: TextField value is blank before gain focus |
+| [#149971](https://github.com/flutter/flutter/issues/149971) | `CLOSED` | `-` | 2024-06-09 | - | 🚫 Out of Scope | N/A (Engine Crash / Infra / Docs) | App sometimes crashes if VoiceOver is enabled on iOS |
+| [#149838](https://github.com/flutter/flutter/issues/149838) | `CLOSED` | `P2` | 2024-06-06 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | Fix setting `onFocus` callback for `SemanticsAction.focus` on iOS. |
+| [#149613](https://github.com/flutter/flutter/issues/149613) | `CLOSED` | `P2` | 2024-06-03 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | Talkback & VoiceOver Do not update custom semantics action after an action has been performed |
+| [#147574](https://github.com/flutter/flutter/issues/147574) | `CLOSED` | `P2` | 2024-04-30 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | AlertDialog content semantics merged |
+| [#146987](https://github.com/flutter/flutter/issues/146987) | `CLOSED` | `P2` | 2024-04-18 | castaway | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [a11y] VoiceOver does not announce state of ButtonSegment |
+| [#144367](https://github.com/flutter/flutter/issues/144367) | `OPEN` | `P2` | 2024-02-29 | huggsy (g3), caboose | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | Accessibility reader (Talkback, Voiceover) won't scroll through ListView if unfocusable item occupies the whole space  |
+| [#143437](https://github.com/flutter/flutter/issues/143437) | `CLOSED` | `P0` | 2024-02-14 | money (g3) | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | iOS VoiceOver isn't able to go back to SliverAppBar from SliverSafeArea after appbar leaves screen  |
+| [#142939](https://github.com/flutter/flutter/issues/142939) | `CLOSED` | `P2` | 2024-02-05 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | Screen Readers won't read punctuation characters in Shortcuts |
+| [#142892](https://github.com/flutter/flutter/issues/142892) | `OPEN` | `P2` | 2024-02-04 | - | 🚫 Out of Scope | N/A (PlatformView / Add-to-App) | Disposing of a map when pin focused using accessibility crashes the app on iOS |
+| [#142065](https://github.com/flutter/flutter/issues/142065) | `CLOSED` | `P1` | 2024-01-23 | google | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [iOS] [a11y] Unable to navigate to bottom sliver in CustomScrollView with VoiceOver |
+| [#141992](https://github.com/flutter/flutter/issues/141992) | `CLOSED` | `P1` | 2024-01-22 | google, huggsy (g3), castaway | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | [a11y] Cannot select DatePicker year/month dropdown when voice assist enabled |
+| [#141607](https://github.com/flutter/flutter/issues/141607) | `OPEN` | `P2` | 2024-01-16 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | ListView does not trigger a sound when scrolling while using VoiceOver on iOS |
+| [#139235](https://github.com/flutter/flutter/issues/139235) | `OPEN` | `P2` | 2023-11-29 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | Focus is not moving to widgets while selected next option in BottomNavigationBar items |
+| [#138891](https://github.com/flutter/flutter/issues/138891) | `OPEN` | `P2` | 2023-11-22 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [Semantics / Accessibility ] Expanded property doesn't announce anything  |
+| [#137235](https://github.com/flutter/flutter/issues/137235) | `OPEN` | `P2` | 2023-10-25 | money (g3) | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | Focus not working in iOS with VoiceOver |
+| [#137099](https://github.com/flutter/flutter/issues/137099) | `OPEN` | `P2` | 2023-10-23 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | Autoscroll doesn't work for containers with fixed height when VoiceOver is turned on |
+| [#136810](https://github.com/flutter/flutter/issues/136810) | `CLOSED` | `P2` | 2023-10-18 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | Nav bar items are not accessible via voice control |
+| [#135674](https://github.com/flutter/flutter/issues/135674) | `OPEN` | `P2` | 2023-09-28 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | Adopt new UIAccessibilityTraitToggleButton |
+| [#135504](https://github.com/flutter/flutter/issues/135504) | `CLOSED` | `P1` | 2023-09-26 | - | 🚫 Out of Scope | N/A (PlatformView / Add-to-App) | [iOS][a11y] VoiceOver on UIKitView seems to be broken  |
+| [#134717](https://github.com/flutter/flutter/issues/134717) | `OPEN` | `P2` | 2023-09-14 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [iOS] [Accessibility] [VoiceOver]  - when tapping `next` on virtual keyboard, the screen reader should read the next field |
+| [#133885](https://github.com/flutter/flutter/issues/133885) | `CLOSED` | `P0` | 2023-09-01 | money (g3) | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [a11y][iOS] Overlaid widgets are not accessible by voice controls on iOS |
+| [#133742](https://github.com/flutter/flutter/issues/133742) | `CLOSED` | `P1` | 2023-08-31 | castaway | ✅ Yes | 4. Modal Barrier (`modal.*`) | DropdownMenu VoiceOver/Talkback uses the wrong semantic label |
+| [#133022](https://github.com/flutter/flutter/issues/133022) | `OPEN` | `P2` | 2023-08-22 | google | ❌ No (Widget-Specific) | N/A (Other) | Inconsistent a11y voice-over behavior for state toggling buttons on different platforms |
+| [#132264](https://github.com/flutter/flutter/issues/132264) | `CLOSED` | `P2` | 2023-08-09 | huggsy (g3) | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | `ExpansionTile` accessibility information doesn't read Expanded/Collapsed (iOS) |
+| [#131619](https://github.com/flutter/flutter/issues/131619) | `OPEN` | `P2` | 2023-07-31 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [A11y] Supports links inside ListTile |
+| [#131294](https://github.com/flutter/flutter/issues/131294) | `OPEN` | `P2` | 2023-07-25 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [iOS] Avoid using _accessibilityHitTest in SemanticsObject |
+| [#131014](https://github.com/flutter/flutter/issues/131014) | `CLOSED` | `P1` | 2023-07-20 | money (g3) | 🚫 Out of Scope | N/A (PlatformView / Add-to-App) | iOS A11Y focus getting stuck for WebView |
+| [#130844](https://github.com/flutter/flutter/issues/130844) | `OPEN` | `P2` | 2023-07-19 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [a11y] autofocus interacts poorly with ListView (and likely other scrollables) |
+| [#129773](https://github.com/flutter/flutter/issues/129773) | `OPEN` | `P2` | 2023-06-29 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | Passing the onDidGainAccessibilityFocus callback to the Semantics widget creates an additional semantic node |
+| [#129108](https://github.com/flutter/flutter/issues/129108) | `CLOSED` | `P2` | 2023-06-19 | - | 🚫 Out of Scope | N/A (PlatformView / Add-to-App) | VoiceOver on Flutter WebView not working correctly for exploration by touch gesture on iOS |
+| [#128423](https://github.com/flutter/flutter/issues/128423) | `CLOSED` | `-` | 2023-06-07 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [flutter_markdown] Screenreader reads items in wrong order if multiple paragraphs with a link are present |
+| [#127863](https://github.com/flutter/flutter/issues/127863) | `CLOSED` | `P0` | 2023-05-30 | google | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | [iOS][A11y] Switch control can't select date in day picker |
+| [#127485](https://github.com/flutter/flutter/issues/127485) | `CLOSED` | `P3` | 2023-05-24 | - | 🚫 Out of Scope | N/A (Engine Crash / Infra / Docs) | [flutter_markdown] Add documentation on how to build accessible UIs |
+| [#127145](https://github.com/flutter/flutter/issues/127145) | `CLOSED` | `-` | 2023-05-18 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [Material3] IconButton's `isSelected` not visible to screen readers |
+| [#126633](https://github.com/flutter/flutter/issues/126633) | `OPEN` | `P2` | 2023-05-12 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | SelectableText.rich displays wrong semantics labels with showSemanticsDebugger |
+| [#126377](https://github.com/flutter/flutter/issues/126377) | `OPEN` | `P2` | 2023-05-09 | - | 🚫 Out of Scope | N/A (Engine Crash / Infra / Docs) | Adding more documentation about Flutter's Switch Control support |
+| [#126376](https://github.com/flutter/flutter/issues/126376) | `CLOSED` | `P3` | 2023-05-09 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | iOS VoiceOver Rotor support |
+| [#125495](https://github.com/flutter/flutter/issues/125495) | `CLOSED` | `P0` | 2023-04-25 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [iOS][A11y] RadioButton selected state audit |
+| [#125489](https://github.com/flutter/flutter/issues/125489) | `CLOSED` | `P2` | 2023-04-25 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | Accessibility tree nodes are incorrectly positioned when using OpenContainer to open page |
+| [#125408](https://github.com/flutter/flutter/issues/125408) | `OPEN` | `P2` | 2023-04-24 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | ModalRoute cannot be dismissed by tap outside the modal when screen reader is turned on |
+| [#125127](https://github.com/flutter/flutter/issues/125127) | `CLOSED` | `-` | 2023-04-19 | - | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | CupertinoDatePicker: add itemExtent as a parameter |
+| [#124889](https://github.com/flutter/flutter/issues/124889) | `CLOSED` | `P2` | 2023-04-14 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | Allow setting assistive technology locale via Semantics widget |
+| [#124454](https://github.com/flutter/flutter/issues/124454) | `OPEN` | `P2` | 2023-04-08 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [iOS]Accessibility semantic vertical swipe gesture doesn't work although container = true? |
+| [#124361](https://github.com/flutter/flutter/issues/124361) | `OPEN` | `P2` | 2023-04-06 | - | ✅ Yes | Menu & Navigation (`menu.*`) | [a11y] [ios] VoiceOver focuses twice on back button, does not read previousPageTitle |
+| [#123998](https://github.com/flutter/flutter/issues/123998) | `CLOSED` | `P2` | 2023-04-03 | - | ✅ Yes | Menu & Navigation (`menu.*`) | [iOS]Accessibility semantic escape gesture doesn't work with `Navigator.push` |
+| [#123780](https://github.com/flutter/flutter/issues/123780) | `OPEN` | `P2` | 2023-03-30 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [A11y][iOS] Implicit scrolling doesn't work with two scrollables on the screen |
+| [#123107](https://github.com/flutter/flutter/issues/123107) | `CLOSED` | `P2` | 2023-03-21 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | CupertinoTextField clear button accessibility |
+| [#122848](https://github.com/flutter/flutter/issues/122848) | `CLOSED` | `-` | 2023-03-16 | - | 🚫 Out of Scope | N/A (Engine Crash / Infra / Docs) | [iOS] Remove accessibility root ID assumptions |
+| [#122101](https://github.com/flutter/flutter/issues/122101) | `OPEN` | `P2` | 2023-03-07 | money (g3) | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | `SemanticsService.announce` gets interrupted by VoiceOver |
+| [#121770](https://github.com/flutter/flutter/issues/121770) | `OPEN` | `P2` | 2023-03-02 | money (g3) | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | Widget is not rebuilt correctly for voice control after states change with iOS 16 |
+| [#121636](https://github.com/flutter/flutter/issues/121636) | `CLOSED` | `P0` | 2023-02-28 | chalk (g3) | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | [accessibility] VoiceOver on toggleable Material widgets on iOS |
+| [#120930](https://github.com/flutter/flutter/issues/120930) | `CLOSED` | `P2` | 2023-02-17 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | Support for smart invert on iOS has regressed |
+| [#120724](https://github.com/flutter/flutter/issues/120724) | `OPEN` | `P2` | 2023-02-14 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [iOS] - Dictation deltas don't respect app-side content updates |
+| [#119438](https://github.com/flutter/flutter/issues/119438) | `OPEN` | `P2` | 2023-01-29 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | Implementing FocusNode within GestureDetector for better assistive tech support |
+| [#119054](https://github.com/flutter/flutter/issues/119054) | `OPEN` | `P2` | 2023-01-24 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | Semantics with textField true does not send onTap events |
+| [#118656](https://github.com/flutter/flutter/issues/118656) | `CLOSED` | `P3` | 2023-01-18 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | Use z-index to traverse the semantics object. |
+| [#118397](https://github.com/flutter/flutter/issues/118397) | `CLOSED` | `P2` | 2023-01-12 | - | ✅ Yes | Menu & Navigation (`menu.*`) | Screen reader loses focus from previous route after navigation |
+| [#118176](https://github.com/flutter/flutter/issues/118176) | `OPEN` | `P2` | 2023-01-09 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | `Semantics.label` in iOS creates a new `Text` rather than setting Semantic container's ID |
+| [#117325](https://github.com/flutter/flutter/issues/117325) | `OPEN` | `P2` | 2022-12-19 | huggsy (g3) | ❌ No (Widget-Specific) | N/A (Other) | [iOS][a11y] Voiceover does not pause when reading merged semantic labels |
+| [#114250](https://github.com/flutter/flutter/issues/114250) | `OPEN` | `P2` | 2022-10-28 | - | ✅ Yes | 4. Modal Barrier (`modal.*`) | [a11y] Incorrect TalkBack/VoiceOver focus after closing popup dialog |
+| [#110671](https://github.com/flutter/flutter/issues/110671) | `OPEN` | `P2` | 2022-08-31 | - | 🚫 Out of Scope | N/A (Engine Crash / Infra / Docs) | App crashes on latest versions when `AnimatedContainer / Container` height is set to 0 and throws `uncaught exception 'NSInternalInconsistencyException', reason: 'Transformed points can't form a rect'` |
+| [#109391](https://github.com/flutter/flutter/issues/109391) | `OPEN` | `P2` | 2022-08-11 | flex | 🚫 Out of Scope | N/A (PlatformView / Add-to-App) | [iOS] VoiceOver does NOT work after a hot-restart on iOS |
+| [#106313](https://github.com/flutter/flutter/issues/106313) | `OPEN` | `P2` | 2022-06-20 | money (g3) | ✅ Yes | 4. Modal Barrier (`modal.*`) | [A11y][iOS]: Voice Control with overlay cannot dismiss an opened dialog with "show number" or "go back" |
+| [#101488](https://github.com/flutter/flutter/issues/101488) | `OPEN` | `P2` | 2022-04-07 | - | 🚫 Out of Scope | N/A (Engine Crash / Infra / Docs) | iOS Flutter 2.10.3 got crash because of EXC_BAD_ACCESS KERN_INVALID_ADDRESS |
+| [#98502](https://github.com/flutter/flutter/issues/98502) | `OPEN` | `P3` | 2022-02-15 | money (g3) | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | iOS: Add ability to check if Voice Control enabled |
+| [#97584](https://github.com/flutter/flutter/issues/97584) | `OPEN` | `P2` | 2022-02-01 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | Accessibility: Cannot scroll if SliverPersistentHeader is full height |
+| [#96966](https://github.com/flutter/flutter/issues/96966) | `OPEN` | `P3` | 2022-01-21 | flex | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | Add "Speak" to ToolbarOptions |
+| [#96735](https://github.com/flutter/flutter/issues/96735) | `OPEN` | `P2` | 2022-01-17 | flex | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | iOS: CupertinoDatePicker displays same 'Adjustable Control' hints for each column when use VoiceControl |
+| [#93272](https://github.com/flutter/flutter/issues/93272) | `OPEN` | `P2` | 2021-11-08 | - | 🚫 Out of Scope | N/A (PlatformView / Add-to-App) | Add integration test for iOS platform view accessibility.  |
+| [#93232](https://github.com/flutter/flutter/issues/93232) | `OPEN` | `P2` | 2021-11-08 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [iOS] [A11y] `ListView`'s addSemanticIndexes/`IndexedSemantics` don't announce correctly with VoiceOver three-finger tap |
+| [#90498](https://github.com/flutter/flutter/issues/90498) | `OPEN` | `P2` | 2021-09-22 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | Supporting platform accessibility actions for custom keyboards |
+| [#88587](https://github.com/flutter/flutter/issues/88587) | `OPEN` | `P2` | 2021-08-20 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [A11y] iOS should not attempt to focus hidden elements if the parent does not have implicit scroll flag |
+| [#87030](https://github.com/flutter/flutter/issues/87030) | `OPEN` | `P2` | 2021-07-26 | - | 🚫 Out of Scope | N/A (PlatformView / Add-to-App) | webview_flutter blocking other accessibility elements navigation and screen navigation in iOS |
+| [#83782](https://github.com/flutter/flutter/issues/83782) | `OPEN` | `-` | 2021-06-02 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | [accessibility] iOS Voiceover cuts off Snackbar semantics on navigating to a page with Snackbar |
+| [#83699](https://github.com/flutter/flutter/issues/83699) | `OPEN` | `P2` | 2021-06-01 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | VoiceOver doesn't recognise scroll using GestureDetector |
+| [#80711](https://github.com/flutter/flutter/issues/80711) | `OPEN` | `P2` | 2021-04-19 | money (g3) | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | Scroll Down/Up not working with iOS Voice Control |
+| [#79457](https://github.com/flutter/flutter/issues/79457) | `OPEN` | `P2` | 2021-03-31 | caboose | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | ListView: implicit scrolling doesn't work with iOS VoiceOver when shrinkWrap is enabled |
+| [#79355](https://github.com/flutter/flutter/issues/79355) | `OPEN` | `P2` | 2021-03-30 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [A11y] VoiceOver cannot focus vertical Scrollbar |
+| [#79354](https://github.com/flutter/flutter/issues/79354) | `OPEN` | `P2` | 2021-03-30 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [A11y] VoiceOver cannot announce 'A to B of C' on ListView() |
+| [#79161](https://github.com/flutter/flutter/issues/79161) | `OPEN` | `P2` | 2021-03-26 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | ListView.builder and SliverList with SliverChildBuilderDelegate: implicit scrolling doesn't work with iOS VoiceOver when children are tall |
+| [#77486](https://github.com/flutter/flutter/issues/77486) | `OPEN` | `P2` | 2021-03-06 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [A11y] CustomScrollView/SliverPersistentHeader - Unexpected VoiceOver/Talkback navigation order |
+| [#76497](https://github.com/flutter/flutter/issues/76497) | `CLOSED` | `P1` | 2021-02-21 | chalk (g3), castaway | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | Support Full Keyboard Access on iOS for keyboard navigation events |
+| [#76149](https://github.com/flutter/flutter/issues/76149) | `OPEN` | `P3` | 2021-02-16 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | [iOS] Accessibility: provide a "allowsDirectInteraction" property to Semantics |
+| [#72352](https://github.com/flutter/flutter/issues/72352) | `OPEN` | `P2` | 2020-12-15 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | Voice Over can select the wrong widget out of order when Column exists in a Row |
+| [#65027](https://github.com/flutter/flutter/issues/65027) | `OPEN` | `P2` | 2020-09-01 | money (g3) | 🚫 Out of Scope | N/A (PlatformView / Add-to-App) | Tapping on a multi-line text box in a WKWebView makes the focus jump out of the webview and into Flutter |
+| [#64973](https://github.com/flutter/flutter/issues/64973) | `OPEN` | `P2` | 2020-08-31 | money (g3) | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | Show on screen no longer works in the collapsed header |
+| [#64924](https://github.com/flutter/flutter/issues/64924) | `OPEN` | `P2` | 2020-08-31 | money (g3) | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [Accessibility] Three finger scrolling does not announce new content  |
+| [#64279](https://github.com/flutter/flutter/issues/64279) | `OPEN` | `P2` | 2020-08-20 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | Accessibility scroll in iOS does not match native |
+| [#61195](https://github.com/flutter/flutter/issues/61195) | `OPEN` | `P3` | 2020-07-09 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | Scrollable Hint Text |
+| [#59693](https://github.com/flutter/flutter/issues/59693) | `OPEN` | `P2` | 2020-06-17 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | Refresh indicator and VoiceOver |
+| [#59538](https://github.com/flutter/flutter/issues/59538) | `OPEN` | `P3` | 2020-06-16 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | iOS 13 VoiceControl accessibilityUserInputLabels |
+| [#56672](https://github.com/flutter/flutter/issues/56672) | `OPEN` | `P2` | 2020-05-08 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [VoiceOver] Confusing "Page -9223xxxxxx of 9223xxxxxx" when double tapping on the status bar time |
+| [#54279](https://github.com/flutter/flutter/issues/54279) | `OPEN` | `P2` | 2020-04-08 | mulligan (g3) | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | Provide a localized message for screenreaders for TextFields when character limit is exceeded |
+| [#53456](https://github.com/flutter/flutter/issues/53456) | `OPEN` | `P2` | 2020-03-28 | - | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | Widget focus highlighting for iOS/iPadOS |
+| [#53022](https://github.com/flutter/flutter/issues/53022) | `OPEN` | `P2` | 2020-03-21 | money (g3) | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | After editing TextField, app auto focuses on back button; instead of next available a11y element on iOS |
+| [#52863](https://github.com/flutter/flutter/issues/52863) | `OPEN` | `P2` | 2020-03-18 | money (g3) | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | [VoiceOver] Can not focus on TextField when inside sliver list that is scrolled.  |
+| [#51810](https://github.com/flutter/flutter/issues/51810) | `OPEN` | `P2` | 2020-03-03 | crowd | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | Cupertino Date picker with Reachability in IOS accessibility on |
+| [#49285](https://github.com/flutter/flutter/issues/49285) | `OPEN` | `P2` | 2020-01-22 | - | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | GestureDetector's velocity is always 0.0 on IOS with VoiceOver. |
+| [#44660](https://github.com/flutter/flutter/issues/44660) | `OPEN` | `P3` | 2019-11-12 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | iOS a11y bridge should respect `hasImplicitScrolling` |
+| [#42669](https://github.com/flutter/flutter/issues/42669) | `OPEN` | `P2` | 2019-10-14 | - | 🚫 Out of Scope | N/A (Engine Crash / Infra / Docs) | AccessibilityBridge test on iOS |
+| [#42590](https://github.com/flutter/flutter/issues/42590) | `OPEN` | `P3` | 2019-10-12 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | VoiceOver not reading next carousel item after scroll gesture |
+| [#42270](https://github.com/flutter/flutter/issues/42270) | `OPEN` | `P2` | 2019-10-08 | - | 🚫 Out of Scope | N/A (Engine Crash / Infra / Docs) | Test with Voiceover on on a real iOS device |
+| [#42248](https://github.com/flutter/flutter/issues/42248) | `OPEN` | `P2` | 2019-10-08 | google | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | iOS VoiceOver gets into buggy state when animating elevation to 0 |
+| [#30804](https://github.com/flutter/flutter/issues/30804) | `OPEN` | `P3` | 2019-04-09 | - | 🚫 Out of Scope | N/A (PlatformView / Add-to-App) | [webview_flutter] Accessibility element not focused when trying to select the element directly. |
+| [#25636](https://github.com/flutter/flutter/issues/25636) | `OPEN` | `P2` | 2018-12-20 | - | ✅ Yes | 1. Scroll Baseline (`scroll.*`) | Decouple scrollable's cacheExtent and implicit accessibility scrolling |
+| [#25485](https://github.com/flutter/flutter/issues/25485) | `OPEN` | `P2` | 2018-12-17 | - | 🚫 Out of Scope | N/A (Engine Crash / Infra / Docs) | iOS should provide a way to enable the semantic tree for testing frameworks  |
+| [#18760](https://github.com/flutter/flutter/issues/18760) | `OPEN` | `P2` | 2018-06-23 | - | ✅ Yes | 2. Traversal Hierarchy (`traversal.*`) | Support for a11y link traits on iOS |
+| [#18585](https://github.com/flutter/flutter/issues/18585) | `OPEN` | `P2` | 2018-06-18 | - | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | LongPressDraggable doesn't have accessibility semantics for its long press action in iOS |
+| [#16486](https://github.com/flutter/flutter/issues/16486) | `OPEN` | `P2` | 2018-04-12 | mulligan (g3) | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | iOS double-tap reachability under Flutter |
+| [#14543](https://github.com/flutter/flutter/issues/14543) | `OPEN` | `P2` | 2018-02-08 | flex | ✅ Yes | 3. Focus & Keyboard (`focus.*`) | iOS a11y text entry is incomplete |
+| [#13454](https://github.com/flutter/flutter/issues/13454) | `OPEN` | `P3` | 2017-12-08 | - | ❌ No (Widget-Specific) | N/A (Other) | a11y: overlapping widgets don't block pointer events on iOS |
+| [#12158](https://github.com/flutter/flutter/issues/12158) | `OPEN` | `P3` | 2017-09-19 | - | ❌ No (Widget-Specific) | N/A (DatePicker / Text Scale / Drag) | Scale text on Cupertino widgets to match iOS text sizes |
+| [#4827](https://github.com/flutter/flutter/issues/4827) | `OPEN` | `P2` | 2016-07-06 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | iOS Accessibility: Reduce Motion |
+| [#4826](https://github.com/flutter/flutter/issues/4826) | `OPEN` | `P2` | 2016-07-06 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | iOS Accessibility "Button Shapes" |
+| [#3816](https://github.com/flutter/flutter/issues/3816) | `OPEN` | `P3` | 2016-05-09 | - | 🚫 Out of Scope | N/A (OS Hardware / System Feature) | Add support for magic tap |
