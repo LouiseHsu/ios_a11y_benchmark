@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
 
 import 'a11y/a11y_action_observer.dart';
 import 'pages/menu_page.dart';
@@ -11,21 +11,21 @@ void main() {
   runApp(const FlutterA11yBenchmarkApp());
 }
 
-/// Flutter twin of `uikit_a11y_benchmark`.
+/// Flutter Cupertino twin of `uikit_a11y_benchmark`.
 ///
-/// Both apps expose the same six screens, the same control structure, and the
-/// same `accessibilityIdentifier`s (via [SemanticsProperties.identifier]) so
-/// that identical XCUITests can be pointed at either binary.
+/// Both apps expose the same four screens, the same iOS control structure, and
+/// the same `accessibilityIdentifier`s (via [SemanticsProperties.identifier])
+/// so that identical XCUITests and manual QA checks can be run side by side.
 class FlutterA11yBenchmarkApp extends StatelessWidget {
   const FlutterA11yBenchmarkApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const CupertinoApp(
       title: 'Flutter A11y Benchmark',
-      theme: ThemeData(colorSchemeSeed: Colors.indigo),
+      theme: CupertinoThemeData(primaryColor: CupertinoColors.systemIndigo),
       // UIKit twin: UINavigationController(rootViewController: MenuViewController()).
-      home: const MenuPage(),
+      home: MenuPage(),
     );
   }
 }

@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:material_ui/material_ui.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
 
 import '../a11y/a11y_probe.dart';
 
@@ -109,40 +109,48 @@ class _ScrollBaselinePageState extends State<ScrollBaselinePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Scroll Baseline')),
-      body: Column(
-        children: <Widget>[
-          _MetricsHeader(
-            contentOffsetY: _contentOffsetY,
-            viewportHeight: _viewportHeight,
-            deltaY: _deltaY,
-            stepDeltaY: _stepDeltaY,
-            ratio: _ratio,
-            pageStatus: _pageStatus,
-          ),
-          Expanded(
-            child: NotificationListener<ScrollMetricsNotification>(
-              onNotification: _handleMetricsNotification,
-              child: NotificationListener<ScrollNotification>(
-                onNotification: _handleScrollNotification,
-                child: Semantics(
-                  container: true,
-                  identifier: 'scroll.tableView',
-                  child: ListView.builder(
-                    // Attached to the PrimaryScrollController so the iOS
-                    // status-bar tap scrolls *this* list (UIKit: scrollsToTop).
-                    primary: true,
-                    itemExtent: rowHeight,
-                    itemCount: rowCount,
-                    itemBuilder: (BuildContext context, int index) =>
-                        _BaselineRow(index: index),
+    return CupertinoPageScaffold(
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('Scroll Baseline'),
+        previousPageTitle: 'Flutter A11y Benchmark',
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          children: <Widget>[
+            _MetricsHeader(
+              contentOffsetY: _contentOffsetY,
+              viewportHeight: _viewportHeight,
+              deltaY: _deltaY,
+              stepDeltaY: _stepDeltaY,
+              ratio: _ratio,
+              pageStatus: _pageStatus,
+            ),
+            Expanded(
+              child: NotificationListener<ScrollMetricsNotification>(
+                onNotification: _handleMetricsNotification,
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: _handleScrollNotification,
+                  child: Semantics(
+                    container: true,
+                    identifier: 'scroll.tableView',
+                    child: CupertinoScrollbar(
+                      child: ListView.builder(
+                        // Attached to the PrimaryScrollController so the iOS
+                        // status-bar tap scrolls *this* list (UIKit: scrollsToTop).
+                        primary: true,
+                        itemExtent: rowHeight,
+                        itemCount: rowCount,
+                        itemBuilder: (BuildContext context, int index) =>
+                            _BaselineRow(index: index),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -167,57 +175,55 @@ class _MetricsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final Color backgroundColor = CupertinoColors
+        .secondarySystemGroupedBackground
+        .resolveFrom(context);
+    final Color separatorColor = CupertinoColors.separator.resolveFrom(context);
     return Semantics(
       container: true,
       identifier: 'scroll.headerView',
-      child: Material(
-        color: colorScheme.surfaceContainer,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  _MetricLabel(
-                    identifier: 'scroll.offsetYLabel',
-                    text:
-                        'contentOffset.y: ${contentOffsetY.toStringAsFixed(1)}',
-                    value: contentOffsetY.toStringAsFixed(1),
-                  ),
-                  _MetricLabel(
-                    identifier: 'scroll.heightLabel',
-                    text:
-                        'frame.size.height: ${viewportHeight.toStringAsFixed(1)}',
-                    value: viewportHeight.toStringAsFixed(1),
-                  ),
-                  _MetricLabel(
-                    identifier: 'scroll.deltaLabel',
-                    text:
-                        'Δy: ${deltaY.toStringAsFixed(1)} '
-                        '(step: ${stepDeltaY.toStringAsFixed(1)})',
-                    value: deltaY.toStringAsFixed(1),
-                  ),
-                  _MetricLabel(
-                    identifier: 'scroll.ratioLabel',
-                    text:
-                        'Δy / viewportHeight: ${ratio.toStringAsFixed(3)} '
-                        '(${(ratio * 100).toStringAsFixed(1)}%)',
-                    value: ratio.toStringAsFixed(3),
-                  ),
-                  _MetricLabel(
-                    identifier: 'scroll.pageScrolledLabel',
-                    text: 'Page Scroll Status: $pageStatus',
-                    value: pageStatus,
-                    secondary: true,
-                  ),
-                ],
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          border: Border(bottom: BorderSide(color: separatorColor, width: 0.5)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _MetricLabel(
+                identifier: 'scroll.offsetYLabel',
+                text: 'contentOffset.y: ${contentOffsetY.toStringAsFixed(1)}',
+                value: contentOffsetY.toStringAsFixed(1),
               ),
-            ),
-            const Divider(height: 1),
-          ],
+              _MetricLabel(
+                identifier: 'scroll.heightLabel',
+                text: 'frame.size.height: ${viewportHeight.toStringAsFixed(1)}',
+                value: viewportHeight.toStringAsFixed(1),
+              ),
+              _MetricLabel(
+                identifier: 'scroll.deltaLabel',
+                text:
+                    'Δy: ${deltaY.toStringAsFixed(1)} '
+                    '(step: ${stepDeltaY.toStringAsFixed(1)})',
+                value: deltaY.toStringAsFixed(1),
+              ),
+              _MetricLabel(
+                identifier: 'scroll.ratioLabel',
+                text:
+                    'Δy / viewportHeight: ${ratio.toStringAsFixed(3)} '
+                    '(${(ratio * 100).toStringAsFixed(1)}%)',
+                value: ratio.toStringAsFixed(3),
+              ),
+              _MetricLabel(
+                identifier: 'scroll.pageScrolledLabel',
+                text: 'Page Scroll Status: $pageStatus',
+                value: pageStatus,
+                secondary: true,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -241,7 +247,9 @@ class _MetricLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final Color textColor =
+        (secondary ? CupertinoColors.secondaryLabel : CupertinoColors.label)
+            .resolveFrom(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: A11yProbe(
@@ -254,9 +262,7 @@ class _MetricLabel extends StatelessWidget {
             fontSize: 13,
             fontWeight: FontWeight.w500,
             fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
-            color: secondary
-                ? colorScheme.onSurfaceVariant
-                : colorScheme.onSurface,
+            color: textColor,
           ),
         ),
       ),
@@ -273,25 +279,34 @@ class _BaselineRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
+    final Color separatorColor = CupertinoColors.separator.resolveFrom(context);
+    final Color primaryColor = CupertinoColors.label.resolveFrom(context);
+    final Color secondaryColor = CupertinoColors.secondaryLabel.resolveFrom(
+      context,
+    );
     return MergeSemantics(
       child: A11yProbe(
         identifier: 'scroll.cell.$index',
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: theme.dividerColor)),
+            border: Border(
+              bottom: BorderSide(color: separatorColor, width: 0.5),
+            ),
           ),
           alignment: Alignment.centerLeft,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text('Item #$index', style: theme.textTheme.bodyLarge),
+              Text(
+                'Item #$index',
+                style: TextStyle(fontSize: 17, color: primaryColor),
+              ),
               Text(
                 'Baseline scroll row ${index + 1} of '
                 '${_ScrollBaselinePageState.rowCount}',
-                style: theme.textTheme.bodySmall,
+                style: TextStyle(fontSize: 13, color: secondaryColor),
               ),
             ],
           ),

@@ -1,5 +1,5 @@
+import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter/semantics.dart';
-import 'package:material_ui/material_ui.dart';
 
 import '../a11y/a11y_action_observer.dart';
 import '../a11y/a11y_probe.dart';
@@ -27,7 +27,6 @@ class FocusKeyboardPage extends StatefulWidget {
 
 class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
   static const String _topFieldName = 'Top Username Field';
-  static const String _sliderName = 'Benchmark Slider';
   static const String _bottomFieldName = 'Bottom Password Field';
 
   // Pre-filled so deleting the last character benchmarks the empty-field
@@ -35,7 +34,6 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
   final TextEditingController _topController = TextEditingController(text: 'A');
   final TextEditingController _bottomController = TextEditingController();
   final FocusNode _topFocus = FocusNode(debugLabel: _topFieldName);
-  final FocusNode _sliderFocus = FocusNode(debugLabel: _sliderName);
   final FocusNode _bottomFocus = FocusNode(debugLabel: _bottomFieldName);
 
   final List<String> _logEntries = <String>[];
@@ -48,7 +46,6 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
   void initState() {
     super.initState();
     _topFocus.addListener(() => _handleFocusNodeChange(_topFocus));
-    _sliderFocus.addListener(() => _handleFocusNodeChange(_sliderFocus));
     _bottomFocus.addListener(() => _handleFocusNodeChange(_bottomFocus));
     _topController.addListener(
       () => _handleTextChanged(_topFieldName, _topController, 'Enter username'),
@@ -70,7 +67,6 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
     _topController.dispose();
     _bottomController.dispose();
     _topFocus.dispose();
-    _sliderFocus.dispose();
     _bottomFocus.dispose();
     super.dispose();
   }
@@ -156,147 +152,154 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final TextTheme textTheme = Theme.of(context).textTheme;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Focus & Keyboard'),
-        actions: <Widget>[
-          A11yProbe(
-            identifier: 'focus.dismissKeyboardButton',
-            mergeDescendants: true,
-            child: TextButton(
-              onPressed: () => FocusManager.instance.primaryFocus?.unfocus(),
-              child: const Text('Dismiss Keyboard'),
-            ),
+    final TextStyle bodyStyle = CupertinoTheme.of(context).textTheme.textStyle;
+    final Color secondaryLabelColor = CupertinoColors.secondaryLabel
+        .resolveFrom(context);
+    final Color logBackground = CupertinoColors.secondarySystemGroupedBackground
+        .resolveFrom(context);
+    return CupertinoPageScaffold(
+      navigationBar: CupertinoNavigationBar(
+        middle: const Text('Focus & Keyboard'),
+        previousPageTitle: 'Flutter A11y Benchmark',
+        trailing: A11yProbe(
+          identifier: 'focus.dismissKeyboardButton',
+          mergeDescendants: true,
+          child: CupertinoButton(
+            padding: EdgeInsets.zero,
+            onPressed: () => FocusManager.instance.primaryFocus?.unfocus(),
+            child: const Text('Dismiss Keyboard'),
           ),
-        ],
+        ),
       ),
-      body: Semantics(
-        container: true,
-        identifier: 'focus.scrollView',
-        child: SingleChildScrollView(
-          primary: true,
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              _SectionLabel('Top Input Region (Pre-filled + Placeholder)'),
-              A11yProbe(
-                identifier: 'focus.topTextField',
-                mergeDescendants: true,
-                trackFocus: false,
-                child: TextField(
-                  controller: _topController,
-                  focusNode: _topFocus,
-                  textInputAction: TextInputAction.done,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter username',
-                    border: OutlineInputBorder(),
-                    suffixIcon: _ClearButtonPlaceholder(),
-                  ),
+      child: SafeArea(
+        child: Semantics(
+          container: true,
+          identifier: 'focus.scrollView',
+          child: SingleChildScrollView(
+            primary: true,
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                const _SectionLabel(
+                  'Top Input Region (Pre-filled + Placeholder)',
                 ),
-              ),
-              const SizedBox(height: 12),
-              A11yProbe(
-                identifier: 'focus.liveStatusLabel',
-                container: true,
-                liveRegion: true,
-                child: Text(
-                  _liveStatus,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontFeatures: const <FontFeature>[
-                      FontFeature.tabularFigures(),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              A11yProbe(
-                identifier: 'focus.announceButton',
-                mergeDescendants: true,
-                child: FilledButton.tonal(
-                  onPressed: _postPoliteAnnouncement,
-                  child: const Text('Post Polite Announcement'),
-                ),
-              ),
-              const SizedBox(height: 20),
-              _SectionLabel('Intermediate Slider (Initial Value 25%)'),
-              A11yProbe(
-                identifier: 'focus.sliderValueLabel',
-                container: true,
-                child: Text(
-                  'Slider Value: ${_sliderValue.toStringAsFixed(2)} '
-                  '(${(_sliderValue * 100).round()}%)',
-                  style: textTheme.bodyMedium?.copyWith(
-                    fontFeatures: const <FontFeature>[
-                      FontFeature.tabularFigures(),
-                    ],
-                  ),
-                ),
-              ),
-              // Slider is a semantics boundary of its own, so the identifier
-              // is merged onto it with MergeSemantics rather than nested.
-              MergeSemantics(
-                child: A11yProbe(
-                  identifier: 'focus.slider',
+                // UITextField(clearButtonMode = .whileEditing) twin.
+                A11yProbe(
+                  identifier: 'focus.topTextField',
+                  mergeDescendants: true,
                   trackFocus: false,
-                  child: Slider(
+                  child: CupertinoTextField(
+                    controller: _topController,
+                    focusNode: _topFocus,
+                    placeholder: 'Enter username',
+                    clearButtonMode: OverlayVisibilityMode.editing,
+                    textInputAction: TextInputAction.done,
+                    padding: const EdgeInsets.all(12),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                A11yProbe(
+                  identifier: 'focus.liveStatusLabel',
+                  container: true,
+                  liveRegion: true,
+                  child: Text(
+                    _liveStatus,
+                    style: bodyStyle.copyWith(
+                      fontSize: 14,
+                      color: secondaryLabelColor,
+                      fontFeatures: const <FontFeature>[
+                        FontFeature.tabularFigures(),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                A11yProbe(
+                  identifier: 'focus.announceButton',
+                  mergeDescendants: true,
+                  child: CupertinoButton.tinted(
+                    onPressed: _postPoliteAnnouncement,
+                    child: const Text('Post Polite Announcement'),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const _SectionLabel('Intermediate Slider (Initial Value 25%)'),
+                A11yProbe(
+                  identifier: 'focus.sliderValueLabel',
+                  container: true,
+                  child: Text(
+                    'Slider Value: ${_sliderValue.toStringAsFixed(2)} '
+                    '(${(_sliderValue * 100).round()}%)',
+                    style: bodyStyle.copyWith(
+                      fontFeatures: const <FontFeature>[
+                        FontFeature.tabularFigures(),
+                      ],
+                    ),
+                  ),
+                ),
+                // CupertinoSlider is a semantics boundary of its own, so the
+                // identifier is merged onto it with MergeSemantics.
+                A11yProbe(
+                  identifier: 'focus.slider',
+                  mergeDescendants: true,
+                  trackFocus: false,
+                  child: CupertinoSlider(
                     value: _sliderValue,
-                    focusNode: _sliderFocus,
                     onChanged: _handleSliderChanged,
                     onChangeStart: (_) => _sliderDragging = true,
                     onChangeEnd: (_) => _sliderDragging = false,
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              _SectionLabel('Responder, VoiceOver & FKA Focus Log'),
-              // Tall log region: keeps the top and bottom fields far enough
-              // apart that reaching the bottom one requires scrolling.
-              A11yProbe(
-                identifier: 'focus.eventLog',
-                container: true,
-                trackFocus: false,
-                child: Container(
-                  height: 520,
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainer,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: SingleChildScrollView(
-                    primary: false,
-                    child: Text(
-                      _logEntries.join('\n'),
-                      style: const TextStyle(
-                        fontFamily: 'Menlo',
-                        fontFamilyFallback: <String>['Courier', 'monospace'],
-                        fontSize: 12,
+                const SizedBox(height: 20),
+                const _SectionLabel('Responder, VoiceOver & FKA Focus Log'),
+                // Tall log region: keeps the top and bottom fields far enough
+                // apart that reaching the bottom one requires scrolling.
+                A11yProbe(
+                  identifier: 'focus.eventLog',
+                  container: true,
+                  trackFocus: false,
+                  child: Container(
+                    height: 520,
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: logBackground,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: SingleChildScrollView(
+                      primary: false,
+                      child: Text(
+                        _logEntries.join('\n'),
+                        style: bodyStyle.copyWith(
+                          fontFamily: 'Menlo',
+                          fontFamilyFallback: const <String>[
+                            'Courier',
+                            'monospace',
+                          ],
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              _SectionLabel('Bottom Input Region (Secure Text Entry)'),
-              A11yProbe(
-                identifier: 'focus.bottomTextField',
-                mergeDescendants: true,
-                trackFocus: false,
-                child: TextField(
-                  controller: _bottomController,
-                  focusNode: _bottomFocus,
-                  obscureText: true,
-                  textInputAction: TextInputAction.done,
-                  decoration: const InputDecoration(
-                    hintText: 'Password',
-                    border: OutlineInputBorder(),
+                const SizedBox(height: 20),
+                const _SectionLabel('Bottom Input Region (Secure Text Entry)'),
+                A11yProbe(
+                  identifier: 'focus.bottomTextField',
+                  mergeDescendants: true,
+                  trackFocus: false,
+                  child: CupertinoTextField(
+                    controller: _bottomController,
+                    focusNode: _bottomFocus,
+                    obscureText: true,
+                    placeholder: 'Password',
+                    textInputAction: TextInputAction.done,
+                    padding: const EdgeInsets.all(12),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -311,20 +314,12 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final TextStyle titleStyle = CupertinoTheme.of(
+      context,
+    ).textTheme.navTitleTextStyle;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Text(text, style: Theme.of(context).textTheme.titleMedium),
+      child: Text(text, style: titleStyle),
     );
-  }
-}
-
-/// Keeps the trailing area of the top field visually similar to UIKit's
-/// `clearButtonMode = .whileEditing` without adding an extra focusable control.
-class _ClearButtonPlaceholder extends StatelessWidget {
-  const _ClearButtonPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const ExcludeSemantics(child: Icon(Icons.cancel_outlined, size: 18));
   }
 }

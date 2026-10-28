@@ -5,18 +5,18 @@ core accessibility "ruler" screens, the same control structure, and the same
 `accessibilityIdentifier`s, so iOS VoiceOver, Full Keyboard Access (FKA) and
 Voice Control behaviour can be compared control-for-control against pure UIKit.
 
-Only Flutter-team packages are used (`package:flutter` and `material_ui`, the
-first-party home of the Material widgets on this SDK).
+Only Flutter-team packages are used (`package:flutter` and `cupertino_ui`, the
+first-party home of the Cupertino widgets on this SDK).
 
 ## Screens
 
 | Identifier prefix | Flutter page | UIKit twin | What it benchmarks |
 | --- | --- | --- | --- |
-| `menu.*` | `MenuPage` | `MenuViewController` | Root list of destinations |
+| `menu.*` | `MenuPage` | `MenuViewController` | Root inset-grouped list (`CupertinoListSection.insetGrouped` ≈ `UITableView(.insetGrouped)`) |
 | `scroll.*` | `ScrollBaselinePage` | `ScrollBaselineViewController` | `contentOffset.y`, viewport height, Δy, `Δy / viewportHeight` (100% native vs. 80% Flutter page scroll), "Page X of Y" |
-| `traversal.*` | `TraversalHierarchyPage` | `TraversalHierarchyViewController` | Natural geometric Row-Major (`sortKey: null` ≈ `accessibilityElements = nil`) vs. explicit Column-Major (`OrdinalSortKey` ≈ `accessibilityElements`), headers, stateful Buttons A/B/C, expandable disclosure (`Semantics(expanded: ...)` ≈ `accessibilityValue`), multi-link `Text.rich` (`TapGestureRecognizer` ≈ `UITextView` attributed links) |
-| `focus.*` | `FocusKeyboardPage` | `FocusKeyboardViewController` | Pre-filled + placeholder field, live status banner + polite announcement (`SemanticsService.sendAnnouncement` / `liveRegion: true` ≈ `UIAccessibility.post(notification: .announcement)` / `.updatesFrequently`), 25% slider, secure field; `FocusNode` ≈ first responder, `FocusManager` ≈ `didUpdateFocus(in:with:)` |
-| `modal.*` | `ModalBarrierPage` | `ModalBarrierViewController` | Modal route `BlockSemantics` ≈ `accessibilityViewIsModal`, `MenuAnchor` overlay portal ≈ anchored `UIMenu` popup, `AlertDialog` ≈ `UIAlertController(.alert)`, `BottomNavigationBar` ≈ `UITabBar`, `DraggableScrollableSheet` 50%/100% ≈ `.medium()/.large()` detents, `showDragHandle` ≈ grabber |
+| `traversal.*` | `TraversalHierarchyPage` | `TraversalHierarchyViewController` | `CupertinoSlidingSegmentedControl` ≈ `UISegmentedControl`, natural geometric Row-Major (`sortKey: null` ≈ `accessibilityElements = nil`) vs. explicit Column-Major (`OrdinalSortKey` ≈ `accessibilityElements`), headers, stateful `CupertinoButton`s A/B/C, expandable disclosure (`Semantics(expanded: ...)` ≈ `accessibilityValue`), multi-link `Text.rich` (`TapGestureRecognizer` ≈ `UITextView` attributed links) |
+| `focus.*` | `FocusKeyboardPage` | `FocusKeyboardViewController` | Pre-filled + placeholder `CupertinoTextField` (`clearButtonMode: OverlayVisibilityMode.editing`), live status banner + polite announcement (`SemanticsService.sendAnnouncement` / `liveRegion: true` ≈ `UIAccessibility.post(notification: .announcement)` / `.updatesFrequently`), 25% `CupertinoSlider`, secure `CupertinoTextField`; `FocusNode` ≈ first responder, `FocusManager` ≈ `didUpdateFocus(in:with:)` |
+| `modal.*` | `ModalBarrierPage` | `ModalBarrierViewController` | `showCupertinoSheet` (`CupertinoSheetRoute` `BlockSemantics` + `showDragHandle: true` ≈ `UISheetPresentationController` `accessibilityViewIsModal` + `prefersGrabberVisible`), `CupertinoMenuAnchor` overlay portal ≈ anchored `UIMenu` popup, `CupertinoAlertDialog` ≈ `UIAlertController(.alert)`, `CupertinoTabBar` ≈ `UITabBar` |
 
 ## Instrumentation
 

@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
 
 import '../a11y/a11y_probe.dart';
 import '../widgets/barrier_modal_sheet.dart';
@@ -57,11 +57,11 @@ class _ModalBarrierPageState extends State<ModalBarrierPage> {
   }
 
   Future<void> _presentAlertDialog() async {
-    debugPrint('[ModalBarrier] Presenting AlertDialog');
-    final String? result = await showDialog<String>(
+    debugPrint('[ModalBarrier] Presenting CupertinoAlertDialog');
+    final String? result = await showCupertinoDialog<String>(
       context: context,
       builder: (BuildContext dialogContext) {
-        return AlertDialog(
+        return CupertinoAlertDialog(
           title: const Text('Benchmark Alert Dialog'),
           content: const Text(
             'Tests alert dialog announcement, Voice Control dismissal, and '
@@ -71,7 +71,7 @@ class _ModalBarrierPageState extends State<ModalBarrierPage> {
             A11yProbe(
               identifier: 'modal.alertCancelButton',
               mergeDescendants: true,
-              child: TextButton(
+              child: CupertinoDialogAction(
                 onPressed: () => Navigator.of(dialogContext).pop('Cancel'),
                 child: const Text('Cancel'),
               ),
@@ -79,7 +79,8 @@ class _ModalBarrierPageState extends State<ModalBarrierPage> {
             A11yProbe(
               identifier: 'modal.alertConfirmButton',
               mergeDescendants: true,
-              child: FilledButton(
+              child: CupertinoDialogAction(
+                isDefaultAction: true,
                 onPressed: () => Navigator.of(dialogContext).pop('Confirm'),
                 child: const Text('Confirm'),
               ),
@@ -95,8 +96,8 @@ class _ModalBarrierPageState extends State<ModalBarrierPage> {
 
   Future<void> _presentModalSheet() async {
     debugPrint(
-      '[ModalBarrier] Presenting draggable modal sheet '
-      '(0.5 ↔ 1.0 snap sizes, showDragHandle: true)',
+      '[ModalBarrier] Presenting Cupertino modal sheet '
+      '(showDragHandle: true)',
     );
     await showBarrierModalSheet(context);
     if (mounted) {
@@ -106,118 +107,138 @@ class _ModalBarrierPageState extends State<ModalBarrierPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Modal Barrier')),
-      bottomNavigationBar: A11yProbe(
-        identifier: 'modal.tabBar',
-        container: true,
-        explicitChildNodes: true,
-        trackFocus: false,
-        child: BottomNavigationBar(
-          currentIndex: _selectedTabIndex,
-          onTap: _selectTab,
-          items: const <BottomNavigationBarItem>[
-            BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Overview'),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.description_outlined),
-              label: 'Details',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings_outlined),
-              label: 'Settings',
-            ),
-          ],
-        ),
+    final TextStyle titleStyle = CupertinoTheme.of(
+      context,
+    ).textTheme.navTitleTextStyle;
+    return CupertinoPageScaffold(
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('Modal Barrier'),
+        previousPageTitle: 'Flutter A11y Benchmark',
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
+      child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            A11yProbe(
-              identifier: 'modal.statusLabel',
-              container: true,
-              child: Text(
-                _status,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-            const SizedBox(height: 16),
-            A11yProbe(
-              identifier: 'modal.backgroundButton1',
-              mergeDescendants: true,
-              child: OutlinedButton(
-                onPressed: () => _backgroundButtonTapped(1),
-                child: const Text('Background Button 1'),
-              ),
-            ),
-            const SizedBox(height: 16),
-            A11yProbe(
-              identifier: 'modal.backgroundButton2',
-              mergeDescendants: true,
-              child: OutlinedButton(
-                onPressed: () => _backgroundButtonTapped(2),
-                child: const Text('Background Button 2'),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Contrasts an overlay-portal anchored popup (MenuAnchor) against a
-            // modal-route barrier (showModalBottomSheet) on the same screen.
-            MenuAnchor(
-              menuChildren: <Widget>[
-                for (int i = 0; i < _popupOptions.length; i += 1)
-                  A11yProbe(
-                    identifier: 'modal.popupOption.$i',
-                    mergeDescendants: true,
-                    selected: _popupOptions[i] == _selectedPopupOption,
-                    child: MenuItemButton(
-                      onPressed: () => _selectPopupOption(_popupOptions[i]),
-                      child: Text(_popupOptions[i]),
-                    ),
-                  ),
-              ],
-              builder:
-                  (
-                    BuildContext context,
-                    MenuController controller,
-                    Widget? child,
-                  ) {
-                    return A11yProbe(
-                      identifier: 'modal.popupMenuButton',
-                      mergeDescendants: true,
-                      value: _selectedPopupOption,
-                      child: FilledButton.tonal(
-                        onPressed: () {
-                          if (controller.isOpen) {
-                            controller.close();
-                          } else {
-                            controller.open();
-                          }
-                        },
-                        child: Text(
-                          'Anchored Popup Menu: $_selectedPopupOption',
-                        ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    A11yProbe(
+                      identifier: 'modal.statusLabel',
+                      container: true,
+                      child: Text(
+                        _status,
+                        textAlign: TextAlign.center,
+                        style: titleStyle,
                       ),
-                    );
-                  },
-            ),
-            const SizedBox(height: 16),
-            A11yProbe(
-              identifier: 'modal.presentAlertButton',
-              mergeDescendants: true,
-              child: FilledButton.tonal(
-                onPressed: _presentAlertDialog,
-                child: const Text('Present Alert Dialog'),
+                    ),
+                    const SizedBox(height: 16),
+                    A11yProbe(
+                      identifier: 'modal.backgroundButton1',
+                      mergeDescendants: true,
+                      child: CupertinoButton.tinted(
+                        onPressed: () => _backgroundButtonTapped(1),
+                        child: const Text('Background Button 1'),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    A11yProbe(
+                      identifier: 'modal.backgroundButton2',
+                      mergeDescendants: true,
+                      child: CupertinoButton.tinted(
+                        onPressed: () => _backgroundButtonTapped(2),
+                        child: const Text('Background Button 2'),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Contrasts an overlay-portal anchored popup
+                    // (CupertinoMenuAnchor ≈ UIMenu) against a modal-route
+                    // barrier (showCupertinoSheet) on the same screen.
+                    CupertinoMenuAnchor(
+                      menuChildren: <Widget>[
+                        for (int i = 0; i < _popupOptions.length; i += 1)
+                          A11yProbe(
+                            identifier: 'modal.popupOption.$i',
+                            mergeDescendants: true,
+                            selected: _popupOptions[i] == _selectedPopupOption,
+                            child: CupertinoMenuItem(
+                              onPressed: () =>
+                                  _selectPopupOption(_popupOptions[i]),
+                              child: Text(_popupOptions[i]),
+                            ),
+                          ),
+                      ],
+                      builder:
+                          (
+                            BuildContext context,
+                            MenuController controller,
+                            Widget? child,
+                          ) {
+                            return A11yProbe(
+                              identifier: 'modal.popupMenuButton',
+                              mergeDescendants: true,
+                              value: _selectedPopupOption,
+                              child: CupertinoButton.tinted(
+                                onPressed: () {
+                                  if (controller.isOpen) {
+                                    controller.close();
+                                  } else {
+                                    controller.open();
+                                  }
+                                },
+                                child: Text(
+                                  'Anchored Popup Menu: $_selectedPopupOption',
+                                ),
+                              ),
+                            );
+                          },
+                    ),
+                    const SizedBox(height: 16),
+                    A11yProbe(
+                      identifier: 'modal.presentAlertButton',
+                      mergeDescendants: true,
+                      child: CupertinoButton.tinted(
+                        onPressed: _presentAlertDialog,
+                        child: const Text('Present Alert Dialog'),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    A11yProbe(
+                      identifier: 'modal.presentButton',
+                      mergeDescendants: true,
+                      child: CupertinoButton.filled(
+                        onPressed: _presentModalSheet,
+                        child: const Text('Present Modal Sheet'),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 16),
             A11yProbe(
-              identifier: 'modal.presentButton',
-              mergeDescendants: true,
-              child: FilledButton(
-                onPressed: _presentModalSheet,
-                child: const Text('Present Modal Sheet'),
+              identifier: 'modal.tabBar',
+              container: true,
+              explicitChildNodes: true,
+              trackFocus: false,
+              child: CupertinoTabBar(
+                currentIndex: _selectedTabIndex,
+                onTap: _selectTab,
+                items: const <BottomNavigationBarItem>[
+                  BottomNavigationBarItem(
+                    icon: Icon(CupertinoIcons.list_bullet),
+                    label: 'Overview',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(CupertinoIcons.doc_text),
+                    label: 'Details',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(CupertinoIcons.settings),
+                    label: 'Settings',
+                  ),
+                ],
               ),
             ),
           ],

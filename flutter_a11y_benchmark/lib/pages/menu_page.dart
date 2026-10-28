@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
 
 import '../a11y/a11y_probe.dart';
 import 'focus_keyboard_page.dart';
@@ -21,7 +21,8 @@ class MenuDestination {
   final WidgetBuilder builder;
 }
 
-/// Root screen: a list with the four benchmark destinations.
+/// Root screen: an inset-grouped Cupertino list with the four benchmark
+/// destinations.
 ///
 /// UIKit twin: `MenuViewController` (inset-grouped `UITableView`).
 class MenuPage extends StatelessWidget {
@@ -58,33 +59,41 @@ class MenuPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Flutter A11y Benchmark')),
-      body: Semantics(
-        container: true,
-        identifier: 'menu.tableView',
-        child: ListView.separated(
-          itemCount: destinations.length,
-          separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (BuildContext context, int index) {
-            final MenuDestination destination = destinations[index];
-            // UITableViewCell twin: one merged element per row.
-            return MergeSemantics(
-              child: A11yProbe(
-                identifier: destination.identifier,
-                child: ListTile(
-                  title: Text(destination.title),
-                  subtitle: Text(destination.subtitle),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(builder: destination.builder),
-                    );
-                  },
-                ),
+    return CupertinoPageScaffold(
+      backgroundColor: CupertinoColors.systemGroupedBackground,
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('Flutter A11y Benchmark'),
+      ),
+      child: SafeArea(
+        child: Semantics(
+          container: true,
+          identifier: 'menu.tableView',
+          child: ListView(
+            children: <Widget>[
+              CupertinoListSection.insetGrouped(
+                children: <Widget>[
+                  for (final MenuDestination destination in destinations)
+                    // UITableViewCell twin: one merged element per row.
+                    A11yProbe(
+                      identifier: destination.identifier,
+                      mergeDescendants: true,
+                      child: CupertinoListTile(
+                        title: Text(destination.title),
+                        subtitle: Text(destination.subtitle),
+                        trailing: const CupertinoListTileChevron(),
+                        onTap: () {
+                          Navigator.of(context).push(
+                            CupertinoPageRoute<void>(
+                              builder: destination.builder,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
               ),
-            );
-          },
+            ],
+          ),
         ),
       ),
     );

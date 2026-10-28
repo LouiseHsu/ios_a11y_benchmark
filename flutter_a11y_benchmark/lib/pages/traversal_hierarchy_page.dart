@@ -1,8 +1,8 @@
 import 'dart:async';
 
+import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/semantics.dart';
-import 'package:material_ui/material_ui.dart';
 
 import '../a11y/a11y_action_observer.dart';
 import '../a11y/a11y_probe.dart';
@@ -152,144 +152,172 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colors = Theme.of(context).colorScheme;
-    final TextStyle linkStyle = TextStyle(
-      color: colors.primary,
+    final Color primaryColor = CupertinoTheme.of(context).primaryColor;
+    final Color secondaryLabelColor = CupertinoColors.secondaryLabel
+        .resolveFrom(context);
+    final TextStyle bodyStyle = CupertinoTheme.of(context).textTheme.textStyle;
+    final TextStyle linkStyle = bodyStyle.copyWith(
+      color: primaryColor,
       decoration: TextDecoration.underline,
     );
-    return Scaffold(
-      appBar: AppBar(title: const Text('Traversal Hierarchy')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            A11yProbe(
-              identifier: 'traversal.orderingControl',
-              container: true,
-              trackFocus: false,
-              child: SegmentedButton<TraversalMode>(
-                segments: <ButtonSegment<TraversalMode>>[
-                  for (final TraversalMode mode in TraversalMode.values)
-                    ButtonSegment<TraversalMode>(
-                      value: mode,
-                      label: Text(mode.label),
-                    ),
-                ],
-                selected: <TraversalMode>{_mode},
-                onSelectionChanged: (Set<TraversalMode> selection) {
-                  setState(() => _mode = selection.first);
-                  _updateOrderingStatus();
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
-            A11yProbe(
-              identifier: 'traversal.gridContainer',
-              container: true,
-              explicitChildNodes: true,
-              trackFocus: false,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  for (int row = 0; row < gridSize; row += 1) ...<Widget>[
-                    if (row > 0) const SizedBox(height: 12),
-                    _buildHeader(row),
-                    Row(
-                      children: <Widget>[
-                        for (int col = 0; col < gridSize; col += 1) ...<Widget>[
-                          if (col > 0) const SizedBox(width: 8),
-                          Expanded(child: _buildGridButton(row, col)),
-                        ],
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Expandable disclosure header: benchmarks Semantics(expanded: ...)
-            // on iOS (#138891, #132264, #175907).
-            A11yProbe(
-              identifier: 'traversal.disclosureHeader',
-              mergeDescendants: true,
-              expanded: _disclosureExpanded,
-              child: OutlinedButton(
-                onPressed: _toggleDisclosure,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    const Text('Expandable Disclosure Section'),
-                    ExcludeSemantics(
-                      child: Icon(
-                        _disclosureExpanded
-                            ? Icons.expand_less
-                            : Icons.expand_more,
+    return CupertinoPageScaffold(
+      navigationBar: const CupertinoNavigationBar(
+        middle: Text('Traversal Hierarchy'),
+        previousPageTitle: 'Flutter A11y Benchmark',
+      ),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              // UISegmentedControl twin.
+              A11yProbe(
+                identifier: 'traversal.orderingControl',
+                container: true,
+                trackFocus: false,
+                child: CupertinoSlidingSegmentedControl<TraversalMode>(
+                  groupValue: _mode,
+                  children: <TraversalMode, Widget>{
+                    for (final TraversalMode mode in TraversalMode.values)
+                      mode: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Text(mode.label),
                       ),
-                    ),
+                  },
+                  onValueChanged: (TraversalMode? selection) {
+                    if (selection == null) {
+                      return;
+                    }
+                    setState(() => _mode = selection);
+                    _updateOrderingStatus();
+                  },
+                ),
+              ),
+              const SizedBox(height: 20),
+              A11yProbe(
+                identifier: 'traversal.gridContainer',
+                container: true,
+                explicitChildNodes: true,
+                trackFocus: false,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    for (int row = 0; row < gridSize; row += 1) ...<Widget>[
+                      if (row > 0) const SizedBox(height: 12),
+                      _buildHeader(row),
+                      Row(
+                        children: <Widget>[
+                          for (
+                            int col = 0;
+                            col < gridSize;
+                            col += 1
+                          ) ...<Widget>[
+                            if (col > 0) const SizedBox(width: 8),
+                            Expanded(child: _buildGridButton(row, col)),
+                          ],
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
-            ),
-            if (_disclosureExpanded) ...<Widget>[
-              const SizedBox(height: 6),
+              const SizedBox(height: 16),
+              // Expandable disclosure header: benchmarks Semantics(expanded: ...)
+              // on iOS (#138891, #132264, #175907, #173446).
               A11yProbe(
-                identifier: 'traversal.disclosureBody',
+                identifier: 'traversal.disclosureHeader',
+                mergeDescendants: true,
+                expanded: _disclosureExpanded,
+                child: CupertinoButton.tinted(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  onPressed: _toggleDisclosure,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: <Widget>[
+                      const Text('Expandable Disclosure Section'),
+                      ExcludeSemantics(
+                        child: Icon(
+                          _disclosureExpanded
+                              ? CupertinoIcons.chevron_up
+                              : CupertinoIcons.chevron_down,
+                          size: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (_disclosureExpanded) ...<Widget>[
+                const SizedBox(height: 6),
+                A11yProbe(
+                  identifier: 'traversal.disclosureBody',
+                  container: true,
+                  child: Text(
+                    'Hidden detail content revealed when expanded.',
+                    style: bodyStyle.copyWith(
+                      fontSize: 13,
+                      color: secondaryLabelColor,
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              // Paragraph with two inline links: benchmarks multi-link RichText
+              // traversal and the VoiceOver Links rotor (#159127, #166750, #18760).
+              A11yProbe(
+                identifier: 'traversal.linksParagraph',
+                container: true,
+                explicitChildNodes: true,
+                trackFocus: false,
+                child: Text.rich(
+                  TextSpan(
+                    style: bodyStyle,
+                    children: <InlineSpan>[
+                      const TextSpan(text: 'Read our '),
+                      TextSpan(
+                        text: 'Terms of Service',
+                        style: linkStyle,
+                        recognizer: _termsLinkRecognizer,
+                      ),
+                      const TextSpan(text: ' and '),
+                      TextSpan(
+                        text: 'Privacy Policy',
+                        style: linkStyle,
+                        recognizer: _privacyLinkRecognizer,
+                      ),
+                      const TextSpan(text: '.'),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              A11yProbe(
+                identifier: 'traversal.statusLabel',
                 container: true,
                 child: Text(
-                  'Hidden detail content revealed when expanded.',
-                  style: Theme.of(context).textTheme.bodySmall
-                      ?.copyWith(color: colors.onSurfaceVariant),
+                  _status,
+                  textAlign: TextAlign.center,
+                  style: bodyStyle.copyWith(
+                    fontSize: 14,
+                    color: secondaryLabelColor,
+                  ),
                 ),
               ),
             ],
-            const SizedBox(height: 12),
-            // Paragraph with two inline links: benchmarks multi-link RichText
-            // traversal and the VoiceOver Links rotor (#159127, #166750, #18760).
-            A11yProbe(
-              identifier: 'traversal.linksParagraph',
-              container: true,
-              explicitChildNodes: true,
-              trackFocus: false,
-              child: Text.rich(
-                TextSpan(
-                  style: Theme.of(context).textTheme.bodyMedium,
-                  children: <InlineSpan>[
-                    const TextSpan(text: 'Read our '),
-                    TextSpan(
-                      text: 'Terms of Service',
-                      style: linkStyle,
-                      recognizer: _termsLinkRecognizer,
-                    ),
-                    const TextSpan(text: ' and '),
-                    TextSpan(
-                      text: 'Privacy Policy',
-                      style: linkStyle,
-                      recognizer: _privacyLinkRecognizer,
-                    ),
-                    const TextSpan(text: '.'),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            A11yProbe(
-              identifier: 'traversal.statusLabel',
-              container: true,
-              child: Text(
-                _status,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium
-                    ?.copyWith(color: colors.onSurfaceVariant),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildHeader(int row) {
+    final TextStyle titleStyle = CupertinoTheme.of(
+      context,
+    ).textTheme.navTitleTextStyle;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: A11yProbe(
@@ -297,10 +325,7 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
         container: true,
         header: true,
         sortKey: _sortKeyFor('header.$row'),
-        child: Text(
-          'Section Header ${row + 1}',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+        child: Text('Section Header ${row + 1}', style: titleStyle),
       ),
     );
   }
@@ -311,9 +336,9 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
       fontSize: 12,
       fontWeight: FontWeight.w600,
     );
-    // Compact padding so three buttons fit a row like UIButton.Configuration.
-    final ButtonStyle gridButtonStyle = FilledButton.styleFrom(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+    const EdgeInsets gridButtonPadding = EdgeInsets.symmetric(
+      horizontal: 8,
+      vertical: 10,
     );
 
     if (row == 0 && col == 0) {
@@ -324,14 +349,14 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
         mergeDescendants: true,
         sortKey: sortKey,
         selected: _buttonASelected,
-        child: FilledButton.tonal(
-          style: gridButtonStyle,
+        child: CupertinoButton.tinted(
+          padding: gridButtonPadding,
           onPressed: _onButtonATapped,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               if (_buttonASelected) ...<Widget>[
-                const Icon(Icons.check, size: 16),
+                const Icon(CupertinoIcons.check_mark, size: 14),
                 const SizedBox(width: 4),
               ],
               const Flexible(
@@ -352,8 +377,8 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
         identifier: 'traversal.buttonB',
         mergeDescendants: true,
         sortKey: sortKey,
-        child: FilledButton.tonal(
-          style: gridButtonStyle,
+        child: CupertinoButton.tinted(
+          padding: gridButtonPadding,
           onPressed: _buttonBEnabled ? _onButtonBTapped : null,
           child: const Text(
             'Target Enableable Button',
@@ -369,8 +394,8 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
         identifier: 'traversal.buttonC',
         mergeDescendants: true,
         sortKey: sortKey,
-        child: FilledButton.tonal(
-          style: gridButtonStyle,
+        child: CupertinoButton.tinted(
+          padding: gridButtonPadding,
           onPressed: _onButtonCTapped,
           child: const Text(
             'Toggle Button B',
@@ -385,8 +410,8 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
       mergeDescendants: true,
       sortKey: sortKey,
       label: 'Grid Button Row ${row + 1} Column ${col + 1}',
-      child: FilledButton.tonal(
-        style: gridButtonStyle,
+      child: CupertinoButton.tinted(
+        padding: gridButtonPadding,
         onPressed: () =>
             _recordEvent('Activated Grid Button R${row + 1}C${col + 1}'),
         child: ExcludeSemantics(

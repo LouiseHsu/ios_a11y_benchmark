@@ -5,7 +5,7 @@ Two deliberately identical iOS apps — one in pure UIKit ([`uikit_a11y_benchmar
 | App | Stack | Bundle ID |
 | :--- | :--- | :--- |
 | [`uikit_a11y_benchmark/`](uikit_a11y_benchmark) | Swift + UIKit, iOS 16+, no dependencies | `com.example.uikit-a11y-benchmark` |
-| [`flutter_a11y_benchmark/`](flutter_a11y_benchmark) | Flutter (`package:flutter` + `material`), iOS 16+ | `com.example.flutterA11yBenchmark` |
+| [`flutter_a11y_benchmark/`](flutter_a11y_benchmark) | Flutter (`package:flutter` + `cupertino_ui`), iOS 16+ | `com.example.flutterA11yBenchmark` |
 
 Both apps expose the same 4 screens, the same control hierarchy, and identical `accessibilityIdentifier`s (Flutter: `SemanticsProperties.identifier`).
 
