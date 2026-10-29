@@ -5,7 +5,7 @@ You will test two apps side-by-side on the same iOS version:
 1. **`UIKit A11y Benchmark`** (The **Ruler** — always shows the correct native iOS behavior)
 2. **`Flutter A11y Benchmark`** (The **App Under Test**)
 
-**Rule**: Perform each screen flow below on **UIKit first**, then immediately on **Flutter**. If Flutter behaves, speaks, scrolls, or focuses differently than UIKit, log a failure.
+**Rule**: Perform each screen flow below on **UIKit first**, then immediately on **Flutter**. If Flutter behaves, speaks, scrolls, or focuses differently than UIKit, file an issue. If you only have one device, launch the Flutter app in release mode `flutter build ios --release` to prevent the app from dying when backgrounded.
 
 ---
 
@@ -15,7 +15,7 @@ You will test two apps side-by-side on the same iOS version:
 
 - [ ] **1. Home Menu & Navigation**
   1. **Cold launch** both apps with VoiceOver already on.
-     - *Expected*: Immediately focuses **`"Flutter A11y Benchmark, Heading"`** (UIKit: `"UIKit A11y Benchmark, Heading"`) without needing an app restart.
+     - *Expected*: Immediately focuses and announces **`"Flutter A11y Benchmark, Heading"`**.
   2. **Swipe right** to the first menu row.
      - *Expected*: Announces **`"Scroll Baseline, 100-cell list with Δy/viewportHeight ratio & page scroll status, Button"`** (must end with **`"Button"`**).
   3. **Double-tap** `Scroll Baseline` to open it, then **swipe left** to the Back button.
