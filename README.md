@@ -97,22 +97,23 @@ You will test two apps side-by-side on the same iOS version:
 
 ---
 
-## Pass 4: Switch Control
+## Pass 4: Display & Motion Settings
 
-**Setup**: Turn **Voice Control OFF**. Turn **Switch Control ON** (`Settings > Accessibility > Switch Control`, `Auto Scanning`, `Item Mode`).
+**Setup**: Turn **Voice Control OFF**. In `Settings > Accessibility`, enable **Motion > Reduce Motion**, **Display & Text Size > Bold Text**, and set **Larger Text** to `AX3`.
+
+- [ ] **1. Reduce Motion (`Home Menu` & `Modal Barrier`)**: Tap **Modal Barrier** on the Home Menu, then tap **Present Modal Sheet**.
+  - *Expected*: Page push and modal sheet presentation use iOS's **cross-fade** animation instead of sliding.
+- [ ] **2. Bold & Larger Text (`Home Menu` & `Traversal Hierarchy`)**: Compare both apps side-by-side.
+  - *Expected*: Text renders bold and scales up without clipping or overlapping buttons.
+
+---
+
+## Pass 5 (Optional): Switch Control
+
+**Setup**: Turn **Switch Control ON** (`Settings > Accessibility > Switch Control`, `Auto Scanning`, `Item Mode`).
 
 - [ ] **1. Grid scanning (`Traversal Hierarchy`)**: Open **Traversal Hierarchy** and let the scanner cycle through `Row-Major` / `Column-Major` and the 3×3 grid; trigger your switch on **Mutating Icon Button**.
   - *Expected*: Scans and activates the segmented control and grid buttons in order without skipping.
 - [ ] **2. Tab Bar & Modal Sheet (`Modal Barrier`)**: Open **Modal Barrier**, let the scanner cycle to the bottom tab bar and select **Settings**, then open **Present Modal Sheet** and let it scan.
   - *Expected*: Reaches and selects **Settings** (`"Selected Tab: Settings (3 of 3)"`), and scans only inside the modal sheet while open.
 
----
-
-## Pass 5: Display & Motion Settings
-
-**Setup**: Turn **Switch Control OFF**. In `Settings > Accessibility`, enable **Motion > Reduce Motion**, **Display & Text Size > Bold Text**, and set **Larger Text** to `AX3`.
-
-- [ ] **1. Reduce Motion (`Home Menu` & `Modal Barrier`)**: Tap **Modal Barrier** on the Home Menu, then tap **Present Modal Sheet**.
-  - *Expected*: Page push and modal sheet presentation use iOS's **cross-fade** animation instead of sliding.
-- [ ] **2. Bold & Larger Text (`Home Menu` & `Traversal Hierarchy`)**: Compare both apps side-by-side.
-  - *Expected*: Text renders bold and scales up without clipping or overlapping buttons.
