@@ -100,7 +100,7 @@ final class ScrollBaselineViewController: UIViewController {
         tableView.scrollsToTop = true
         tableView.dataSource = self
         tableView.delegate = self
-        tableView.rowHeight = 60
+        tableView.rowHeight = 72
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: Self.cellReuseIdentifier)
         tableView.onWillBeginAccessibilityScroll = { [weak self] startOffsetY in
             self?.gestureStartOffsetY = startOffsetY

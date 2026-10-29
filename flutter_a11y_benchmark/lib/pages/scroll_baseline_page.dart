@@ -23,7 +23,7 @@ class ScrollBaselinePage extends StatefulWidget {
 
 class _ScrollBaselinePageState extends State<ScrollBaselinePage> {
   static const int rowCount = 100;
-  static const double rowHeight = 60;
+  static const double rowHeight = 72;
 
   double _contentOffsetY = 0;
   double _viewportHeight = 0;
