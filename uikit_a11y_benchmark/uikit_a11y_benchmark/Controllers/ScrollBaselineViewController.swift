@@ -151,11 +151,11 @@ final class ScrollBaselineViewController: UIViewController {
         heightLabel.text = String(format: "frame.size.height: %.1f", viewportHeight)
         heightLabel.accessibilityValue = String(format: "%.1f", viewportHeight)
 
-        deltaLabel.text = String(format: "Δy: %.1f (step: %.1f)", deltaY, stepDeltaY)
+        deltaLabel.text = String(format: "deltaY: %.1f (step: %.1f)", deltaY, stepDeltaY)
         deltaLabel.accessibilityValue = String(format: "%.1f", deltaY)
 
         ratioLabel.text = String(
-            format: "Δy / viewportHeight: %.3f (%.1f%%)",
+            format: "deltaY / viewportHeight: %.3f (%.1f%%)",
             ratio,
             ratio * 100.0
         )
@@ -232,11 +232,11 @@ extension ScrollBaselineViewController: UITableViewDelegate, UIScrollViewAccessi
         )
 
         Self.logger.info(
-            "[ScrollBaseline] contentOffset.y=\(currentOffsetY, format: .fixed(precision: 1)) frame.size.height=\(viewportHeight, format: .fixed(precision: 1)) Δy=\(deltaY, format: .fixed(precision: 1)) ratio=\(ratio, format: .fixed(precision: 3))"
+            "[ScrollBaseline] contentOffset.y=\(currentOffsetY, format: .fixed(precision: 1)) frame.size.height=\(viewportHeight, format: .fixed(precision: 1)) deltaY=\(deltaY, format: .fixed(precision: 1)) ratio=\(ratio, format: .fixed(precision: 3))"
         )
         print(
             String(
-                format: "[ScrollBaseline] contentOffset.y=%.1f frame.size.height=%.1f Δy=%.1f ratio=%.3f",
+                format: "[ScrollBaseline] contentOffset.y=%.1f frame.size.height=%.1f deltaY=%.1f ratio=%.3f",
                 currentOffsetY,
                 viewportHeight,
                 deltaY,

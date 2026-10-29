@@ -98,7 +98,7 @@ class _ScrollBaselinePageState extends State<ScrollBaselinePage> {
     debugPrint(
       '[ScrollBaseline] contentOffset.y=${currentOffsetY.toStringAsFixed(1)} '
       'frame.size.height=${_viewportHeight.toStringAsFixed(1)} '
-      'Δy=${deltaY.toStringAsFixed(1)} ratio=${_ratio.toStringAsFixed(3)} '
+      'deltaY=${deltaY.toStringAsFixed(1)} ratio=${_ratio.toStringAsFixed(3)} '
       'source=$_scrollSource',
     );
     if (notification is ScrollEndNotification) {
@@ -205,14 +205,14 @@ class _MetricsHeader extends StatelessWidget {
               _MetricLabel(
                 identifier: 'scroll.deltaLabel',
                 text:
-                    'Δy: ${deltaY.toStringAsFixed(1)} '
+                    'deltaY: ${deltaY.toStringAsFixed(1)} '
                     '(step: ${stepDeltaY.toStringAsFixed(1)})',
                 value: deltaY.toStringAsFixed(1),
               ),
               _MetricLabel(
                 identifier: 'scroll.ratioLabel',
                 text:
-                    'Δy / viewportHeight: ${ratio.toStringAsFixed(3)} '
+                    'deltaY / viewportHeight: ${ratio.toStringAsFixed(3)} '
                     '(${(ratio * 100).toStringAsFixed(1)}%)',
                 value: ratio.toStringAsFixed(3),
               ),

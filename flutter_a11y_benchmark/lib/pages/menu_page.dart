@@ -33,7 +33,7 @@ class MenuPage extends StatelessWidget {
     MenuDestination(
       title: 'Scroll Baseline',
       subtitle:
-          '100-cell list with Δy/viewportHeight ratio & page scroll status',
+          '100-cell list with deltaY/viewportHeight ratio & page scroll status',
       identifier: 'menu.scrollBaseline',
       builder: (_) => const ScrollBaselinePage(),
     ),

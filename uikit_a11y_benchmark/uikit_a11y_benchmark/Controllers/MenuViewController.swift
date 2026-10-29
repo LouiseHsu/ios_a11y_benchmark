@@ -16,7 +16,7 @@ final class MenuViewController: UIViewController {
     private let destinations: [Destination] = [
         Destination(
             title: "Scroll Baseline",
-            subtitle: "100-cell table with Δy/viewportHeight ratio & page scroll status",
+            subtitle: "100-cell table with deltaY/viewportHeight ratio & page scroll status",
             accessibilityIdentifier: "menu.scrollBaseline",
             makeViewController: { ScrollBaselineViewController() }
         ),
