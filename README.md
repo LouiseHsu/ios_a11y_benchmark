@@ -5,7 +5,10 @@ You will test two apps side-by-side on the same iOS version:
 1. **`UIKit A11y Benchmark`** (The **Ruler** — always shows the correct native iOS behavior)
 2. **`Flutter A11y Benchmark`** (The **App Under Test**)
 
-**Rule**: Perform each screen flow below on **UIKit first**, then immediately on **Flutter**. If Flutter behaves, speaks, scrolls, or focuses differently than UIKit, file an issue. If you only have one device, launch the Flutter app in release mode `flutter build ios --release` to prevent the app from dying when backgrounded.
+**Rule**: Perform each screen flow below on **UIKit first**, then immediately on **Flutter**. Record every step as one of:
+- **Match** — Flutter behaves, speaks, scrolls and focuses the same as UIKit.
+- **Diff** — it doesn't. Write down *exactly* what each app said. If the step cites an issue number, add your observation there; otherwise it's a new issue.
+- **Intentional divergence** — it differs, but the difference is a deliberate Flutter design choice (common on ⚠️ steps). Record it; don't file. If you only have one device, launch the Flutter app in release mode `flutter build ios --release` to prevent the app from dying when backgrounded.
 
 **⚠️ steps**: A few checks exercise Material widgets that have no stock iOS control (checkbox, radio, dropdown, clock dial). There the UIKit app shows the *nearest native idiom*; a difference may be intentional. For those steps, **write down exactly what each app says** rather than pass/fail.
 
@@ -17,23 +20,23 @@ You will test two apps side-by-side on the same iOS version:
 
 - [ ] **1. Home Menu & Navigation**
   1. **Cold launch** both apps with VoiceOver already on.
-     - *Expected*: Immediately focuses and announces **`"Flutter A11y Benchmark, Heading"`**.
+     - *Expected*: Immediately focuses and announces the title as a heading — **`"UIKit A11y Benchmark, Heading"`** / **`"Flutter A11y Benchmark, Heading"`**.
   2. **Swipe right** to the first menu row.
      - *Expected*: Announces **`"Scroll Baseline, 100-cell list with Δy/viewportHeight ratio & page scroll status, Button"`** (must end with **`"Button"`**).
   3. **Double-tap** `Scroll Baseline` to open it, then **swipe left** to the Back button.
-     - *Expected*: On open, initial focus lands on **`"contentOffset.y: 0.0, 0.0"`** (not the Back button). Swiping left focuses the Back button **once** (not twice) and announces **`"Flutter A11y Benchmark, Back button"`**.
+     - *Expected*: On open, initial focus lands on **`"contentOffset.y: 0.0, 0.0"`** (not the Back button). Swiping left focuses the Back button **once** (not twice) and announces **`"<app title>, Back button"`**.
   4. **2-finger Z-scrub** (scrub two fingers in a "Z" shape) to go back.
      - *Expected*: Returns to the Home Menu with focus restored on **`"Scroll Baseline, 100-cell list..., Button"`**.
 
-- [ ] **2. Screen 1 — Scroll Baseline**
+- [ ] **2. Scroll Baseline**
   1. **Single-finger swipe right** repeatedly from `Item #0` (**`"Item #0, Baseline scroll row 1 of 100"`**) past the bottom of the screen (`Item #10` → `Item #15`).
      - *Expected*: Off-screen rows automatically scroll into view without getting stuck at the bottom edge or jumping back to `"contentOffset.y..."`.
   2. **3-finger swipe up** (from `Item #2`) to scroll down one page.
-     - *Expected*: Plays the scroll chime, announces **`"Page 2 of 11"`**, and the header's `Δy / viewportHeight` reads **`~1.000 (100.0%)`** (not `0.800 (80.0%)`).
+     - *Expected*: Plays the scroll chime, announces **`"Page 2 of N"`** (N depends on device height but must be the **same in both apps**), and the header's `Δy / viewportHeight` reads **`~1.000 (100.0%)`** (not `0.800 (80.0%)`).
   3. **Status-bar double-tap**: Scroll to `Item #30`, tap the **iOS Status Bar** (top clock/battery) once to focus it, then **double-tap**.
      - *Expected*: Smoothly scrolls back to `Item #0` (`contentOffset.y: 0.0`).
 
-- [ ] **3. Screen 2 — Traversal Hierarchy**
+- [ ] **3. Traversal Hierarchy**
   1. **Row-Major vs. Column-Major**: Swipe right through the first 4 grid items in **Row-Major**, then double-tap **Column-Major** (`"Column-Major, Button, 2 of 2"`) and swipe right through the first 4 grid items again.
      - *Expected*:
        - **Row-Major**: `"Section Header 1, Heading"` → `"Mutating Icon Button, Button"` → `"Target Enableable Button, Dimmed, Button"` → `"Toggle Button B, Button"`.
@@ -49,7 +52,7 @@ You will test two apps side-by-side on the same iOS version:
   5. **Selection Controls header**: 3-finger swipe up to the bottom, swipe right onto the **Selection Controls** title; set Rotor to **Headings** and swipe down from `Section Header 3`.
      - *Expected*: **`"Selection Controls, Heading"`**, and the Headings rotor stops on it after `Section Header 3`.
   6. **Switch**: Swipe right onto the **Notifications** row, double-tap, double-tap again. *(#121636)*
-     - *Expected*: One element announcing **`"Notifications, switch button, off, double tap to toggle setting"`**; after each double-tap speaks only **`"on"`** / **`"off"`** and focus stays on the row (never a separate unlabeled switch).
+     - *Expected*: One element announcing **`"Notifications, Switch button, Off, Double tap to toggle setting"`**; after each double-tap speaks only **`"On"`** / **`"Off"`** and focus stays on the row (never a separate unlabeled switch).
   7. ⚠️ **Checkbox**: Swipe right onto **Accept Terms**, double-tap, then swipe left and back right to re-focus it. *(#125495-family, #118176)*
      - *Expected (UIKit, nearest idiom)*: **`"Accept Terms, Button"`** → after double-tap **`"Selected, Accept Terms, Button"`**. **Record what Flutter says**; flag if the checked state is missing, stale, or announced for the wrong element.
   8. ⚠️ **Radio group**: Swipe right through `Shipping Speed` → **Standard** → **Express** → **Overnight**; double-tap **Express**; swipe left back to **Standard**. *(#125495 — P0)*
@@ -57,7 +60,7 @@ You will test two apps side-by-side on the same iOS version:
   9. ⚠️ **Dropdown**: Swipe onto the **Country** control *before* opening it, double-tap, swipe to **Mexico**, double-tap, then re-focus the control. *(#175950, #175184, #133742)*
      - *Expected (UIKit)*: **`"Country, Canada, Pop-up button"`** on first focus; menu opens with `"Canada, Selected"` ticked; afterwards **`"Country, Mexico, Pop-up button"`**. **Record what Flutter says** — initial focus must include `Canada` (not empty, not `United States`), and after selection must read `Mexico` (not the last item).
 
-- [ ] **4. Screen 3 — Focus & Keyboard**
+- [ ] **4. Focus & Keyboard**
   1. **Top text field (before opening keyboard)**: Swipe to the top field (pre-filled with `"A"`) *without* double-tapping it, and check the Rotor.
      - *Expected*: Announces **`"Enter username, A, Text field"`** (reads `"A"` immediately) and includes **`Characters` / `Words` / `Edit`** in the Rotor.
   2. **Edit, Clear button & Dismiss keyboard**: Double-tap the top field to open the keyboard, verify the trailing **`"Clear text, Button"`** (`X`) is focusable, delete `"A"` with the keyboard backspace, then double-tap **`done`** on the keyboard.
@@ -73,31 +76,25 @@ You will test two apps side-by-side on the same iOS version:
   7. ⚠️ **Counter while typing**: Double-tap **Nickname** and type `"abc"`.
      - *Expected*: Counter shows `3/20`. **Record what each app says** while typing — UIKit speaks only the typed characters (the counter is silent); flag if Flutter interrupts with `"3/20"` after every keystroke or never exposes the new value.
 
-- [ ] **5. Screen 4 — Modal Barrier**
-  1. **Popup Menu**: Double-tap **Anchored Popup Menu: Option Alpha**, then swipe left/right and drag 1 finger over `Background Button 1`.
-     - *Expected*: Initial focus lands on **`"Selected, Option Alpha, Button"`** (not the top-left corner), and focus stays **trapped inside the popup** (cannot focus **`"Background Button 1"`** while open).
+- [ ] **5. Modal Barrier**
+  1. **Popup Menu & disabled item**: Double-tap **Anchored Popup Menu: Option Alpha**, drag 1 finger over `Background Button 1`, then swipe right to the last item and double-tap it. *(#171231)*
+     - *Expected*: Initial focus lands on **`"Selected, Option Alpha, Button"`** (not the top-left corner); focus stays **trapped inside the popup** (cannot focus **`"Background Button 1"`** while open); the last item reads **`"Option Delta (Unavailable), Dimmed, Button"`** and double-tapping it does nothing (menu stays open).
   2. **Alert Dialog**: Double-tap **Present Alert Dialog**, swipe through its buttons, and double-tap **Confirm**.
      - *Expected*: Announces **`"Alert, Benchmark Alert Dialog"`** on open, blocks background buttons, and returns focus to **`"Present Alert Dialog, Button"`** on close.
   3. **Modal Bottom Sheet**: Double-tap **Present Modal Sheet**, swipe through the sheet (including the top drag handle), then dismiss via **2-finger Z-scrub** or tapping the dimmed area above the sheet.
      - *Expected*: Top drag handle and **`"Modal Barrier Active, Heading"`** are focusable, background controls are completely blocked, and dismissing closes the sheet.
   4. **Bottom Tab Bar**: Swipe to the bottom tab bar and double-tap **Details**.
      - *Expected*: Announces **`"Tab Bar, Selected, Overview, Tab, 1 of 3"`** on entry, and **`"Selected, Details, Tab, 2 of 3"`** when tapped without losing focus.
-  5. **Disabled menu item**: Double-tap **Anchored Popup Menu: Option Alpha**, swipe right past `Option Gamma` to the last item and double-tap it. *(#171231)*
-     - *Expected*: **`"Option Delta (Unavailable), Dimmed, Button"`** — focusable, announced as dimmed, and double-tap does nothing (menu stays open, status unchanged).
-  6. **Date picker — selected day**: Double-tap **Present Date Picker**, swipe right into the calendar grid and through the days around `15`, then double-tap `16`. *(#186043, #194657-family)*
-     - *Expected*: Opening moves focus into the picker (not left on the button). Days read as plain dates (**`"Wednesday, January 14"`**); the pre-selected day reads **`"Thursday, January 15, Selected"`**; after double-tapping `16` the `Selected` trait moves to **`"Friday, January 16, Selected"`**.
-  7. ⚠️ **Date picker — month/year toggle**: Double-tap the month header (UIKit **`"January 2026, Button"`**; Flutter the `January 2026` arrow), swipe right once, double-tap it again to close. *(#186043)*
+  5. **Date picker — select, confirm, focus return**: Double-tap **Present Date Picker**, swipe right into the calendar grid through the days around `15`, double-tap `16`, then swipe to **Done** (UIKit) / **OK** (Flutter) and double-tap. *(#186043, #194657-family)*
+     - *Expected*: Opening moves focus into the picker (not left on the button). Days read as plain dates (**`"Wednesday, January 14"`**); the pre-selected day reads **`"Thursday, January 15, Selected"`**; after double-tapping `16` the `Selected` trait moves to **`"Friday, January 16, Selected"`**. On confirm, status reads **`Date Picker: Jan 16, 2026`** and focus returns to **`"Present Date Picker, Button"`**.
+  6. ⚠️ **Date picker — month/year toggle**: Double-tap the month header (UIKit **`"January 2026, Button"`**; Flutter the `January 2026` arrow), swipe right once, double-tap it again to close. *(#186043)*
      - *Expected*: **Record what each app says.** UIKit exposes `"January, Adjustable"` / `"2026, Adjustable"` wheels once open; note whether Flutter announces **`Expanded`/`Collapsed`** on the header and whether the year list is reachable by swipe.
-  8. **Date picker — confirm & focus return**: With `16` selected swipe to **Done** (UIKit) / **OK** (Flutter) and double-tap.
-     - *Expected*: Status reads **`Date Picker: Jan 16, 2026`** and focus returns to **`"Present Date Picker, Button"`**.
-  9. **Time picker — AM/PM**: Double-tap **Present Time Picker**, swipe right through the time controls to the period (AM/PM) control, swipe up once (UIKit) / double-tap **PM** (Flutter), then confirm. *(#173302 — P1)*
-     - *Expected*: Hours/minutes read **`"9 o'clock, Adjustable"`** / **`"30 minutes, Adjustable"`**. The period control must announce its **current state on focus** (UIKit **`"AM, Adjustable"`**; Flutter `"AM, Selected"`) and the change (**`"PM"`** / `"PM, Selected"`). Status reads **`Time Picker: 9:30 PM`**, focus returns to **`"Present Time Picker, Button"`**.
-  10. ⚠️ **Time picker — Flutter clock dial** (Flutter only): Re-open and swipe through the dial.
-     - *Expected*: No native twin exists (UIKit uses wheels). **Record what each dial number says**; every number must be reachable and double-tapping one must update the hour field.
+  7. **Time picker — AM/PM**: Double-tap **Present Time Picker**, swipe right through the time controls to the period (AM/PM) control, change it to PM (UIKit: swipe up once; Flutter: double-tap **PM**), then confirm. *(#173302 — P1)*
+     - *Expected*: UIKit reads **`"9 o'clock, Adjustable"`** / **`"30 minutes, Adjustable"`** / **`"AM, Adjustable"`** and announces **`"PM"`** on change. The requirement for both apps: the period control **announces its current state on focus** and **announces the change** — record Flutter's exact wording. Status reads **`Time Picker: 9:30 PM`**, focus returns to **`"Present Time Picker, Button"`**. *(Flutter's clock dial has no native twin; ignore it beyond confirming the numbers are reachable.)*
 
-- [ ] **6. Screen 5 — Sliver Scroll**
-  1. **Collapsing header & focus return**: Open **Sliver Scroll**, swipe right from the title through `Sliver Item 1`…`Sliver Item 20` so the large title collapses, then **4-finger single-tap near the top** and, separately, swipe left from `Sliver Item 20` all the way back up. *(#143437 — P0, #179687)*
-     - *Expected*: On open **`"Sliver Scroll, Heading"`**; rows read `"Sliver Item 1"`, `"Sliver Item 2"`… After the header collapses, 4-finger-tap-top lands on the Back button or **`"Sliver Scroll, Heading"`** (never a row), and swiping left from `Sliver Item 1` still reaches the heading — the collapsed header stays focusable.
+- [ ] **6. Sliver Scroll**
+  1. **Collapsing header & focus return**: Open **Sliver Scroll**, 3-finger swipe up twice so the large title collapses, then **4-finger single-tap near the top of the screen**, then swipe right once. *(#143437 — P0, #179687)*
+     - *Expected*: On open **`"Sliver Scroll, Heading"`**; rows read `"Sliver Item 1"`, `"Sliver Item 2"`… After the header collapses, 4-finger-tap-top lands on the Back button and the next swipe right lands on **`"Sliver Scroll, Heading"`** — the collapsed header stays focusable (never skipped straight to a row).
   2. ⚠️ **Header resize must not steal focus**: Focus `Sliver Item 3`, then **3-finger swipe up** once so the header animates while a row is focused. *(#179687)*
      - *Expected*: **Record what each app says.** UIKit keeps focus on a row and plays the scroll chime; flag if Flutter focus jumps to the heading because the header resized.
   3. **Reach the bottom sliver**: 3-finger swipe up repeatedly to the end, then swipe right past `Sliver Item 60`. *(#142065 — P1)*
@@ -129,8 +126,8 @@ You will test two apps side-by-side on the same iOS version:
   - *Expected*: `Tab` stays inside the picker (the AM/PM control is a Tab stop and `Space`/arrows toggle it). `Esc` dismisses without changing the value, status reads **`Date Picker: Cancelled`** / **`Time Picker: Cancelled`**, and the ring returns to the presenting button.
 - [ ] **8. Disabled menu item skipped (`Modal Barrier`)**: `Tab` to **Anchored Popup Menu**, `Space`, then `Down Arrow` repeatedly. *(#171231)*
   - *Expected*: Focus cycles `Option Alpha → Beta → Gamma` and never lands on **Option Delta (Unavailable)**.
-- [ ] **9. Floating button & footer (`Sliver Scroll`)**: Open **Sliver Scroll** and `Tab` from the Back button through all 60 rows to the end. *(#184077, #142065, #143437)*
-  - *Expected*: **Compose** receives the ring exactly **once** per pass (UIKit: after the list content) and `Tab` continues past it — never trapped, never alternating with a row. The list auto-scrolls, the ring reaches **Footer Action** (`Space` → `taps: 1`), and the collapsed header never steals the ring.
+- [ ] ⚠️ **9. Floating button & footer (`Sliver Scroll`)**: Open **Sliver Scroll** and press `Tab` from the Back button until the ring reaches **Compose**, then keep going to **Footer Action**. *(#184077, #142065, #143437)*
+  - *Expected*: **Record how many stops it took and whether list rows were stops** (UIKit table cells are focusable, Flutter's plain rows are not — this difference is expected). The requirement: **Compose** receives the ring exactly **once**, in a sensible place, and `Tab` continues past it — never trapped, never alternating with a row; the ring reaches **Footer Action** (`Space` → `taps: 1`) and the collapsed header never steals it.
 
 ---
 
@@ -144,7 +141,7 @@ You will test two apps side-by-side on the same iOS version:
   - *Expected*: Badges sit directly on each button (none on plain text headers), and remain aligned after **Mutating Icon Button** adds its checkmark icon.
 - [ ] **3. Overlays & Tab Bar (`Modal Barrier`)**: Open **Modal Barrier**, say **`"Tap <number>"`** for **Details** in the bottom tab bar, then say **`"Tap Present Alert Dialog"`** followed by **`"Tap Cancel"`** (or **`"Go back"`**).
   - *Expected*: Activates **Details** (`"Selected Tab: Details (2 of 3)"`), shows badges only on `Cancel`/`Confirm` while the alert is open, and dismisses the alert via voice.
-- [ ] **4. Selection controls (`Traversal Hierarchy`)**: Scroll to the bottom, say **`"Show numbers"`**, then **`"Tap Express"`**, **`"Tap Notifications"`**, **`"Tap Country"`** → **`"Tap Mexico"`**. *(#175950, #133742)*
+- [ ] **4. Selection controls (`Traversal Hierarchy`)**: Say **`"Scroll to bottom"`**, then **`"Show numbers"`**, then **`"Tap Express"`**, **`"Tap Notifications"`**, **`"Tap Country"`** → **`"Tap Mexico"`**. *(#175950, #133742)*
   - *Expected*: Exactly one badge each on **Notifications**, **Accept Terms**, **Standard**, **Express**, **Overnight**, **Country** (none on plain text); badges stay aligned after state changes; each command works by name (status logs `Shipping Speed radio -> Express`, `Country dropdown -> Mexico`). If a name isn't recognised in Flutter, say **`"Show names"`** and record what it shows.
 - [ ] **5. Counter label must not get a badge (`Focus & Keyboard`)**: Scroll to **Nickname**, say **`"Show numbers"`**, then **`"Tap <number>"`** for the field and **`"Type hello"`**. *(#156368 — P1)*
   - *Expected*: A badge on the **Nickname** field but **no badge on the `0/20` counter** (UIKit never badges a static label). `hello` is inserted and the counter reads `5/20` without badges shifting.
