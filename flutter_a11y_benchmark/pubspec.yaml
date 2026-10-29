@@ -13,9 +13,6 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_ui: ^1.1.4
-  # Material widgets used by the v2 fixtures (Switch, Checkbox, Radio,
-  # DropdownMenu, date/time pickers, TextField(maxLength:), Scaffold + FAB).
-  material_ui: ^1.8.0
   # Bundles the CupertinoIcons glyph font (chevrons, check mark, tab icons,
   # navigation-bar back button).
   cupertino_icons: ^1.0.8

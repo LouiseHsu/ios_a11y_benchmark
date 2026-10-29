@@ -1,9 +1,9 @@
 import 'dart:ui' show Tristate;
 
+import 'package:cupertino_ui/cupertino_ui.dart'
+    show CupertinoCheckbox, CupertinoRadio, CupertinoSwitch;
 import 'package:flutter/semantics.dart';
-import 'package:flutter/widgets.dart' show EditableText, Scrollable;
-import 'package:material_ui/material_ui.dart'
-    show Checkbox, DropdownMenu, MenuItemButton, Radio, Switch;
+import 'package:flutter/widgets.dart' show Scrollable;
 import 'package:flutter_a11y_benchmark/main.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -272,41 +272,33 @@ void v2Tests() {
       'traversal.radioStandard',
       'traversal.radioExpress',
       'traversal.radioOvernight',
-      'traversal.countryDropdown',
     ]) {
       await tester.ensureVisible(find.bySemanticsIdentifier(id).first);
       await tester.pumpAndSettle();
       expect(find.bySemanticsIdentifier(id), findsWidgets, reason: id);
     }
 
-    await tester.tap(find.byType(Switch));
+    await tester.tap(find.byType(CupertinoSwitch));
     await tester.pumpAndSettle();
     expect(find.textContaining('Notifications switch -> on'), findsOneWidget);
 
-    await tester.tap(find.byType(Checkbox));
+    await tester.tap(find.byType(CupertinoCheckbox));
     await tester.pumpAndSettle();
     expect(
       find.textContaining('Accept Terms checkbox -> checked'),
       findsOneWidget,
     );
 
-    await tester.tap(find.byType(Radio<String>).at(1));
+    await tester.tap(find.byType(CupertinoRadio<String>).at(1));
     await tester.pumpAndSettle();
     expect(
       find.textContaining('Shipping Speed radio -> Express'),
       findsOneWidget,
     );
-
-    // Open the dropdown and pick Mexico.
-    await tester.tap(find.byType(DropdownMenu<String>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(MenuItemButton, 'Mexico').last);
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Country dropdown -> Mexico'), findsOneWidget);
     handle.dispose();
   });
 
-  testWidgets('modal barrier opens date & time pickers and disabled item', (
+  testWidgets('modal barrier exposes disabled popup menu item', (
     WidgetTester tester,
   ) async {
     final SemanticsHandle handle = tester.ensureSemantics();
@@ -314,50 +306,9 @@ void v2Tests() {
     await tester.tap(find.bySemanticsIdentifier('menu.modalBarrier'));
     await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.bySemanticsIdentifier('modal.presentDatePickerButton').first,
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('OK'), findsOneWidget);
-    await tester.tap(find.text('OK'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Date Picker: Jan 15, 2026'), findsOneWidget);
-
-    await tester.tap(
-      find.bySemanticsIdentifier('modal.presentTimePickerButton').first,
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('OK'), findsOneWidget);
-    await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('Time Picker: Cancelled'), findsOneWidget);
-
     await tester.tap(find.bySemanticsIdentifier('modal.popupMenuButton').first);
     await tester.pumpAndSettle();
     expect(find.text('Option Delta (Unavailable)'), findsOneWidget);
-    handle.dispose();
-  });
-
-  testWidgets('focus keyboard limited-length field enforces 20 chars', (
-    WidgetTester tester,
-  ) async {
-    final SemanticsHandle handle = tester.ensureSemantics();
-    await tester.pumpWidget(const FlutterA11yBenchmarkApp());
-    await tester.tap(find.bySemanticsIdentifier('menu.focusKeyboard'));
-    await tester.pumpAndSettle();
-
-    final Finder field = find
-        .bySemanticsIdentifier('focus.nicknameField')
-        .first;
-    await tester.ensureVisible(field);
-    await tester.pumpAndSettle();
-    expect(find.text('0/20'), findsOneWidget);
-    await tester.enterText(
-      find.descendant(of: field, matching: find.byType(EditableText)),
-      'abcdefghijklmnopqrstuvwxyz',
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('20/20'), findsOneWidget);
     handle.dispose();
   });
 

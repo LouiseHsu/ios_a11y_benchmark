@@ -1,26 +1,23 @@
 import 'package:cupertino_ui/cupertino_ui.dart';
-// Material is imported with a prefix so that Scaffold / SliverAppBar /
-// FloatingActionButton / FilledButton / BackButton / Icons never collide with
-// cupertino_ui exports. MaterialLocalizations are installed in main.dart.
-import 'package:material_ui/material_ui.dart' as material;
 
 import '../a11y/a11y_probe.dart';
 
 /// Second scrolling fixture: a `CustomScrollView` whose header is a collapsing
-/// `SliverAppBar`, followed by a 60-row `SliverList`, a `SliverFillRemaining`
-/// footer and a `FloatingActionButton` layered over the list.
+/// `CupertinoSliverNavigationBar`, followed by a 60-row `SliverList`, a
+/// `SliverFillRemaining` footer, and a floating circular `CupertinoButton`
+/// layered over the list.
 ///
 /// UIKit twin: `SliverScrollViewController` — a plain `UITableView` under a
-/// large-title navigation bar (the native idiom for a collapsing header), with
-/// a `tableFooterView` and a floating circular compose button.
+/// large-title navigation bar (`prefersLargeTitles = true`), with a
+/// `tableFooterView` and a floating circular compose `UIButton`.
 ///
 /// Targets:
-///  * flutter/flutter#143437 — VoiceOver cannot get back to the `SliverAppBar`
-///    once it has scrolled off / collapsed.
+///  * flutter/flutter#143437 — VoiceOver cannot get back to the sliver
+///    navigation bar once it has scrolled off / collapsed.
 ///  * flutter/flutter#142065 — VoiceOver cannot navigate into the bottom
 ///    sliver (`SliverFillRemaining`).
-///  * flutter/flutter#184077 — Full Keyboard Access tab order of a
-///    `FloatingActionButton` layered over a long list.
+///  * flutter/flutter#184077 — Full Keyboard Access tab order of a floating
+///    action button layered over a long list.
 ///  * flutter/flutter#179687 — a resizing header captures accessibility focus
 ///    while it animates.
 class SliverScrollPage extends StatefulWidget {
@@ -33,7 +30,7 @@ class SliverScrollPage extends StatefulWidget {
 class _SliverScrollPageState extends State<SliverScrollPage> {
   static const int rowCount = 60;
   static const double rowHeight = 60;
-  static const double expandedHeaderHeight = 160;
+  static const double fabDiameter = 56;
 
   int _fabTapCount = 0;
   int _footerTapCount = 0;
@@ -54,64 +51,64 @@ class _SliverScrollPageState extends State<SliverScrollPage> {
 
   @override
   Widget build(BuildContext context) {
-    // A Material Scaffold is used (rather than CupertinoPageScaffold) so that
-    // the FloatingActionButton slot and SliverAppBar behave exactly as the
-    // audited issues describe. The page is still pushed via CupertinoPageRoute
-    // from the menu, which is fine.
-    return material.Scaffold(
-      body: Semantics(
-        container: true,
-        identifier: 'sliver.list',
-        child: CustomScrollView(
-          // Attached to the PrimaryScrollController so the iOS status-bar tap
-          // scrolls *this* list (UIKit: scrollsToTop).
-          primary: true,
-          slivers: <Widget>[
-            material.SliverAppBar(
-              pinned: true,
-              expandedHeight: expandedHeaderHeight,
-              // Explicit BackButton: the app is a CupertinoApp with no Material
-              // AppBar theme, so do not rely on automaticallyImplyLeading.
-              leading: const material.BackButton(),
-              // The title lives only in the FlexibleSpaceBar (the stock
-              // collapsing-title pattern); setting SliverAppBar.title as well
-              // would render two overlapping "Sliver Scroll" headings when
-              // collapsed and VoiceOver would announce the heading twice.
-              flexibleSpace: material.FlexibleSpaceBar(
-                centerTitle: false,
-                title: A11yProbe(
-                  identifier: 'sliver.appBarTitle',
-                  header: true,
-                  child: const Text('Sliver Scroll'),
+    return CupertinoPageScaffold(
+      child: Stack(
+        children: <Widget>[
+          Semantics(
+            container: true,
+            identifier: 'sliver.list',
+            child: CustomScrollView(
+              // Attached to the PrimaryScrollController so the iOS status-bar
+              // tap scrolls *this* list (UIKit: scrollsToTop).
+              primary: true,
+              slivers: <Widget>[
+                const CupertinoSliverNavigationBar(
+                  previousPageTitle: 'Flutter A11y Benchmark',
+                  largeTitle: Text('Sliver Scroll'),
+                ),
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (BuildContext context, int index) =>
+                        _SliverRow(index: index),
+                    childCount: rowCount,
+                  ),
+                ),
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _SliverFooter(
+                    tapCount: _footerTapCount,
+                    onPressed: _handleFooterPressed,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: SafeArea(
+              top: false,
+              left: false,
+              child: A11yProbe(
+                identifier: 'sliver.fab',
+                mergeDescendants: true,
+                label: 'Compose',
+                child: SizedBox(
+                  width: fabDiameter,
+                  height: fabDiameter,
+                  child: CupertinoButton.filled(
+                    padding: EdgeInsets.zero,
+                    borderRadius: BorderRadius.circular(fabDiameter / 2),
+                    onPressed: _handleFabPressed,
+                    child: const ExcludeSemantics(
+                      child: Icon(CupertinoIcons.add, size: 24),
+                    ),
+                  ),
                 ),
               ),
             ),
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (BuildContext context, int index) => _SliverRow(index: index),
-                childCount: rowCount,
-              ),
-            ),
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: _SliverFooter(
-                tapCount: _footerTapCount,
-                onPressed: _handleFooterPressed,
-              ),
-            ),
-          ],
-        ),
-      ),
-      // FloatingActionButton already creates its own semantics boundary, so
-      // the probe merges with it (see A11yProbe docs).
-      floatingActionButton: A11yProbe(
-        identifier: 'sliver.fab',
-        mergeDescendants: true,
-        child: material.FloatingActionButton(
-          onPressed: _handleFabPressed,
-          tooltip: 'Compose',
-          child: const Icon(material.Icons.add),
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -183,12 +180,10 @@ class _SliverFooter extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            // FilledButton creates its own semantics boundary, so the probe
-            // merges with it (see A11yProbe docs).
             A11yProbe(
               identifier: 'sliver.footerButton',
               mergeDescendants: true,
-              child: material.FilledButton(
+              child: CupertinoButton.filled(
                 onPressed: onPressed,
                 child: const Text('Footer Action'),
               ),

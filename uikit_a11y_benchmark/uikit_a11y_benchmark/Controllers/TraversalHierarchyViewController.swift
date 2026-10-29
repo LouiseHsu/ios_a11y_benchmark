@@ -18,21 +18,17 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
     private let linksTextView = UITextView()
     private let statusLabel = UILabel()
 
-    // v2 "Selection Controls" section.
+    // "Selection Controls" section (Switch / Checkbox / Radio traits).
     private static let shippingSpeeds = ["Standard", "Express", "Overnight"]
-    private static let countries = ["Canada", "Mexico", "United States"]
     private let selectionControlsHeaderLabel = UILabel()
     private let notificationsLabel = UILabel()
     private let notificationsSwitch = UISwitch()
     private let acceptTermsButton = UIButton(configuration: .plain())
     private let shippingSpeedLabel = UILabel()
     private var shippingSpeedButtons: [UIButton] = []
-    private let countryLabel = UILabel()
-    private let countryButton = UIButton(configuration: .plain())
 
     private var isDisclosureExpanded = false
     private var selectedShippingSpeed = TraversalHierarchyViewController.shippingSpeeds[0]
-    private var selectedCountry = TraversalHierarchyViewController.countries[0]
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -258,46 +254,11 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
             shippingStack.addArrangedSubview(button)
         }
 
-        // 4. Pop-up menu button.
-        countryLabel.text = "Country"
-        countryLabel.font = .preferredFont(forTextStyle: .body)
-        countryLabel.adjustsFontForContentSizeCategory = true
-        countryLabel.isAccessibilityElement = false
-
-        var countryConfig = UIButton.Configuration.plain()
-        countryConfig.title = selectedCountry
-        countryConfig.image = UIImage(systemName: "chevron.up.chevron.down")
-        countryConfig.imagePlacement = .trailing
-        countryConfig.imagePadding = 6
-        countryButton.configuration = countryConfig
-        countryButton.setContentHuggingPriority(.required, for: .horizontal)
-        countryButton.showsMenuAsPrimaryAction = true
-        countryButton.changesSelectionAsPrimaryAction = true
-        countryButton.accessibilityIdentifier = "traversal.countryDropdown"
-        countryButton.accessibilityLabel = "Country"
-        countryButton.accessibilityValue = selectedCountry
-        countryButton.menu = UIMenu(children: Self.countries.map { country in
-            UIAction(
-                title: country,
-                state: country == selectedCountry ? .on : .off
-            ) { [weak self] action in
-                self?.countrySelected(action.title)
-            }
-        })
-
-        let countryRow = UIStackView(arrangedSubviews: [countryLabel, countryButton])
-        countryRow.translatesAutoresizingMaskIntoConstraints = false
-        countryRow.axis = .horizontal
-        countryRow.alignment = .center
-        countryRow.distribution = .fill
-        countryRow.spacing = 8
-
         contentView.addSubview(selectionControlsHeaderLabel)
         contentView.addSubview(notificationsRow)
         contentView.addSubview(acceptTermsButton)
         contentView.addSubview(shippingSpeedLabel)
         contentView.addSubview(shippingStack)
-        contentView.addSubview(countryRow)
 
         NSLayoutConstraint.activate([
             selectionControlsHeaderLabel.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 24),
@@ -319,11 +280,7 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
             shippingStack.topAnchor.constraint(equalTo: shippingSpeedLabel.bottomAnchor, constant: 4),
             shippingStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             shippingStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-
-            countryRow.topAnchor.constraint(equalTo: shippingStack.bottomAnchor, constant: 8),
-            countryRow.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            countryRow.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            countryRow.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -24),
+            shippingStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -24),
         ])
     }
 
@@ -345,14 +302,6 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
             button.setNeedsUpdateConfiguration()
         }
         recordEvent("Shipping Speed radio -> \(speed)")
-    }
-
-    private func countrySelected(_ country: String) {
-        selectedCountry = country
-        // changesSelectionAsPrimaryAction already updates the title; mirror it
-        // into accessibilityValue so VoiceOver reads "Country, <selection>".
-        countryButton.accessibilityValue = country
-        recordEvent("Country dropdown -> \(country)")
     }
 
     @objc private func toggleDisclosure() {

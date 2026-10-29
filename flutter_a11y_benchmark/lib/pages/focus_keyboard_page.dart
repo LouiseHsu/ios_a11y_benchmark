@@ -1,16 +1,12 @@
 import 'package:cupertino_ui/cupertino_ui.dart';
-// Aliased: only used for the Material TextField + counter benchmark below so
-// that none of its names collide with the cupertino_ui exports.
-import 'package:material_ui/material_ui.dart' as material;
 import 'package:flutter/semantics.dart';
 
 import '../a11y/a11y_action_observer.dart';
 import '../a11y/a11y_probe.dart';
 
 /// Scrollable form with a pre-filled username field, a 25% slider, a tall
-/// event log, a secure password field and a length-limited (20 chars)
-/// nickname field with a visible character counter, logging responder,
-/// VoiceOver and Full Keyboard Access focus transitions.
+/// event log, and a secure password field, logging responder, VoiceOver, and
+/// Full Keyboard Access focus transitions.
 ///
 /// UIKit twin: `FocusKeyboardViewController`.
 ///
@@ -21,8 +17,7 @@ import '../a11y/a11y_probe.dart';
 ///  * `accessibilityElementDidBecomeFocused` → `didGainAccessibilityFocus`
 ///    semantics actions observed by [A11yActionObserver],
 ///  * `accessibilityIncrement` / `accessibilityDecrement` → the slider's
-///    `increase` / `decrease` semantics actions,
-///  * `shouldChangeCharactersIn` (20-char limit) → `TextField.maxLength`.
+///    `increase` / `decrease` semantics actions.
 class FocusKeyboardPage extends StatefulWidget {
   const FocusKeyboardPage({super.key});
 
@@ -33,17 +28,13 @@ class FocusKeyboardPage extends StatefulWidget {
 class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
   static const String _topFieldName = 'Top Username Field';
   static const String _bottomFieldName = 'Bottom Password Field';
-  static const String _nicknameFieldName = 'Nickname Field';
-  static const int _nicknameMaxLength = 20;
 
   // Pre-filled so deleting the last character benchmarks the empty-field
   // placeholder announcement.
   final TextEditingController _topController = TextEditingController(text: 'A');
   final TextEditingController _bottomController = TextEditingController();
-  final TextEditingController _nicknameController = TextEditingController();
   final FocusNode _topFocus = FocusNode(debugLabel: _topFieldName);
   final FocusNode _bottomFocus = FocusNode(debugLabel: _bottomFieldName);
-  final FocusNode _nicknameFocus = FocusNode(debugLabel: _nicknameFieldName);
 
   final List<String> _logEntries = <String>[];
   double _sliderValue = 0.25;
@@ -56,19 +47,11 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
     super.initState();
     _topFocus.addListener(() => _handleFocusNodeChange(_topFocus));
     _bottomFocus.addListener(() => _handleFocusNodeChange(_bottomFocus));
-    _nicknameFocus.addListener(() => _handleFocusNodeChange(_nicknameFocus));
     _topController.addListener(
       () => _handleTextChanged(_topFieldName, _topController, 'Enter username'),
     );
     _bottomController.addListener(
       () => _handleTextChanged(_bottomFieldName, _bottomController, 'Password'),
-    );
-    _nicknameController.addListener(
-      () => _handleTextChanged(
-        _nicknameFieldName,
-        _nicknameController,
-        'Max 20 characters',
-      ),
     );
     FocusManager.instance.addListener(_handlePrimaryFocusChange);
     A11yActionObserver.instance.addListener(_handleA11yAction);
@@ -83,10 +66,8 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
     A11yActionObserver.instance.removeListener(_handleA11yAction);
     _topController.dispose();
     _bottomController.dispose();
-    _nicknameController.dispose();
     _topFocus.dispose();
     _bottomFocus.dispose();
-    _nicknameFocus.dispose();
     super.dispose();
   }
 
@@ -315,32 +296,6 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
                     placeholder: 'Password',
                     textInputAction: TextInputAction.done,
                     padding: const EdgeInsets.all(12),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const _SectionLabel('Limited-Length Field (max 20)'),
-                // Material TextField with the DEFAULT maxLength counter so the
-                // "0/20" counter text is rendered (and exposed to assistive
-                // tech) exactly as Flutter does out of the box. Deliberately
-                // NOT merged (no mergeDescendants) so the counter stays its own
-                // semantics node, as the UIKit twin's separate counter UILabel.
-                // UIKit twin: UITextField + shouldChangeCharactersIn limit +
-                // "0/20" UILabel (`focus.nicknameCounter`).
-                A11yProbe(
-                  identifier: 'focus.nicknameField',
-                  trackFocus: false,
-                  child: material.Material(
-                    type: material.MaterialType.transparency,
-                    child: material.TextField(
-                      controller: _nicknameController,
-                      focusNode: _nicknameFocus,
-                      maxLength: _nicknameMaxLength,
-                      textInputAction: TextInputAction.done,
-                      decoration: const material.InputDecoration(
-                        labelText: 'Nickname',
-                        hintText: 'Max 20 characters',
-                      ),
-                    ),
                   ),
                 ),
               ],

@@ -56,8 +56,6 @@ Step IDs (`T3`, `M7`…) match the rows in the results sheet.
 - [ ] **T12** Tap once on **Accept Terms**, double-tap it, swipe left then right to come back. ⟶ *Compare:* what is spoken on focus, on tap, and when you return.
 - [ ] **T13** Tap once on **Standard**, then swipe right twice (Express, Overnight). ⟶ *Compare:* what each one says — especially any state word on **Standard**.
 - [ ] **T14** Double-tap **Express**, then swipe left back to **Standard**. ⟶ *Compare:* what Express says after the tap, and what Standard says now.
-- [ ] **T15** Tap once on the **Country** control (don't open it). ⟶ *Compare:* what is spoken, including the current value.
-- [ ] **T16** Double-tap **Country**. Swipe right until you reach **Mexico**. Double-tap it. Tap once on the Country control again. ⟶ *Compare:* where focus went when the menu opened, and what the control says now.
 
 ### F — Focus & Keyboard
 
@@ -71,9 +69,7 @@ Step IDs (`T3`, `M7`…) match the rows in the results sheet.
 - [ ] **F8** Tap once on the slider. Swipe up once, then down twice. ⟶ *Compare:* the value spoken on focus and after each swipe.
 - [ ] **F9** Tap once on the **Password** field (don't double-tap). ⟶ *Compare:* what is spoken.
 - [ ] **F10** Double-tap **Password** and type `abc`. ⟶ *Compare:* what is spoken while typing.
-- [ ] **F11** Tap once on the **Nickname** field. Swipe right once. ⟶ *Compare:* what the field says, and what the next element is.
-- [ ] **F12** Double-tap **Nickname** and type `abc`. ⟶ *Compare:* what is spoken while typing, and what the counter shows.
-- [ ] **F13** Rotor → **Form Controls**. Swipe down repeatedly. ⟶ *Compare:* the list.
+- [ ] **F11** Rotor → **Form Controls**. Swipe down repeatedly. ⟶ *Compare:* the list.
 
 ### M — Modal Barrier
 
@@ -86,17 +82,10 @@ Step IDs (`T3`, `M7`…) match the rows in the results sheet.
 - [ ] **M7** Double-tap **Present Alert Dialog**. ⟶ *Compare:* what is spoken on open.
 - [ ] **M8** Swipe right until bonk, then drag a finger over the background. ⟶ *Compare:* the dialog's elements, and whether background buttons are reachable.
 - [ ] **M9** Double-tap **Confirm**. ⟶ *Compare:* where are you, and the status label text.
-- [ ] **M10** Double-tap **Present Date Picker**. ⟶ *Compare:* where are you?
-- [ ] **M11** Swipe right into the calendar and through the days around the 15th. ⟶ *Compare:* how days are spoken, and what the pre-selected day says.
-- [ ] **M12** Tap once on the month/year header, double-tap it, swipe right once, double-tap the header again. ⟶ *Compare:* what the header says before/after, and what opened.
-- [ ] **M13** Double-tap the 16th, then double-tap **Done** / **OK**. ⟶ *Compare:* what the 16th says after the tap, the status label, and where you are after closing.
-- [ ] **M14** Double-tap **Present Time Picker**. Swipe right until you reach the AM/PM control. ⟶ *Compare:* how hours, minutes and AM/PM are spoken on focus.
-- [ ] **M15** Change AM to PM (UIKit: swipe up on it; Flutter: double-tap **PM**). ⟶ *Compare:* what is spoken on the change.
-- [ ] **M16** Double-tap **Done** / **OK**. ⟶ *Compare:* the status label, and where you are.
-- [ ] **M17** Double-tap **Present Modal Sheet**. ⟶ *Compare:* where are you?
-- [ ] **M18** Swipe right until bonk, then drag a finger over the dimmed area above the sheet and over where the background buttons were. ⟶ *Compare:* the sheet's elements (is the drag handle one of them?), and whether anything behind the sheet is reachable.
-- [ ] **M19** 2-finger Z-scrub. ⟶ *Compare:* did the sheet close, and where are you?
-- [ ] **M20** Tap once on the bottom tab bar, then double-tap **Details**. ⟶ *Compare:* what is spoken on focus, and on selection.
+- [ ] **M10** Double-tap **Present Modal Sheet**. ⟶ *Compare:* where are you?
+- [ ] **M11** Swipe right until bonk, then drag a finger over the dimmed area above the sheet and over where the background buttons were. ⟶ *Compare:* the sheet's elements (is the drag handle one of them?), and whether anything behind the sheet is reachable.
+- [ ] **M12** 2-finger Z-scrub. ⟶ *Compare:* did the sheet close, and where are you?
+- [ ] **M13** Tap once on the bottom tab bar, then double-tap **Details**. ⟶ *Compare:* what is spoken on focus, and on selection.
 
 ### V — Sliver Scroll
 
@@ -124,9 +113,8 @@ For **each** of the six screens:
 Plus, on the screens where they apply:
 
 - [ ] **C5** *(Scroll Baseline, Sliver Scroll)* Say **"Scroll down"**, **"Scroll up"**, **"Scroll to bottom"**, **"Scroll to top"**. ⟶ *Compare:* each moves the list the same way.
-- [ ] **C6** *(Modal Barrier)* Open each of: popup menu, alert, date picker, time picker, modal sheet. Say **"Show numbers"** while it is open. ⟶ *Compare:* badges only inside the modal, and the count. Then say **"Go back"** (or **"Tap Cancel"**). ⟶ *Compare:* it closes.
-- [ ] **C7** *(Focus & Keyboard)* Say **"Show numbers."** ⟶ *Compare:* does the `0/20` counter under Nickname get a badge? Say **"Tap Nickname"**, then **"Type hello"**. ⟶ *Compare:* text inserted, counter updated.
-- [ ] **C8** *(Traversal)* Say **"Tap Express"**, **"Tap Notifications"**, **"Tap Country"** then **"Tap Mexico"**. ⟶ *Compare:* each works and the status label logs it.
+- [ ] **C6** *(Modal Barrier)* Open each of: popup menu, alert, modal sheet. Say **"Show numbers"** while it is open. ⟶ *Compare:* badges only inside the modal, and the count. Then say **"Go back"** (or **"Tap Cancel"**). ⟶ *Compare:* it closes.
+- [ ] **C7** *(Traversal)* Say **"Tap Express"**, **"Tap Notifications"**, **"Tap Accept Terms"**. ⟶ *Compare:* each works and the status label logs it.
 
 ---
 
@@ -137,13 +125,13 @@ Plus, on the screens where they apply:
 For **each** of the six screens:
 
 - [ ] **K1** Open the screen. Press `Tab` until the blue ring wraps back to where it started. ⟶ *Compare:* **how many stops** (UIKit __ / Flutter __) and the order. Off-screen stops should scroll into view.
-- [ ] **K2** Press `Space` on every button, switch and row; `←`/`→` on sliders and segmented controls; `↑`/`↓` and `Return` inside menus and pickers. ⟶ *Compare:* each does the same thing.
+- [ ] **K2** Press `Space` on every button, switch and row; `←`/`→` on sliders and segmented controls; `↑`/`↓` and `Return` inside menus. ⟶ *Compare:* each does the same thing.
 - [ ] **K3** `Shift+Tab` to the Back button, `Space`. ⟶ *Compare:* where the ring lands on the Home Menu.
 
 Plus:
 
-- [ ] **K4** *(Modal Barrier)* For each of popup menu, alert, date picker, time picker, modal sheet: open it with `Space`, press `Tab` 5 times, then `Esc`. ⟶ *Compare:* the ring stays inside while open; `Esc` closes it; the ring returns to the button that opened it. In the popup menu, also note whether `↓` ever lands on the last (unavailable) item.
-- [ ] **K5** *(Focus & Keyboard)* `Tab` from the top field to the bottom. ⟶ *Compare:* is the slider a stop; does the Password field scroll into view; is the `0/20` counter ever a stop.
+- [ ] **K4** *(Modal Barrier)* For each of popup menu, alert, modal sheet: open it with `Space`, press `Tab` 5 times, then `Esc`. ⟶ *Compare:* the ring stays inside while open; `Esc` closes it; the ring returns to the button that opened it. In the popup menu, also note whether `↓` ever lands on the last (unavailable) item.
+- [ ] **K5** *(Focus & Keyboard)* `Tab` from the top field to the bottom. ⟶ *Compare:* is the slider a stop; does the Password field scroll into view.
 - [ ] **K6** *(Sliver Scroll)* `Tab` until the ring reaches the round **Compose** button, then keep going to **Footer Action**. ⟶ *Compare:* how many stops it took (UIKit __ / Flutter __), and that Compose is a stop exactly once and never traps the ring.
 
 ---
@@ -170,11 +158,11 @@ Only use this if you cannot run the UIKit app alongside. `N` = depends on device
 
 - **Home:** `"UIKit A11y Benchmark, Heading"`; rows `"<title>, <subtitle>, Button"`; Back `"UIKit A11y Benchmark, Back button"`.
 - **Scroll:** `"Item #0, Baseline scroll row 1 of 100"`; page scroll `"Page 2 of N"`, header `~1.000 (100.0%)`; status-bar tap → `contentOffset.y: 0.0`.
-- **Traversal:** `"Row-Major, Button, 1 of 2"` · `"Section Header 1, Heading"` · `"Mutating Icon Button, Button"` → `"Selected, Mutating Icon Button, Button"` · `"Target Enableable Button, Dimmed, Button"` → `"Target Enableable Button, Button"` · disclosure `"Collapsed"`/`"Expanded"` · `"Terms of Service, Link"`, `"Privacy Policy, Link"` · `"Selection Controls, Heading"` · `"Notifications, Switch button, Off, Double tap to toggle setting"` · `"Accept Terms, Button"` → `"Selected, Accept Terms, Button"` · `"Selected, Standard, Button"`, `"Express, Button"`, `"Overnight, Button"` · `"Country, Canada, Pop-up button"`.
-- **Focus:** `"Enter username, A, Text field"` · `"Clear text, Button"` · `"Live Status: Polite Announcement #1"` · `"25%, Adjustable"` (±10%) · `"Password, Secure text field"` · `"Nickname, Max 20 characters, Text field"` → `"0/20"`.
-- **Modal:** menu opens on `"Selected, Option Alpha, Button"`, last item `"Option Delta (Unavailable), Dimmed, Button"` · `"Alert, Benchmark Alert Dialog"` · date picker `"Thursday, January 15, Selected"`, header `"January 2026, Button"` · time picker `"9 o'clock, Adjustable"`, `"30 minutes, Adjustable"`, `"AM, Adjustable"` · sheet `"Modal Barrier Active, Heading"` · `"Tab Bar, Selected, Overview, Tab, 1 of 3"`.
+- **Traversal:** `"Row-Major, Button, 1 of 2"` · `"Section Header 1, Heading"` · `"Mutating Icon Button, Button"` → `"Selected, Mutating Icon Button, Button"` · `"Target Enableable Button, Dimmed, Button"` → `"Target Enableable Button, Button"` · disclosure `"Collapsed"`/`"Expanded"` · `"Terms of Service, Link"`, `"Privacy Policy, Link"` · `"Selection Controls, Heading"` · `"Notifications, Switch button, Off, Double tap to toggle setting"` · `"Accept Terms, Button"` → `"Selected, Accept Terms, Button"` · `"Selected, Standard, Button"`, `"Express, Button"`, `"Overnight, Button"`.
+- **Focus:** `"Enter username, A, Text field"` · `"Clear text, Button"` · `"Live Status: Polite Announcement #1"` · `"25%, Adjustable"` (±10%) · `"Password, Secure text field"`.
+- **Modal:** menu opens on `"Selected, Option Alpha, Button"`, last item `"Option Delta (Unavailable), Dimmed, Button"` · `"Alert, Benchmark Alert Dialog"` · sheet `"Modal Barrier Active, Heading"` · `"Tab Bar, Selected, Overview, Tab, 1 of 3"`.
 - **Sliver:** `"Sliver Scroll, Heading"` · `"Sliver Item 1"`… · page status `"Rows N to M of 60"` · `"End of List, Heading"` · `"Footer Action, Button"` · `"Compose, Button"`.
 
 ## Appendix — for triage, not for testers
 
-Issues previously filed against these surfaces, by step: H3–H5 #124361 · S2–S5 #189285 #193541 #191565 · T7 #138891 #175907 · T9 #159127 #166750 · T6 #171231-family · T11 #121636 · T12 #121636 (checkbox announced as switch was a documented decision — relitigate if the ruler disagrees) · T13–T14 #125495 (fixed P0; a Different here is a regression) · T15–T16 #175950 #175184 #133742 · F3 #150260 · F6 #186178 · F8 #192171 · F10 #190320 · F11–F12, C7, K5 #156368 #54279 · M4–M5, K4 #171231 · M11–M13 #186043 · M14–M15 #173302 · C1 (Traversal) #183821 · V2 #143437 #179687 · V4 #142065 · V6, K6 #184077.
+Issues previously filed against these surfaces, by step: H3–H5 #124361 · S2–S5 #189285 #193541 #191565 · T7 #138891 #175907 · T9 #159127 #166750 · T6 #171231-family · T11 #121636 · T12 #121636 (checkbox announced as switch was a documented decision — relitigate if the ruler disagrees) · T13–T14 #125495 (fixed P0; a Different here is a regression) · F3 #150260 · F6 #186178 · F8 #192171 · F10 #190320 · M4–M5, K4 #171231 · C1 (Traversal) #183821 · V2 #143437 #179687 · V4 #142065 · V6, K6 #184077.
