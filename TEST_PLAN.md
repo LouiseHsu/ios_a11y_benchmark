@@ -9,80 +9,115 @@ You will test two apps side-by-side on the same iOS version:
 
 > [!TIP]
 > **Why this procedure is grouped by Assistive Technology (not by screen)**
-> So you only have to turn each iOS Accessibility setting ON and OFF **once** per pass. Complete all steps in Pass 1 (VoiceOver), then move to Pass 2 (Full Keyboard Access), Pass 3 (Voice Control), and Pass 4 (Switch Control).
+> So you only have to turn each iOS Accessibility setting ON and OFF **once** per pass. Complete all steps in Pass 1 (VoiceOver), then move to Pass 2 (Full Keyboard Access), Pass 3 (Voice Control), Pass 4 (Switch Control), and Pass 5 (Display & Motion).
 
 ---
 
-## Pass 1: VoiceOver (~8 mins)
+## Pass 1: VoiceOver (~10 mins)
 
 **Setup**: Turn on **VoiceOver** (`Settings > Accessibility > VoiceOver`) and enable **Show Caption Panel** BEFORE opening either app.
 
 ### 1.1 Home Menu & Navigation
 - [ ] **1. Cold launch**: Launch both apps from a closed state with VoiceOver already on.
-  - *Check*: VoiceOver immediately focuses and reads the screen without needing an app restart.
-- [ ] **2. Menu row announcement**: Swipe right through the 4 menu rows (`Scroll Baseline`, `Traversal Hierarchy`, `Focus & Keyboard`, `Modal Barrier`).
-  - *Check*: Flutter announces the title, subtitle, and role (`"Button"`) identically to UIKit.
-- [ ] **3. Route push & Back button**: Double-tap **Scroll Baseline** to open it, then swipe left/right across the top navigation bar.
-  - *Check*: Initial focus lands in the same place as UIKit; swiping the Back button focuses it **once** (not twice) and reads the previous page title + `"Back button"`.
-- [ ] **4. Escape gesture (2-finger Z-scrub)**: Scrub two fingers in a "Z" shape to go back to the Home Menu.
-  - *Check*: The page closes and VoiceOver focus returns to the **Scroll Baseline** row on the Home Menu.
+  - *Expected*: VoiceOver immediately focuses `"Flutter A11y Benchmark, Heading"` (UIKit: `"UIKit A11y Benchmark, Heading"`) without needing an app restart.
+- [ ] **2. Menu row announcement**: Swipe right to the first row (**Scroll Baseline**).
+  - *Expected*: Announces **`"Scroll Baseline, 100-cell list with Δy/viewportHeight ratio & page scroll status, Button"`** (must include **`"Button"`** at the end, matching UIKit).
+- [ ] **3. Route push & Back button**: Double-tap **Scroll Baseline** to open it, then swipe left to the top-left Back button.
+  - *Expected*:
+    1. Immediately after opening **Scroll Baseline**, initial VoiceOver focus lands on **`"contentOffset.y: 0.0, 0.0"`** (not on the Back button).
+    2. Swiping left to the Back button focuses it **once** (not twice) and announces **`"Flutter A11y Benchmark, Back button"`** (UIKit: `"UIKit A11y Benchmark, Back button"`).
+- [ ] **4. Escape gesture (2-finger Z-scrub)**: Scrub two fingers in a "Z" shape to pop back to the Home Menu.
+  - *Expected*: Returns to the Home Menu with VoiceOver focus restored on **`"Scroll Baseline, 100-cell list with Δy/viewportHeight ratio & page scroll status, Button"`**.
 
 ### 1.2 Screen 1 — Scroll Baseline
 Open **Scroll Baseline** in both apps.
-- [ ] **5. Single-finger swipe past bottom of screen**: Focus `Item #0`, then swipe right repeatedly past the last visible row (`Item #10` → `Item #15`).
-  - *Check*: Off-screen rows automatically scroll into view without VoiceOver getting stuck or jumping back to the top header.
-- [ ] **6. Three-finger page scroll**: Focus `Item #2`, then **3-finger swipe up** to scroll down one page.
-  - *Check*:
-    1. VoiceOver plays the scroll sound and announces **`"Page 2 of ..."`**.
-    2. Look at the `Δy / viewportHeight` line in the top box: Flutter's scroll percentage matches UIKit (~100%).
-- [ ] **7. Three-finger single tap & Scrollbar**: Focus any row and **single-tap with 3 fingers**, then touch the scrollbar on the right edge.
-  - *Check*: 3-finger tap announces the visible row range; the right-edge scrollbar is focusable and adjustable.
-- [ ] **8. Status bar scroll-to-top**: Scroll down to `Item #30`. Tap the **iOS Status Bar** (top clock/battery area) once to focus it, then **double-tap**.
-  - *Check*: The list scrolls all the way back to `Item #0`.
+- [ ] **5. Single-finger swipe past bottom of screen**: Focus `Item #0` (**`"Item #0, Baseline scroll row 1 of 100"`**), then swipe right repeatedly past the last visible row (`Item #10` → `Item #15`).
+  - *Expected*: Off-screen rows automatically scroll into view (`"Item #11, Baseline scroll row 12 of 100"`, etc.) without VoiceOver getting stuck at the bottom edge or jumping back to `"contentOffset.y..."`.
+- [ ] **6. Two-finger swipe down ("Read All" continuous reading)**: Focus `Item #0`, then **swipe down with 2 fingers** and let VoiceOver read continuously past `Item #12`.
+  - *Expected*: VoiceOver reads row after row continuously and automatically scrolls the list down when reaching the bottom of the visible screen (does not stop reading at the last visible row).
+- [ ] **7. Three-finger page scroll**: Focus `Item #2`, then **3-finger swipe up** to scroll down one page.
+  - *Expected*:
+    1. VoiceOver plays the native scroll chime and announces **`"Page 2 of 11"`** (or matching total page count shown in `Page Scroll Status`).
+    2. In the top metrics header, `Δy / viewportHeight` reads **`~1.000 (100.0%)`** (not `0.800 (80.0%)`).
+- [ ] **8. Three-finger single tap & Scrollbar**: Focus `Item #3` and **single-tap with 3 fingers**, then touch the vertical scrollbar along the right edge of the list.
+  - *Expected*:
+    1. 3-finger single tap announces the visible row range (e.g. **`"Rows 1 to 10 of 100"`**).
+    2. Touching the right edge focuses **`"Vertical scroll bar, 11 pages, 0%, Adjustable"`**.
+- [ ] **9. Status bar double-tap (scroll-to-top)**: Scroll down to `Item #30`. Tap the **iOS Status Bar** (top clock/battery area) once to focus it, then **double-tap**.
+  - *Expected*: The list scrolls smoothly back to `Item #0` and `contentOffset.y` resets to **`0.0`**.
 
 ### 1.3 Screen 2 — Traversal Hierarchy
 Return to Home Menu and open **Traversal Hierarchy** in both apps.
-- [ ] **9. Row-Major vs. Column-Major traversal**:
-  1. Leave **Row-Major** selected and swipe right through the 3×3 grid.
-  2. Double-tap **Column-Major** at the top, then swipe right through the 3×3 grid again.
-  - *Check*: Row-Major reads left-to-right across each row; Column-Major reads top-to-bottom down each column (`R1C1` → `R2C1` → `R3C1`).
-- [ ] **10. Stateful button & Custom Actions Rotor**:
-  1. Focus `R1C1 (A)` and **double-tap** to select it (adds a checkmark), then swipe right to `R1C2 (B)`.
-  2. Focus `R1C1 (A)` again, twist two fingers to set the **Rotor to Actions**, swipe down, and double-tap an action.
-  - *Check*: Toggling `R1C1 (A)` announces `"Selected"` and does not trap focus; custom Rotor actions execute and update the bottom status text.
-- [ ] **11. Headings & Links Rotors**:
-  1. Twist the Rotor to **Headings** and swipe down through the 3 section headers.
-  2. Swipe down to *"Read our Terms of Service and Privacy Policy"*, then also test the **Links** Rotor.
-  - *Check*: All 3 headers are reachable via the Headings Rotor; **both** links (`Terms of Service` and `Privacy Policy`) can be focused individually and via the Links Rotor.
-- [ ] **12. Expandable section**: Focus **Expandable Disclosure Section** and double-tap it.
-  - *Check*: Announces **`"Collapsed"`** before tapping and **`"Expanded"`** after tapping, and reveals the hidden detail text to VoiceOver.
+- [ ] **10. Row-Major vs. Column-Major traversal**:
+  1. Leave **Row-Major** selected (`"Row-Major, Selected, Button, 1 of 2"`) and swipe right through the 3×3 grid.
+  2. Double-tap **Column-Major** (`"Column-Major, Button, 2 of 2"`), then swipe right through the 3×3 grid again.
+  - *Expected*:
+    - **Row-Major order**: `"Section Header 1, Heading"` → `"Mutating Icon Button, Button"` → `"Target Enableable Button, Dimmed, Button"` → `"Toggle Button B, Button"` → `"Section Header 2, Heading"` → `"Grid Button Row 2 Column 1, Button"` → `"Grid Button Row 2 Column 2, Button"` → `"Grid Button Row 2 Column 3, Button"` → `"Section Header 3, Heading"` → `"Grid Button Row 3 Column 1, Button"` → `"Grid Button Row 3 Column 2, Button"` → `"Grid Button Row 3 Column 3, Button"`.
+    - **Column-Major order**: `"Section Header 1, Heading"` → `"Mutating Icon Button, Button"` → `"Grid Button Row 2 Column 1, Button"` → `"Grid Button Row 3 Column 1, Button"` → `"Section Header 2, Heading"` → `"Target Enableable Button, Dimmed, Button"` → `"Grid Button Row 2 Column 2, Button"` → `"Grid Button Row 3 Column 2, Button"` → `"Section Header 3, Heading"` → `"Toggle Button B, Button"` → `"Grid Button Row 2 Column 3, Button"` → `"Grid Button Row 3 Column 3, Button"`.
+- [ ] **11. Explore by Touch (dragging 1 finger across the grid)**: Drag one finger slowly from top to bottom and left to right across the 3×3 grid.
+  - *Expected*: Each header and button highlights and speaks immediately under your finger without offset hit boxes or dead zones.
+- [ ] **12. Stateful buttons (`Mutating Icon Button` & `Toggle Button B`)**:
+  1. Focus **Mutating Icon Button** and **double-tap** to select it, then swipe right.
+  2. Swipe to **Toggle Button B** and **double-tap** it, then swipe left back to **Target Enableable Button**.
+  - *Expected*:
+    1. Toggling **Mutating Icon Button** announces **`"Selected, Mutating Icon Button, Button"`**, keeps VoiceOver focus anchored on the button, and lets you swipe right to **Target Enableable Button** without focus jumping away.
+    2. After tapping **Toggle Button B**, **Target Enableable Button** changes from **`"Target Enableable Button, Dimmed, Button"`** to **`"Target Enableable Button, Button"`** (enabled).
+- [ ] **13. Headings & Links Rotors**:
+  1. Twist two fingers to set the **Rotor to Headings**, then swipe down with one finger.
+  2. Swipe down to *"Read our Terms of Service and Privacy Policy."*, then twist the **Rotor to Links** and swipe down.
+  - *Expected*:
+    1. **Headings Rotor** jumps directly through **`"Section Header 1, Heading"`** → **`"Section Header 2, Heading"`** → **`"Section Header 3, Heading"`**.
+    2. Both **`"Terms of Service, Link"`** and **`"Privacy Policy, Link"`** can be focused individually by swiping AND both are listed in the **Links Rotor**.
+- [ ] **14. Expandable Disclosure Section**: Focus **Expandable Disclosure Section** and double-tap it.
+  - *Expected*: Announces **`"Expandable Disclosure Section, Button, Collapsed"`** before tapping, announces **`"Expanded"`** after tapping, and swiping right focuses **`"Hidden detail content revealed when expanded."`**
 
 ### 1.4 Screen 3 — Focus & Keyboard
 Return to Home Menu and open **Focus & Keyboard** in both apps.
-- [ ] **13. Pre-filled text field (before opening keyboard)**: Swipe to the top text field (pre-filled with `"A"`) **without** double-tapping it. Twist the Rotor to check available options.
-  - *Check*: VoiceOver reads the current value `"A"` and placeholder `"Enter username"` immediately, and `Characters` / `Words` / `Edit` appear in the Rotor before the keyboard is open.
-- [ ] **14. Editing, Clear button & Keyboard dismiss**:
+- [ ] **15. Pre-filled text field (before opening keyboard)**: Swipe to the top text field (pre-filled with `"A"`) **without** double-tapping it. Twist the Rotor to check available items.
+  - *Expected*:
+    1. Announces **`"Enter username, A, Text field"`** (must speak the pre-filled value **`"A"`** even before the keyboard opens).
+    2. **`Characters`**, **`Words`**, and **`Edit`** appear in the Rotor before the keyboard is opened.
+- [ ] **16. Editing, Clear button & Keyboard dismiss**:
   1. Double-tap the top text field to open the keyboard.
-  2. Swipe right to verify the **`Clear text` (`X`)** button is focusable, then delete `"A"` using the keyboard backspace key.
-  3. Tap **`done`** on the keyboard.
-  - *Check*: Deleting the last character announces the placeholder; dismissing the keyboard leaves VoiceOver focus on the text field (does **not** jump back to the top-left Back button).
-- [ ] **15. Polite announcement**: Focus **Post Polite Announcement** and double-tap it.
-  - *Check*: VoiceOver finishes speaking `"Live Status: Polite Announcement #1"` without getting cut off by the button's own label.
-- [ ] **16. Slider**: Swipe to the slider (set at `25%`), double-tap it once, then swipe **up** and **down** with one finger.
-  - *Check*: Initial focus announces **`"25%"`** (not `"50%"`), double-tapping does not move the thumb, and swiping up/down adjusts the percentage smoothly.
-- [ ] **17. Password field**: Scroll to the bottom **Password** field, focus it before opening the keyboard, then double-tap and type `"abc"`.
-  - *Check*: Announces **`"Secure text field"`** both before and after focus, and never speaks the typed letters `"a"`, `"b"`, `"c"` out loud.
+  2. Swipe right to the trailing **`X`** icon inside the text field, then delete `"A"` using the keyboard `delete` key.
+  3. Double-tap **`done`** on the bottom-right of the keyboard.
+  - *Expected*:
+    1. The trailing `X` icon focuses as **`"Clear text, Button"`**.
+    2. Deleting `"A"` announces `"A"` and the empty field's placeholder **`"Enter username"`**.
+    3. Tapping **`done`** closes the keyboard and leaves VoiceOver focus on the text field (does **not** jump focus back to **`"Flutter A11y Benchmark, Back button"`**).
+- [ ] **17. Polite announcement**: Focus **Post Polite Announcement** and double-tap it.
+  - *Expected*: VoiceOver speaks **`"Live Status: Polite Announcement #1"`** in full without getting cut off by `"Post Polite Announcement, Button"`.
+- [ ] **18. Slider (`25%`)**: Swipe to the slider, double-tap it once without swiping, then swipe **up** and **down** with one finger.
+  - *Expected*:
+    1. Initial focus announces **`"25%, Adjustable"`** (never `"50%"`).
+    2. Double-tapping the slider does **not** jump the value to `50%`.
+    3. Swiping up/down adjusts the slider in `10%` steps (`"35%"`, `"25%"`, `"15%"`).
+- [ ] **19. Password field (`obscureText`)**: Scroll to the bottom **Password** field, focus it before opening the keyboard, then double-tap and type `"abc"`.
+  - *Expected*:
+    1. Announces **`"Password, Secure text field"`** both before and after keyboard focus.
+    2. Typing `"a"`, `"b"`, `"c"` echoes bullets/clicks—VoiceOver **never** speaks `"a"`, `"b"`, or `"c"` out loud.
 
 ### 1.5 Screen 4 — Modal Barrier
 Return to Home Menu and open **Modal Barrier** in both apps.
-- [ ] **18. Popup Menu**: Double-tap **Anchored Popup Menu** (`Option Alpha`), then swipe left and right repeatedly.
-  - *Check*: Focus lands directly on `Option Alpha` (not the top-left corner), and swiping stays **trapped inside the popup menu** (cannot focus `Background Button 1/2` while open).
-- [ ] **19. Alert Dialog**: Double-tap **Present Alert Dialog**, swipe through its buttons, and double-tap **Confirm**.
-  - *Check*: Announces `"Alert"` + title/body when opened, blocks background buttons, and returns focus to **Present Alert Dialog** when closed.
-- [ ] **20. Modal Bottom Sheet**: Double-tap **Present Modal Sheet**, swipe through all items inside the sheet (including the top drag handle), then dismiss by tapping outside the sheet or 2-finger Z-scrubbing.
-  - *Check*: Top drag handle is focusable, background buttons are completely hidden while the sheet is open, and tapping outside or Z-scrubbing closes the sheet.
-- [ ] **21. Bottom Tab Bar**: Swipe to the bottom tab bar (`Overview`, `Details`, `Settings`) and double-tap **Details**.
-  - *Check*: Announces **`"Tab Bar"`** and `"Details, Tab, 2 of 3"`, and keeps VoiceOver focus on the **Details** tab after selection.
+- [ ] **20. 4-Finger tap at top/bottom & `Containers` Rotor**:
+  1. Tap near the **bottom** of the screen with **4 fingers**, then tap near the **top** of the screen with **4 fingers**.
+  2. Twist the **Rotor to Containers** and swipe down with one finger.
+  - *Expected*:
+    1. 4-finger bottom tap jumps VoiceOver to **`"Settings, Tab, 3 of 3"`**; 4-finger top tap jumps to **`"Flutter A11y Benchmark, Back button"`**.
+    2. **Containers Rotor** jumps cleanly from the Navigation Bar → Main Content → Bottom **`"Tab Bar"`**.
+- [ ] **21. Anchored Popup Menu**: Double-tap **Anchored Popup Menu: Option Alpha**, then swipe left/right and also drag 1 finger (**Explore by Touch**) over `Background Button 1`.
+  - *Expected*:
+    1. Initial focus lands on **`"Selected, Option Alpha, Button"`** (not the top-left corner of the screen).
+    2. Swiping left/right and dragging 1 finger stays **trapped inside the popup menu** (`Option Alpha`, `Option Beta`, `Option Gamma`)—VoiceOver cannot focus **`"Background Button 1"`** or **`"Background Button 2"`** while the popup is open.
+- [ ] **22. Alert Dialog**: Double-tap **Present Alert Dialog**, swipe through its contents, and double-tap **Confirm**.
+  - *Expected*: Announces **`"Alert, Benchmark Alert Dialog"`** on open, blocks background controls, and restores VoiceOver focus to **`"Present Alert Dialog, Button"`** when closed.
+- [ ] **23. Modal Bottom Sheet**: Double-tap **Present Modal Sheet**, swipe through all items inside the sheet (including the top drag handle), then dismiss by tapping the dimmed background above the sheet or 2-finger Z-scrubbing.
+  - *Expected*:
+    1. Top drag handle and **`"Modal Barrier Active, Heading"`** are focusable inside the sheet.
+    2. Background buttons and the bottom Tab Bar cannot be focused while the sheet is open.
+    3. Double-tapping the dimmed barrier outside the sheet or 2-finger Z-scrubbing closes the sheet and updates the status text to **`"Modal Sheet Dismissed"`**.
+- [ ] **24. Bottom Tab Bar**: Swipe to the bottom tab bar (`Overview`, `Details`, `Settings`) and double-tap **Details**.
+  - *Expected*: Entering the bar announces **`"Tab Bar, Selected, Overview, Tab, 1 of 3"`**; double-tapping **Details** announces **`"Selected, Details, Tab, 2 of 3"`** and keeps VoiceOver focus on **Details**.
 
 ---
 
@@ -90,29 +125,29 @@ Return to Home Menu and open **Modal Barrier** in both apps.
 
 **Setup**: Turn **VoiceOver OFF**. Connect a hardware keyboard (or enable Simulator hardware keyboard) and turn **Full Keyboard Access ON** (`Settings > Accessibility > Keyboards > Full Keyboard Access`).
 
-- [ ] **1. Menu & Back focus retention (Home Menu)**:
-  1. Press `Tab` until the focus ring highlights **Focus & Keyboard**, then press `Space` to open it.
-  2. Press `Shift + Tab` to highlight the **Back** button and press `Space` to return to the Home Menu.
-  - *Check*: The blue focus ring returns to the **Focus & Keyboard** row (does not reset to the first row).
+- [ ] **1. Back navigation focus retention (`Home Menu`)**:
+  1. Press `Tab` until the blue focus ring highlights **Focus & Keyboard**, then press `Space` to open it.
+  2. Press `Shift + Tab` to highlight the top-left **Flutter A11y Benchmark** Back button and press `Space` to pop back.
+  - *Expected*: The blue focus ring returns to the **Focus & Keyboard** row on the Home Menu (does not reset to **Scroll Baseline**).
 - [ ] **2. List auto-scroll (`Scroll Baseline`)**:
-  1. Open **Scroll Baseline** and press `Tab` repeatedly from `Item #0` past `Item #15`.
-  - *Check*: When the focus ring reaches the bottom of the screen, the list automatically scrolls down to keep the focused row visible.
+  1. Open **Scroll Baseline** and press `Tab` repeatedly from `Item #0` down to `Item #15`.
+  - *Expected*: When the focus ring reaches the bottom visible row, the list automatically scrolls down so `Item #11`..`Item #15` and their blue focus ring stay visible on screen.
 - [ ] **3. Grid & Expandable section (`Traversal Hierarchy`)**:
-  1. Open **Traversal Hierarchy** and press `Tab` through the segmented control, the 3×3 grid, and **Expandable Disclosure Section**.
-  2. Press `Space` on **Expandable Disclosure Section**, then press `Tab` again.
-  - *Check*: Every interactive control shows a clear focus ring; expanding the disclosure section reveals its content cleanly.
+  1. Open **Traversal Hierarchy** and press `Tab` through `Row-Major` / `Column-Major`, the 9 grid buttons, and **Expandable Disclosure Section**.
+  2. Press `Space` on **Expandable Disclosure Section**.
+  - *Expected*: Every enabled button shows a visible focus ring, disabled **Target Enableable Button** is skipped until enabled by **Toggle Button B**, and pressing `Space` expands **Expandable Disclosure Section**.
 - [ ] **4. Form, Slider & Off-screen Password field (`Focus & Keyboard`)**:
   1. Open **Focus & Keyboard** and press `Tab` from the top text field down to the **Slider**.
-  2. Use the **Left / Right Arrow keys** to change the slider value.
-  3. Keep pressing `Tab` to reach the off-screen **Password** field at the bottom, and check the on-screen **Focus Log**.
-  - *Check*:
-    1. `Tab` stops on the **Slider** (does not skip it) and arrow keys adjust its value.
+  2. Press the **Left / Right Arrow keys** to adjust the slider.
+  3. Keep pressing `Tab` past the slider to reach the off-screen **Password** field at the bottom, and inspect the on-screen **Responder, VoiceOver & FKA Focus Log**.
+  - *Expected*:
+    1. `Tab` lands on the **Slider** (does not skip it) and Left/Right arrow keys change `Slider Value: 0.25 (25%)`.
     2. Pressing `Tab` past the slider automatically scrolls the bottom **Password** field into view.
-    3. The on-screen Focus Log records focus updates for each stop.
+    3. The on-screen Focus Log records focus updates for each control visited.
 - [ ] **5. Modal trapping (`Modal Barrier`)**:
   1. Open **Modal Barrier**, `Tab` to **Present Modal Sheet**, and press `Space`.
-  2. Press `Tab` repeatedly inside the open sheet.
-  - *Check*: The keyboard focus ring stays trapped inside the modal sheet and never visits `Background Button 1/2` behind it.
+  2. Press `Tab` repeatedly while the modal sheet is up.
+  - *Expected*: The keyboard focus ring stays trapped inside the modal sheet (`Modal Sheet Action` and `Dismiss Modal Sheet`) and never visits `Background Button 1/2`.
 
 ---
 
@@ -122,19 +157,19 @@ Return to Home Menu and open **Modal Barrier** in both apps.
 
 - [ ] **1. Voice scrolling (`Scroll Baseline`)**:
   1. Open **Scroll Baseline** and say **`"Scroll down"`**, then **`"Scroll up"`**.
-  - *Check*: The list scrolls down a page and back up a page just like UIKit.
+  - *Expected*: The list scrolls down one page and back up one page, updating `contentOffset.y` in the header.
 - [ ] **2. Number badge alignment & state updates (`Traversal Hierarchy`)**:
-  1. Open **Traversal Hierarchy** and visually compare the number badges on the 3×3 grid buttons (`R1C1 (A)` through `R3C3 (I)`).
-  2. Say **`"Tap <number>"`** for `R1C1 (A)` so it toggles its checkmark icon, and check the badges again.
-  - *Check*:
-    1. Number badges sit directly on top of each button (not shifted/offset, and no badges on plain text labels).
-    2. After `R1C1 (A)` updates its icon, its badge remains properly aligned and responsive.
+  1. Open **Traversal Hierarchy** and visually inspect the numeric badges on the 3×3 grid buttons (`Mutating Icon Button`, `Toggle Button B`, `R2C1`..`R3C3`).
+  2. Say **`"Tap <number>"`** for **Mutating Icon Button** so it adds its checkmark icon, and check the badges again.
+  - *Expected*:
+    1. Every number badge sits directly on its visual button (not shifted/offset, and no number badges appear on non-interactive headers or status text).
+    2. After **Mutating Icon Button** adds its checkmark icon, its badge stays aligned and responsive.
 - [ ] **3. Overlays & Bottom Tab Bar (`Modal Barrier`)**:
-  1. Open **Modal Barrier** and verify number badges appear on the bottom tabs (`Overview`, `Details`, `Settings`). Say **`"Tap <number>"`** to select `Details`.
+  1. Open **Modal Barrier** and check that number badges appear on **`Overview`**, **`Details`**, and **`Settings`** in the bottom tab bar. Say **`"Tap <number>"`** for **Details**.
   2. Say **`"Tap Present Alert Dialog"`**, then say **`"Tap Cancel"`** (or **`"Go back"`**).
-  - *Check*:
-    1. Voice Control can activate all 3 bottom tabs.
-    2. While the Alert Dialog is open, number badges only appear on the dialog buttons (not on background buttons), and voice commands can dismiss the dialog.
+  - *Expected*:
+    1. Voice Control activates **Details** and updates the status label to **`"Selected Tab: Details (2 of 3)"`**.
+    2. While the Alert Dialog is open, number badges only appear on **`Cancel`** and **`Confirm`** (not on background buttons), and `"Tap Cancel"` / `"Go back"` dismisses the dialog.
 
 ---
 
@@ -143,12 +178,27 @@ Return to Home Menu and open **Modal Barrier** in both apps.
 **Setup**: Turn **Voice Control OFF**. Turn **Switch Control ON** (`Settings > Accessibility > Switch Control`, `Scanning Style = Auto Scanning`, `Switch Control Mode = Item Mode`).
 
 - [ ] **1. Grid & Segmented Control scanning (`Traversal Hierarchy`)**:
-  1. Open **Traversal Hierarchy** and let the auto-scanner cycle through the top segmented control (`Row-Major` / `Column-Major`) and the 3×3 grid.
-  2. Trigger your switch on `R1C1 (A)` to toggle it.
-  - *Check*: The scanner highlights and activates the segmented control and grid buttons in order without skipping or getting stuck.
+  1. Open **Traversal Hierarchy** and let the auto-scanner cycle through `Row-Major` / `Column-Major` and the 3×3 grid.
+  2. Trigger your switch on **Mutating Icon Button** to toggle it.
+  - *Expected*: The scanner highlights and activates the segmented control and grid buttons in order without skipping or getting stuck.
 - [ ] **2. Bottom Tab Bar & Modal Sheet scanning (`Modal Barrier`)**:
   1. Open **Modal Barrier** and let the scanner cycle down to the bottom tab bar (`Overview`, `Details`, `Settings`). Select **Settings**.
   2. Trigger **Present Modal Sheet**, and let the scanner cycle through the open sheet.
-  - *Check*:
-    1. Switch Control can reach and select the bottom tab bar items (does not skip the tab bar).
-    2. While the modal sheet is open, the scanner only cycles through elements inside the sheet (never scans background buttons).
+  - *Expected*:
+    1. Switch Control reaches and activates **Settings** in the bottom tab bar (updating the status label to **`"Selected Tab: Settings (3 of 3)"`**).
+    2. While the modal sheet is open, the scanner only cycles through elements inside the sheet (`Modal Sheet Action` and `Dismiss Modal Sheet`).
+
+---
+
+## Pass 5: iOS Display & Motion Settings (~2 mins)
+
+**Setup**: Turn **Switch Control OFF**. Open `Settings > Accessibility`:
+1. Under **Motion**, turn **Reduce Motion ON**.
+2. Under **Display & Text Size**, turn **Bold Text ON** and set **Larger Text** (`Larger Accessibility Sizes = ON`) to the middle accessibility size (`AX3`).
+
+- [ ] **1. Reduce Motion transitions (`Home Menu` & `Modal Barrier`)**:
+  1. Tap **Modal Barrier** on the Home Menu to push the page, then tap **Present Modal Sheet**.
+  - *Expected*: Both the page push and the modal sheet presentation use iOS's **Reduce Motion cross-fade** instead of sliding horizontally/vertically, matching UIKit.
+- [ ] **2. Bold Text & Larger Text scaling (`Home Menu` & `Traversal Hierarchy`)**:
+  1. Compare the Home Menu rows and **Traversal Hierarchy** labels between UIKit and Flutter.
+  - *Expected*: All text renders in bold weight and scales up cleanly without overlapping or clipping interactive buttons.
