@@ -205,8 +205,10 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
             updated.title = "Accept Terms"
             updated.image = UIImage(systemName: btn.isSelected ? "checkmark.square.fill" : "square")
             updated.imagePlacement = .leading
-            updated.imagePadding = 8
+            updated.imagePadding = 10
+            updated.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 4)
             updated.baseForegroundColor = .label
+            updated.background.backgroundColor = .clear
             btn.configuration = updated
         }
         acceptTermsButton.addTarget(
@@ -215,7 +217,7 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
             for: .touchUpInside
         )
 
-        // 3. Radio group (nearest idiom: single-select checkmark rows).
+        // 3. Radio group (nearest idiom: single-select rows with leading radio-circle SF Symbol).
         shippingSpeedLabel.translatesAutoresizingMaskIntoConstraints = false
         shippingSpeedLabel.text = "Shipping Speed"
         shippingSpeedLabel.font = .preferredFont(forTextStyle: .footnote)
@@ -226,7 +228,7 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
         let shippingStack = UIStackView()
         shippingStack.translatesAutoresizingMaskIntoConstraints = false
         shippingStack.axis = .vertical
-        shippingStack.spacing = 0
+        shippingStack.spacing = 2
         for (index, speed) in Self.shippingSpeeds.enumerated() {
             let button = UIButton(configuration: .plain())
             button.tag = index
@@ -237,10 +239,14 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
             button.configurationUpdateHandler = { btn in
                 var updated = btn.configuration ?? .plain()
                 updated.title = speed
-                updated.image = btn.isSelected ? UIImage(systemName: "checkmark") : nil
-                updated.imagePlacement = .trailing
-                updated.imagePadding = 8
+                updated.image = UIImage(
+                    systemName: btn.isSelected ? "circle.inset.filled" : "circle"
+                )
+                updated.imagePlacement = .leading
+                updated.imagePadding = 10
+                updated.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 4)
                 updated.baseForegroundColor = .label
+                updated.background.backgroundColor = .clear
                 btn.configuration = updated
             }
             button.addTarget(

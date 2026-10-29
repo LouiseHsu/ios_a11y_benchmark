@@ -397,7 +397,7 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
                 Text('Notifications', style: bodyStyle),
-                material.Switch(
+                material.Switch.adaptive(
                   value: _notificationsEnabled,
                   onChanged: _onNotificationsChanged,
                 ),
