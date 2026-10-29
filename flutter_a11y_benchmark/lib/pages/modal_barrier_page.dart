@@ -1,4 +1,8 @@
 import 'package:cupertino_ui/cupertino_ui.dart';
+// Material is imported with a prefix so that the Material date/time picker
+// dialogs (the widgets the audited issues are filed against) can be presented
+// without any name collisions with the Cupertino widgets used elsewhere here.
+import 'package:flutter/material.dart' as material;
 
 import '../a11y/a11y_probe.dart';
 import '../widgets/barrier_modal_sheet.dart';
@@ -105,6 +109,84 @@ class _ModalBarrierPageState extends State<ModalBarrierPage> {
     }
   }
 
+  static const List<String> _monthAbbreviations = <String>[
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
+  /// Formats like the UIKit twin's `DateFormatter(dateStyle: .medium)` in
+  /// en_US, e.g. "Jan 15, 2026", without pulling in package:intl.
+  static String _formatDate(DateTime date) {
+    return '${_monthAbbreviations[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
+  /// Material date picker (issue family #194657 / #186043: DatePicker
+  /// expanded/collapsed and selected-day semantics). UIKit twin presents a
+  /// sheet with an inline UIDatePicker (.date, .inline).
+  Future<void> _presentDatePicker() async {
+    debugPrint('[ModalBarrier] Presenting Material showDatePicker');
+    final DateTime? picked = await material.showDatePicker(
+      context: context,
+      initialDate: DateTime(2026, 1, 15),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      builder: (BuildContext context, Widget? child) {
+        return A11yProbe(
+          identifier: 'modal.datePicker',
+          container: true,
+          trackFocus: false,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+    );
+    if (!mounted) {
+      return;
+    }
+    if (picked == null) {
+      _setStatus('Date Picker: Cancelled');
+    } else {
+      _setStatus('Date Picker: ${_formatDate(picked)}');
+    }
+  }
+
+  /// Material time picker (issue #173302: AM/PM state not announced). UIKit
+  /// twin presents a sheet with a UIDatePicker (.time, .wheels, en_US).
+  Future<void> _presentTimePicker() async {
+    debugPrint('[ModalBarrier] Presenting Material showTimePicker');
+    final material.TimeOfDay? picked = await material.showTimePicker(
+      context: context,
+      initialTime: const material.TimeOfDay(hour: 9, minute: 30),
+      builder: (BuildContext context, Widget? child) {
+        return A11yProbe(
+          identifier: 'modal.timePicker',
+          container: true,
+          trackFocus: false,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+    );
+    if (!mounted) {
+      return;
+    }
+    if (picked == null) {
+      _setStatus('Time Picker: Cancelled');
+    } else {
+      // TimeOfDay.format uses MaterialLocalizations (en_US → "9:30 AM"),
+      // matching the UIKit twin's DateFormatter(timeStyle: .short).
+      _setStatus('Time Picker: ${picked.format(context)}');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final TextStyle titleStyle = CupertinoTheme.of(context)
@@ -169,6 +251,17 @@ class _ModalBarrierPageState extends State<ModalBarrierPage> {
                               child: Text(_popupOptions[i]),
                             ),
                           ),
+                        // Disabled item (issue #171231: disabled menu item not
+                        // announced as "dimmed"). UIKit twin:
+                        // UIAction(attributes: .disabled).
+                        const A11yProbe(
+                          identifier: 'modal.popupOption.disabled',
+                          mergeDescendants: true,
+                          child: CupertinoMenuItem(
+                            onPressed: null,
+                            child: Text('Option Delta (Unavailable)'),
+                          ),
+                        ),
                       ],
                       builder:
                           (
@@ -202,6 +295,24 @@ class _ModalBarrierPageState extends State<ModalBarrierPage> {
                       child: CupertinoButton.tinted(
                         onPressed: _presentAlertDialog,
                         child: const Text('Present Alert Dialog'),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    A11yProbe(
+                      identifier: 'modal.presentDatePickerButton',
+                      mergeDescendants: true,
+                      child: CupertinoButton.tinted(
+                        onPressed: _presentDatePicker,
+                        child: const Text('Present Date Picker'),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    A11yProbe(
+                      identifier: 'modal.presentTimePickerButton',
+                      mergeDescendants: true,
+                      child: CupertinoButton.tinted(
+                        onPressed: _presentTimePicker,
+                        child: const Text('Present Time Picker'),
                       ),
                     ),
                     const SizedBox(height: 16),

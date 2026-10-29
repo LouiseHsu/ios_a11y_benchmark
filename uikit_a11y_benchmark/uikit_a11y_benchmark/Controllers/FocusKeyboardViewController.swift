@@ -13,7 +13,11 @@ final class FocusKeyboardViewController: UIViewController {
     private let sliderValueLabel = UILabel()
     private let slider = FocusLoggingSlider(controlName: "Benchmark Slider")
     private let bottomTextField = FocusLoggingTextField(fieldName: "Bottom Password Field")
+    private let nicknameTextField = FocusLoggingTextField(fieldName: "Nickname Field")
+    private let nicknameCounterLabel = UILabel()
     private let eventLogTextView = UITextView()
+
+    private static let nicknameMaxLength = 20
 
     private var logEntries: [String] = []
     private var announcementCount = 0
@@ -114,6 +118,26 @@ final class FocusKeyboardViewController: UIViewController {
             isSecure: true
         )
 
+        // Limited-length UITextField (20 chars, enforced in shouldChangeCharactersIn) with a
+        // plain UILabel character counter underneath. Twin of Flutter's
+        // `TextField(maxLength: 20)` default "0/20" counter. Stock iOS has no built-in
+        // counter control; the nearest idiom is a footnote-styled secondary UILabel below
+        // the field (as in Messages / App Store review composers), which is what is used here.
+        configureTextField(
+            nicknameTextField,
+            identifier: "focus.nicknameField",
+            placeholder: "Max 20 characters",
+            initialText: "",
+            isSecure: false
+        )
+        nicknameTextField.accessibilityLabel = "Nickname"
+
+        nicknameCounterLabel.font = .monospacedDigitSystemFont(ofSize: 13, weight: .regular)
+        nicknameCounterLabel.textColor = .secondaryLabel
+        nicknameCounterLabel.textAlignment = .right
+        nicknameCounterLabel.text = "0/\(Self.nicknameMaxLength)"
+        nicknameCounterLabel.accessibilityIdentifier = "focus.nicknameCounter"
+
         eventLogTextView.translatesAutoresizingMaskIntoConstraints = false
         eventLogTextView.isEditable = false
         eventLogTextView.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
@@ -135,6 +159,11 @@ final class FocusKeyboardViewController: UIViewController {
         contentStackView.addArrangedSubview(eventLogTextView)
         contentStackView.addArrangedSubview(makeLabel("Bottom Input Region (Secure Text Entry)"))
         contentStackView.addArrangedSubview(bottomTextField)
+        contentStackView.addArrangedSubview(makeLabel("Limited-Length Field (max 20)"))
+        contentStackView.addArrangedSubview(nicknameTextField)
+        contentStackView.addArrangedSubview(nicknameCounterLabel)
+        // Keep the counter visually attached to its field (tighter than the 20pt stack spacing).
+        contentStackView.setCustomSpacing(4, after: nicknameTextField)
 
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -220,6 +249,12 @@ final class FocusKeyboardViewController: UIViewController {
             liveStatusLabel.text = statusMessage
             UIAccessibility.post(notification: .announcement, argument: statusMessage)
         }
+        if sender === nicknameTextField {
+            // Plain label update only: no announcement is posted so the benchmark records
+            // whether VoiceOver surfaces the counter change on its own.
+            nicknameCounterLabel.text = "\(text.count)/\(Self.nicknameMaxLength)"
+            appendLog("Nickname counter -> \(text.count)/\(Self.nicknameMaxLength)")
+        }
     }
 
     @objc private func postPoliteAnnouncement() {
@@ -279,6 +314,22 @@ extension FocusKeyboardViewController: UITextFieldDelegate {
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         textField.resignFirstResponder()
         return true
+    }
+
+    func textField(
+        _ textField: UITextField,
+        shouldChangeCharactersIn range: NSRange,
+        replacementString string: String
+    ) -> Bool {
+        // Only the nickname field is length-limited; other fields accept any input.
+        guard textField === nicknameTextField else { return true }
+        let currentText = (textField.text ?? "") as NSString
+        let proposedText = currentText.replacingCharacters(in: range, with: string)
+        let accepted = proposedText.count <= Self.nicknameMaxLength
+        if !accepted {
+            appendLog("Nickname Field rejected input beyond \(Self.nicknameMaxLength) chars")
+        }
+        return accepted
     }
 }
 

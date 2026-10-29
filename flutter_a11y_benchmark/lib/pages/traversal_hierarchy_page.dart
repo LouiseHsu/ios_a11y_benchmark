@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter/gestures.dart';
+// Prefixed to avoid any name collisions with package:cupertino_ui; only the
+// Material selection controls (Switch/Checkbox/Radio/DropdownMenu) are used.
+import 'package:flutter/material.dart' as material;
 import 'package:flutter/semantics.dart';
 
 import '../a11y/a11y_action_observer.dart';
@@ -32,11 +35,26 @@ class TraversalHierarchyPage extends StatefulWidget {
 
 class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
   static const int gridSize = 3;
+  static const List<String> shippingSpeeds = <String>[
+    'Standard',
+    'Express',
+    'Overnight',
+  ];
+  static const List<String> countries = <String>[
+    'Canada',
+    'Mexico',
+    'United States',
+  ];
 
   TraversalMode _mode = TraversalMode.rowMajor;
   bool _buttonASelected = false;
   bool _buttonBEnabled = false;
   bool _disclosureExpanded = false;
+  // "Selection Controls" section state (v2).
+  bool _notificationsEnabled = false;
+  bool _acceptedTerms = false;
+  String _shippingSpeed = shippingSpeeds.first;
+  String _country = countries.first;
   String _status = '';
   Timer? _anchorCheckTimer;
   late final TapGestureRecognizer _termsLinkRecognizer;
@@ -148,6 +166,35 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
     setState(() => _disclosureExpanded = !_disclosureExpanded);
     final String state = _disclosureExpanded ? 'Expanded' : 'Collapsed';
     _recordEvent('Disclosure toggled -> $state');
+  }
+
+  void _onNotificationsChanged(bool value) {
+    setState(() => _notificationsEnabled = value);
+    _recordEvent('Notifications switch -> ${value ? 'on' : 'off'}');
+  }
+
+  void _onAcceptTermsChanged(bool? value) {
+    final bool accepted = value ?? false;
+    setState(() => _acceptedTerms = accepted);
+    _recordEvent(
+      'Accept Terms checkbox -> ${accepted ? 'checked' : 'unchecked'}',
+    );
+  }
+
+  void _onShippingSpeedChanged(String? value) {
+    if (value == null) {
+      return;
+    }
+    setState(() => _shippingSpeed = value);
+    _recordEvent('Shipping Speed radio -> $value');
+  }
+
+  void _onCountrySelected(String? value) {
+    if (value == null) {
+      return;
+    }
+    setState(() => _country = value);
+    _recordEvent('Country dropdown -> $value');
   }
 
   @override
@@ -307,9 +354,135 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
                   ),
                 ),
               ),
+              const SizedBox(height: 24),
+              _buildSelectionControlsSection(bodyStyle, secondaryLabelColor),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// "Selection Controls" (v2): Material Switch / Checkbox / Radio /
+  /// DropdownMenu, benchmarked against UISwitch, a checkmark UIButton, a
+  /// single-select checkmark row group, and a UIButton pop-up menu.
+  /// Targets Switch/Checkbox/Radio state announcement issues (#125495,
+  /// #118176) and DropdownMenu selection announcement issues (#175950,
+  /// #175184, #133742).
+  Widget _buildSelectionControlsSection(
+    TextStyle bodyStyle,
+    Color secondaryLabelColor,
+  ) {
+    final TextStyle titleStyle = CupertinoTheme.of(context)
+        .textTheme
+        .navTitleTextStyle;
+    return material.Material(
+      type: material.MaterialType.transparency,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          A11yProbe(
+            identifier: 'traversal.selectionControlsHeader',
+            container: true,
+            header: true,
+            child: Text('Selection Controls', style: titleStyle),
+          ),
+          const SizedBox(height: 8),
+          // 1. Switch row. Merged into a single node so the label text becomes
+          // the switch's accessibility label, like UISwitch.accessibilityLabel.
+          A11yProbe(
+            identifier: 'traversal.notificationsSwitch',
+            mergeDescendants: true,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Text('Notifications', style: bodyStyle),
+                material.Switch(
+                  value: _notificationsEnabled,
+                  onChanged: _onNotificationsChanged,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // 2. Checkbox row (iOS has no checkbox; UIKit twin is a checkmark
+          // UIButton that toggles `.selected`).
+          A11yProbe(
+            identifier: 'traversal.acceptTermsCheckbox',
+            mergeDescendants: true,
+            child: Row(
+              children: <Widget>[
+                material.Checkbox(
+                  value: _acceptedTerms,
+                  onChanged: _onAcceptTermsChanged,
+                ),
+                const SizedBox(width: 4),
+                Text('Accept Terms', style: bodyStyle),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // 3. Radio group (iOS has no radio; UIKit twin is three single-select
+          // checkmark rows).
+          A11yProbe(
+            identifier: 'traversal.shippingSpeedLabel',
+            container: true,
+            child: Text(
+              'Shipping Speed',
+              style: bodyStyle.copyWith(
+                fontSize: 13,
+                color: secondaryLabelColor,
+              ),
+            ),
+          ),
+          material.RadioGroup<String>(
+            groupValue: _shippingSpeed,
+            onChanged: _onShippingSpeedChanged,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                for (final String speed in shippingSpeeds)
+                  A11yProbe(
+                    identifier: 'traversal.radio$speed',
+                    mergeDescendants: true,
+                    child: Row(
+                      children: <Widget>[
+                        material.Radio<String>(value: speed),
+                        const SizedBox(width: 4),
+                        Text(speed, style: bodyStyle),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // 4. DropdownMenu (UIKit twin: UIButton pop-up menu with
+          // changesSelectionAsPrimaryAction). The probe is a container (not
+          // merged) so the inner text field and trailing icon button keep
+          // their own semantics nodes, matching how the widget ships.
+          A11yProbe(
+            identifier: 'traversal.countryDropdown',
+            container: true,
+            explicitChildNodes: true,
+            trackFocus: false,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: material.DropdownMenu<String>(
+                label: const Text('Country'),
+                initialSelection: _country,
+                onSelected: _onCountrySelected,
+                dropdownMenuEntries: <material.DropdownMenuEntry<String>>[
+                  for (final String country in countries)
+                    material.DropdownMenuEntry<String>(
+                      value: country,
+                      label: country,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

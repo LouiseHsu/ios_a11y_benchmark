@@ -1,4 +1,8 @@
 import 'package:cupertino_ui/cupertino_ui.dart';
+import 'package:flutter/cupertino.dart' show DefaultCupertinoLocalizations;
+import 'package:flutter/material.dart' show DefaultMaterialLocalizations;
+import 'package:flutter/widgets.dart'
+    show DefaultWidgetsLocalizations, LocalizationsDelegate;
 
 import 'a11y/a11y_action_observer.dart';
 import 'pages/menu_page.dart';
@@ -24,6 +28,15 @@ class FlutterA11yBenchmarkApp extends StatelessWidget {
     return const CupertinoApp(
       title: 'Flutter A11y Benchmark',
       theme: CupertinoThemeData(primaryColor: CupertinoColors.systemIndigo),
+      // The v2 "selection controls" and date/time picker fixtures use Material
+      // widgets (Checkbox, Radio, Switch, DropdownMenu, showDatePicker,
+      // TextField(maxLength:)) because the audited P0/P1 issues are filed
+      // against those widgets. They need MaterialLocalizations to build.
+      localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+        DefaultMaterialLocalizations.delegate,
+        DefaultCupertinoLocalizations.delegate,
+        DefaultWidgetsLocalizations.delegate,
+      ],
       // UIKit twin: UINavigationController(rootViewController: MenuViewController()).
       home: MenuPage(),
     );

@@ -4,6 +4,7 @@ import '../a11y/a11y_probe.dart';
 import 'focus_keyboard_page.dart';
 import 'modal_barrier_page.dart';
 import 'scroll_baseline_page.dart';
+import 'sliver_scroll_page.dart';
 import 'traversal_hierarchy_page.dart';
 
 /// One row of the root menu; mirrors `MenuViewController.Destination`.
@@ -54,6 +55,12 @@ class MenuPage extends StatelessWidget {
       subtitle: 'Background buttons & draggable modal sheet barrier',
       identifier: 'menu.modalBarrier',
       builder: (_) => const ModalBarrierPage(),
+    ),
+    MenuDestination(
+      title: 'Sliver Scroll',
+      subtitle: 'Collapsing large title, 60-row list, footer & floating button',
+      identifier: 'menu.sliverScroll',
+      builder: (_) => const SliverScrollPage(),
     ),
   ];
 

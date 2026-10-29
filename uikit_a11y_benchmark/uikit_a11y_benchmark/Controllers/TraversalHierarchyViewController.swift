@@ -5,6 +5,12 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
 
     private static let logger = Logger(subsystem: "com.example.uikit-a11y-benchmark", category: "TraversalHierarchy")
 
+    // The Flutter twin is a SingleChildScrollView; the v2 "Selection Controls"
+    // section pushes the content past one screen (especially at AX text sizes),
+    // so all content lives in a scroll view.
+    private let scrollView = UIScrollView()
+    private let contentView = UIView()
+
     private let gridContainerView = TraversalGridContainerView()
     private let orderingControl = UISegmentedControl(items: ["Row-Major", "Column-Major"])
     private let disclosureHeaderButton = UIButton(type: .system)
@@ -12,7 +18,21 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
     private let linksTextView = UITextView()
     private let statusLabel = UILabel()
 
+    // v2 "Selection Controls" section.
+    private static let shippingSpeeds = ["Standard", "Express", "Overnight"]
+    private static let countries = ["Canada", "Mexico", "United States"]
+    private let selectionControlsHeaderLabel = UILabel()
+    private let notificationsLabel = UILabel()
+    private let notificationsSwitch = UISwitch()
+    private let acceptTermsButton = UIButton(configuration: .plain())
+    private let shippingSpeedLabel = UILabel()
+    private var shippingSpeedButtons: [UIButton] = []
+    private let countryLabel = UILabel()
+    private let countryButton = UIButton(configuration: .plain())
+
     private var isDisclosureExpanded = false
+    private var selectedShippingSpeed = TraversalHierarchyViewController.shippingSpeeds[0]
+    private var selectedCountry = TraversalHierarchyViewController.countries[0]
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -20,11 +40,30 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
         view.backgroundColor = .systemBackground
 
         configureViews()
+        configureSelectionControls()
         registerNotifications()
         updateOrderingStatus()
     }
 
     private func configureViews() {
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(scrollView)
+        scrollView.addSubview(contentView)
+
+        NSLayoutConstraint.activate([
+            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            contentView.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            contentView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            contentView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            contentView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+        ])
+
         orderingControl.translatesAutoresizingMaskIntoConstraints = false
         orderingControl.selectedSegmentIndex = 0
         orderingControl.accessibilityIdentifier = "traversal.orderingControl"
@@ -75,38 +114,239 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
         linksTextView.accessibilityIdentifier = "traversal.linksParagraph"
         linksTextView.attributedText = makeLinksAttributedString()
 
-        view.addSubview(orderingControl)
-        view.addSubview(gridContainerView)
-        view.addSubview(disclosureHeaderButton)
-        view.addSubview(disclosureBodyLabel)
-        view.addSubview(linksTextView)
-        view.addSubview(statusLabel)
+        contentView.addSubview(orderingControl)
+        contentView.addSubview(gridContainerView)
+        contentView.addSubview(disclosureHeaderButton)
+        contentView.addSubview(disclosureBodyLabel)
+        contentView.addSubview(linksTextView)
+        contentView.addSubview(statusLabel)
 
+        // The scroll view's adjusted content inset already accounts for the
+        // safe area, so the 16pt top margin is measured from contentView.top.
         NSLayoutConstraint.activate([
-            orderingControl.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
-            orderingControl.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            orderingControl.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            orderingControl.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
+            orderingControl.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            orderingControl.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
 
             gridContainerView.topAnchor.constraint(equalTo: orderingControl.bottomAnchor, constant: 20),
-            gridContainerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            gridContainerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            gridContainerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            gridContainerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
 
             disclosureHeaderButton.topAnchor.constraint(equalTo: gridContainerView.bottomAnchor, constant: 16),
-            disclosureHeaderButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            disclosureHeaderButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            disclosureHeaderButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            disclosureHeaderButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
 
             disclosureBodyLabel.topAnchor.constraint(equalTo: disclosureHeaderButton.bottomAnchor, constant: 6),
-            disclosureBodyLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            disclosureBodyLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            disclosureBodyLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            disclosureBodyLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
 
             linksTextView.topAnchor.constraint(equalTo: disclosureBodyLabel.bottomAnchor, constant: 12),
-            linksTextView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            linksTextView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            linksTextView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            linksTextView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
 
             statusLabel.topAnchor.constraint(equalTo: linksTextView.bottomAnchor, constant: 16),
-            statusLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            statusLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            statusLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            statusLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
         ])
+    }
+
+    // MARK: - Selection Controls (v2)
+
+    /// Native twins of the Flutter Material selection controls:
+    ///  * `Switch`        → `UISwitch` labelled by the row's `UILabel`.
+    ///  * `Checkbox`      → iOS has NO checkbox control; nearest idiom is a
+    ///                      tappable row with a checkmark image that toggles
+    ///                      `isSelected` (so VoiceOver reports `.selected`).
+    ///  * `Radio` group   → iOS has NO radio control; nearest idiom is a group
+    ///                      of single-select rows with a checkmark accessory on
+    ///                      the selected one (like a UITableView checkmark list).
+    ///  * `DropdownMenu`  → `UIButton` pop-up menu (`showsMenuAsPrimaryAction` +
+    ///                      `changesSelectionAsPrimaryAction`).
+    private func configureSelectionControls() {
+        selectionControlsHeaderLabel.translatesAutoresizingMaskIntoConstraints = false
+        selectionControlsHeaderLabel.text = "Selection Controls"
+        selectionControlsHeaderLabel.font = .preferredFont(forTextStyle: .headline)
+        selectionControlsHeaderLabel.adjustsFontForContentSizeCategory = true
+        selectionControlsHeaderLabel.accessibilityTraits = .header
+        selectionControlsHeaderLabel.accessibilityIdentifier = "traversal.selectionControlsHeader"
+
+        // 1. Switch row.
+        notificationsLabel.text = "Notifications"
+        notificationsLabel.font = .preferredFont(forTextStyle: .body)
+        notificationsLabel.adjustsFontForContentSizeCategory = true
+        // The visible label is folded into the switch's accessibilityLabel so
+        // the row is one element, like a Settings-app switch cell.
+        notificationsLabel.isAccessibilityElement = false
+
+        notificationsSwitch.isOn = false
+        notificationsSwitch.setContentHuggingPriority(.required, for: .horizontal)
+        notificationsSwitch.accessibilityLabel = "Notifications"
+        notificationsSwitch.accessibilityIdentifier = "traversal.notificationsSwitch"
+        notificationsSwitch.addTarget(
+            self,
+            action: #selector(notificationsChanged(_:)),
+            for: .valueChanged
+        )
+
+        let notificationsRow = UIStackView(arrangedSubviews: [notificationsLabel, notificationsSwitch])
+        notificationsRow.translatesAutoresizingMaskIntoConstraints = false
+        notificationsRow.axis = .horizontal
+        notificationsRow.alignment = .center
+        notificationsRow.distribution = .fill
+        notificationsRow.spacing = 8
+
+        // 2. Checkbox row (nearest idiom: checkmark toggle button).
+        acceptTermsButton.translatesAutoresizingMaskIntoConstraints = false
+        acceptTermsButton.contentHorizontalAlignment = .leading
+        acceptTermsButton.accessibilityIdentifier = "traversal.acceptTermsCheckbox"
+        acceptTermsButton.accessibilityLabel = "Accept Terms"
+        acceptTermsButton.configurationUpdateHandler = { btn in
+            var updated = btn.configuration ?? .plain()
+            updated.title = "Accept Terms"
+            updated.image = UIImage(systemName: btn.isSelected ? "checkmark.square.fill" : "square")
+            updated.imagePlacement = .leading
+            updated.imagePadding = 8
+            updated.baseForegroundColor = .label
+            btn.configuration = updated
+        }
+        acceptTermsButton.addTarget(
+            self,
+            action: #selector(acceptTermsTapped(_:)),
+            for: .touchUpInside
+        )
+
+        // 3. Radio group (nearest idiom: single-select checkmark rows).
+        shippingSpeedLabel.translatesAutoresizingMaskIntoConstraints = false
+        shippingSpeedLabel.text = "Shipping Speed"
+        shippingSpeedLabel.font = .preferredFont(forTextStyle: .footnote)
+        shippingSpeedLabel.adjustsFontForContentSizeCategory = true
+        shippingSpeedLabel.textColor = .secondaryLabel
+        shippingSpeedLabel.accessibilityIdentifier = "traversal.shippingSpeedLabel"
+
+        let shippingStack = UIStackView()
+        shippingStack.translatesAutoresizingMaskIntoConstraints = false
+        shippingStack.axis = .vertical
+        shippingStack.spacing = 0
+        for (index, speed) in Self.shippingSpeeds.enumerated() {
+            let button = UIButton(configuration: .plain())
+            button.tag = index
+            button.contentHorizontalAlignment = .leading
+            button.accessibilityIdentifier = "traversal.radio\(speed)"
+            button.accessibilityLabel = speed
+            button.isSelected = (speed == selectedShippingSpeed)
+            button.configurationUpdateHandler = { btn in
+                var updated = btn.configuration ?? .plain()
+                updated.title = speed
+                updated.image = btn.isSelected ? UIImage(systemName: "checkmark") : nil
+                updated.imagePlacement = .trailing
+                updated.imagePadding = 8
+                updated.baseForegroundColor = .label
+                btn.configuration = updated
+            }
+            button.addTarget(
+                self,
+                action: #selector(shippingSpeedTapped(_:)),
+                for: .touchUpInside
+            )
+            shippingSpeedButtons.append(button)
+            shippingStack.addArrangedSubview(button)
+        }
+
+        // 4. Pop-up menu button.
+        countryLabel.text = "Country"
+        countryLabel.font = .preferredFont(forTextStyle: .body)
+        countryLabel.adjustsFontForContentSizeCategory = true
+        countryLabel.isAccessibilityElement = false
+
+        var countryConfig = UIButton.Configuration.plain()
+        countryConfig.title = selectedCountry
+        countryConfig.image = UIImage(systemName: "chevron.up.chevron.down")
+        countryConfig.imagePlacement = .trailing
+        countryConfig.imagePadding = 6
+        countryButton.configuration = countryConfig
+        countryButton.setContentHuggingPriority(.required, for: .horizontal)
+        countryButton.showsMenuAsPrimaryAction = true
+        countryButton.changesSelectionAsPrimaryAction = true
+        countryButton.accessibilityIdentifier = "traversal.countryDropdown"
+        countryButton.accessibilityLabel = "Country"
+        countryButton.accessibilityValue = selectedCountry
+        countryButton.menu = UIMenu(children: Self.countries.map { country in
+            UIAction(
+                title: country,
+                state: country == selectedCountry ? .on : .off
+            ) { [weak self] action in
+                self?.countrySelected(action.title)
+            }
+        })
+
+        let countryRow = UIStackView(arrangedSubviews: [countryLabel, countryButton])
+        countryRow.translatesAutoresizingMaskIntoConstraints = false
+        countryRow.axis = .horizontal
+        countryRow.alignment = .center
+        countryRow.distribution = .fill
+        countryRow.spacing = 8
+
+        contentView.addSubview(selectionControlsHeaderLabel)
+        contentView.addSubview(notificationsRow)
+        contentView.addSubview(acceptTermsButton)
+        contentView.addSubview(shippingSpeedLabel)
+        contentView.addSubview(shippingStack)
+        contentView.addSubview(countryRow)
+
+        NSLayoutConstraint.activate([
+            selectionControlsHeaderLabel.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 24),
+            selectionControlsHeaderLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            selectionControlsHeaderLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+
+            notificationsRow.topAnchor.constraint(equalTo: selectionControlsHeaderLabel.bottomAnchor, constant: 8),
+            notificationsRow.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            notificationsRow.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+
+            acceptTermsButton.topAnchor.constraint(equalTo: notificationsRow.bottomAnchor, constant: 8),
+            acceptTermsButton.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            acceptTermsButton.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+
+            shippingSpeedLabel.topAnchor.constraint(equalTo: acceptTermsButton.bottomAnchor, constant: 8),
+            shippingSpeedLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            shippingSpeedLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+
+            shippingStack.topAnchor.constraint(equalTo: shippingSpeedLabel.bottomAnchor, constant: 4),
+            shippingStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            shippingStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+
+            countryRow.topAnchor.constraint(equalTo: shippingStack.bottomAnchor, constant: 8),
+            countryRow.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            countryRow.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            countryRow.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -24),
+        ])
+    }
+
+    @objc private func notificationsChanged(_ sender: UISwitch) {
+        recordEvent("Notifications switch -> \(sender.isOn ? "on" : "off")")
+    }
+
+    @objc private func acceptTermsTapped(_ sender: UIButton) {
+        sender.isSelected.toggle()
+        sender.setNeedsUpdateConfiguration()
+        recordEvent("Accept Terms checkbox -> \(sender.isSelected ? "checked" : "unchecked")")
+    }
+
+    @objc private func shippingSpeedTapped(_ sender: UIButton) {
+        let speed = Self.shippingSpeeds[sender.tag]
+        selectedShippingSpeed = speed
+        for button in shippingSpeedButtons {
+            button.isSelected = (button === sender)
+            button.setNeedsUpdateConfiguration()
+        }
+        recordEvent("Shipping Speed radio -> \(speed)")
+    }
+
+    private func countrySelected(_ country: String) {
+        selectedCountry = country
+        // changesSelectionAsPrimaryAction already updates the title; mirror it
+        // into accessibilityValue so VoiceOver reads "Country, <selection>".
+        countryButton.accessibilityValue = country
+        recordEvent("Country dropdown -> \(country)")
     }
 
     @objc private func toggleDisclosure() {

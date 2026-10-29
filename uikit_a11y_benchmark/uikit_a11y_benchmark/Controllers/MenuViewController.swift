@@ -38,6 +38,12 @@ final class MenuViewController: UIViewController {
             accessibilityIdentifier: "menu.modalBarrier",
             makeViewController: { ModalBarrierViewController() }
         ),
+        Destination(
+            title: "Sliver Scroll",
+            subtitle: "Collapsing large title, 60-row table, footer & floating button",
+            accessibilityIdentifier: "menu.sliverScroll",
+            makeViewController: { SliverScrollViewController() }
+        ),
     ]
 
     override func viewDidLoad() {
