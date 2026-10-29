@@ -387,15 +387,19 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
         A11yProbe(
           identifier: 'traversal.acceptTermsCheckbox',
           mergeDescendants: true,
-          child: Row(
-            children: <Widget>[
-              CupertinoCheckbox(
-                value: _acceptedTerms,
-                onChanged: _onAcceptTermsChanged,
-              ),
-              const SizedBox(width: 4),
-              Text('Accept Terms', style: bodyStyle),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: <Widget>[
+                CupertinoCheckbox(
+                  value: _acceptedTerms,
+                  tapTargetSize: const Size.square(24),
+                  onChanged: _onAcceptTermsChanged,
+                ),
+                const SizedBox(width: 8),
+                Text('Accept Terms', style: bodyStyle),
+              ],
+            ),
           ),
         ),
         const SizedBox(height: 8),
@@ -411,6 +415,7 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
             ),
           ),
         ),
+        const SizedBox(height: 4),
         RadioGroup<String>(
           groupValue: _shippingSpeed,
           onChanged: _onShippingSpeedChanged,
@@ -421,12 +426,18 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
                 A11yProbe(
                   identifier: 'traversal.radio$speed',
                   mergeDescendants: true,
-                  child: Row(
-                    children: <Widget>[
-                      CupertinoRadio<String>(value: speed),
-                      const SizedBox(width: 4),
-                      Text(speed, style: bodyStyle),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 3,
+                      vertical: 6,
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        CupertinoRadio<String>(value: speed),
+                        const SizedBox(width: 11),
+                        Text(speed, style: bodyStyle),
+                      ],
+                    ),
                   ),
                 ),
             ],
