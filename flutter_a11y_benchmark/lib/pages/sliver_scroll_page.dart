@@ -2,7 +2,7 @@ import 'package:cupertino_ui/cupertino_ui.dart';
 // Material is imported with a prefix so that Scaffold / SliverAppBar /
 // FloatingActionButton / FilledButton / BackButton / Icons never collide with
 // cupertino_ui exports. MaterialLocalizations are installed in main.dart.
-import 'package:flutter/material.dart' as material;
+import 'package:material_ui/material_ui.dart' as material;
 
 import '../a11y/a11y_probe.dart';
 

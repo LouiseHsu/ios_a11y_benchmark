@@ -1,8 +1,5 @@
 import 'package:cupertino_ui/cupertino_ui.dart';
-import 'package:flutter/cupertino.dart' show DefaultCupertinoLocalizations;
-import 'package:flutter/material.dart' show DefaultMaterialLocalizations;
-import 'package:flutter/widgets.dart'
-    show DefaultWidgetsLocalizations, LocalizationsDelegate;
+import 'package:material_ui/material_ui.dart' show DefaultMaterialLocalizations;
 
 import 'a11y/a11y_action_observer.dart';
 import 'pages/menu_page.dart';

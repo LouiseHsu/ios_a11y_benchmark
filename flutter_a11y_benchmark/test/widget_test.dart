@@ -1,6 +1,9 @@
 import 'dart:ui' show Tristate;
 
 import 'package:flutter/semantics.dart';
+import 'package:flutter/widgets.dart' show EditableText, Scrollable;
+import 'package:material_ui/material_ui.dart'
+    show Checkbox, DropdownMenu, MenuItemButton, Radio, Switch;
 import 'package:flutter_a11y_benchmark/main.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -239,4 +242,156 @@ void main() {
       handle.dispose();
     },
   );
+
+  v2Tests();
+}
+
+/// v2 fixtures: selection controls, pickers, limited-length field, Sliver Scroll.
+void v2Tests() {
+  testWidgets('menu exposes the sliver scroll destination', (
+    WidgetTester tester,
+  ) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+    await tester.pumpWidget(const FlutterA11yBenchmarkApp());
+    expect(find.bySemanticsIdentifier('menu.sliverScroll'), findsWidgets);
+    handle.dispose();
+  });
+
+  testWidgets('traversal selection controls toggle, select and log', (
+    WidgetTester tester,
+  ) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+    await tester.pumpWidget(const FlutterA11yBenchmarkApp());
+    await tester.tap(find.bySemanticsIdentifier('menu.traversalHierarchy'));
+    await tester.pumpAndSettle();
+
+    for (final String id in <String>[
+      'traversal.selectionControlsHeader',
+      'traversal.notificationsSwitch',
+      'traversal.acceptTermsCheckbox',
+      'traversal.radioStandard',
+      'traversal.radioExpress',
+      'traversal.radioOvernight',
+      'traversal.countryDropdown',
+    ]) {
+      await tester.ensureVisible(find.bySemanticsIdentifier(id).first);
+      await tester.pumpAndSettle();
+      expect(find.bySemanticsIdentifier(id), findsWidgets, reason: id);
+    }
+
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Notifications switch -> on'), findsOneWidget);
+
+    await tester.tap(find.byType(Checkbox));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('Accept Terms checkbox -> checked'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byType(Radio<String>).at(1));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('Shipping Speed radio -> Express'),
+      findsOneWidget,
+    );
+
+    // Open the dropdown and pick Mexico.
+    await tester.tap(find.byType(DropdownMenu<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(MenuItemButton, 'Mexico').last);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Country dropdown -> Mexico'), findsOneWidget);
+    handle.dispose();
+  });
+
+  testWidgets('modal barrier opens date & time pickers and disabled item', (
+    WidgetTester tester,
+  ) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+    await tester.pumpWidget(const FlutterA11yBenchmarkApp());
+    await tester.tap(find.bySemanticsIdentifier('menu.modalBarrier'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.bySemanticsIdentifier('modal.presentDatePickerButton').first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('OK'), findsOneWidget);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Date Picker: Jan 15, 2026'), findsOneWidget);
+
+    await tester.tap(
+      find.bySemanticsIdentifier('modal.presentTimePickerButton').first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('OK'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Time Picker: Cancelled'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsIdentifier('modal.popupMenuButton').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Option Delta (Unavailable)'), findsOneWidget);
+    handle.dispose();
+  });
+
+  testWidgets('focus keyboard limited-length field enforces 20 chars', (
+    WidgetTester tester,
+  ) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+    await tester.pumpWidget(const FlutterA11yBenchmarkApp());
+    await tester.tap(find.bySemanticsIdentifier('menu.focusKeyboard'));
+    await tester.pumpAndSettle();
+
+    final Finder field = find
+        .bySemanticsIdentifier('focus.nicknameField')
+        .first;
+    await tester.ensureVisible(field);
+    await tester.pumpAndSettle();
+    expect(find.text('0/20'), findsOneWidget);
+    await tester.enterText(
+      find.descendant(of: field, matching: find.byType(EditableText)),
+      'abcdefghijklmnopqrstuvwxyz',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('20/20'), findsOneWidget);
+    handle.dispose();
+  });
+
+  testWidgets('sliver scroll reaches footer and floating button works', (
+    WidgetTester tester,
+  ) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+    await tester.pumpWidget(const FlutterA11yBenchmarkApp());
+    await tester.tap(find.bySemanticsIdentifier('menu.sliverScroll'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sliver Item 1'), findsOneWidget);
+    expect(find.bySemanticsIdentifier('sliver.fab'), findsWidgets);
+
+    await tester.tap(find.bySemanticsIdentifier('sliver.fab').first);
+    await tester.pumpAndSettle();
+
+    for (
+      int i = 0;
+      i < 40 &&
+          find.bySemanticsIdentifier('sliver.footerButton').evaluate().isEmpty;
+      i++
+    ) {
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -600));
+      await tester.pumpAndSettle();
+    }
+    await tester.ensureVisible(
+      find.bySemanticsIdentifier('sliver.footerButton').first,
+    );
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsIdentifier('sliver.footerHeader'), findsWidgets);
+    await tester.tap(find.bySemanticsIdentifier('sliver.footerButton').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Footer Action taps: 1'), findsOneWidget);
+    handle.dispose();
+  });
 }

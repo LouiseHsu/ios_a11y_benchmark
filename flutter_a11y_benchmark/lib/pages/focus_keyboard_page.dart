@@ -1,7 +1,7 @@
 import 'package:cupertino_ui/cupertino_ui.dart';
 // Aliased: only used for the Material TextField + counter benchmark below so
 // that none of its names collide with the cupertino_ui exports.
-import 'package:flutter/material.dart' as material;
+import 'package:material_ui/material_ui.dart' as material;
 import 'package:flutter/semantics.dart';
 
 import '../a11y/a11y_action_observer.dart';

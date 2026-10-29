@@ -2,7 +2,7 @@ import 'package:cupertino_ui/cupertino_ui.dart';
 // Material is imported with a prefix so that the Material date/time picker
 // dialogs (the widgets the audited issues are filed against) can be presented
 // without any name collisions with the Cupertino widgets used elsewhere here.
-import 'package:flutter/material.dart' as material;
+import 'package:material_ui/material_ui.dart' as material;
 
 import '../a11y/a11y_probe.dart';
 import '../widgets/barrier_modal_sheet.dart';

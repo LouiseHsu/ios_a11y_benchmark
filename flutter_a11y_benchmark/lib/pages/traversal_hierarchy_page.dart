@@ -4,7 +4,7 @@ import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter/gestures.dart';
 // Prefixed to avoid any name collisions with package:cupertino_ui; only the
 // Material selection controls (Switch/Checkbox/Radio/DropdownMenu) are used.
-import 'package:flutter/material.dart' as material;
+import 'package:material_ui/material_ui.dart' as material;
 import 'package:flutter/semantics.dart';
 
 import '../a11y/a11y_action_observer.dart';
