@@ -1,23 +1,15 @@
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter/semantics.dart';
 
-import '../a11y/a11y_action_observer.dart';
-import '../a11y/a11y_probe.dart';
-
 /// Scrollable form with a pre-filled username field, a 25% slider, a tall
-/// event log, and a secure password field, logging responder, VoiceOver, and
-/// Full Keyboard Access focus transitions.
+/// status panel, and a secure password field.
 ///
 /// UIKit twin: `FocusKeyboardViewController`.
 ///
-/// Mapping of the logged events:
-///  * `becomeFirstResponder` / `resignFirstResponder` → [FocusNode.hasFocus]
-///    transitions of each control's focus node,
-///  * `didUpdateFocus(in:with:)` (FKA) → [FocusManager] primary-focus changes,
-///  * `accessibilityElementDidBecomeFocused` → `didGainAccessibilityFocus`
-///    semantics actions observed by [A11yActionObserver],
-///  * `accessibilityIncrement` / `accessibilityDecrement` → the slider's
-///    `increase` / `decrease` semantics actions.
+/// Focus transitions (responder, VoiceOver, Full Keyboard Access) are observed
+/// by the QA tester directly with the assistive technology; the app only shows
+/// its own state: the latest text / slider / announcement event in the status
+/// panel, and the live-region status line.
 class FocusKeyboardPage extends StatefulWidget {
   const FocusKeyboardPage({super.key});
 
@@ -36,7 +28,8 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
   final FocusNode _topFocus = FocusNode(debugLabel: _topFieldName);
   final FocusNode _bottomFocus = FocusNode(debugLabel: _bottomFieldName);
 
-  final List<String> _logEntries = <String>[];
+  String _lastEvent =
+      'Ready. Top field pre-filled, slider at 25%, bottom field is secure.';
   double _sliderValue = 0.25;
   bool _sliderDragging = false;
   String _liveStatus = 'Live Status: Username length 1 chars';
@@ -45,25 +38,16 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
   @override
   void initState() {
     super.initState();
-    _topFocus.addListener(() => _handleFocusNodeChange(_topFocus));
-    _bottomFocus.addListener(() => _handleFocusNodeChange(_bottomFocus));
     _topController.addListener(
       () => _handleTextChanged(_topFieldName, _topController, 'Enter username'),
     );
     _bottomController.addListener(
       () => _handleTextChanged(_bottomFieldName, _bottomController, 'Password'),
     );
-    FocusManager.instance.addListener(_handlePrimaryFocusChange);
-    A11yActionObserver.instance.addListener(_handleA11yAction);
-    _appendLog(
-      'Ready. Top field pre-filled, slider at 25%, bottom field is secure.',
-    );
   }
 
   @override
   void dispose() {
-    FocusManager.instance.removeListener(_handlePrimaryFocusChange);
-    A11yActionObserver.instance.removeListener(_handleA11yAction);
     _topController.dispose();
     _bottomController.dispose();
     _topFocus.dispose();
@@ -71,37 +55,12 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
     super.dispose();
   }
 
-  void _appendLog(String entry) {
+  void _setLastEvent(String entry) {
     debugPrint('[FocusKeyboard] $entry');
     if (!mounted) {
       return;
     }
-    setState(() => _logEntries.add(entry));
-  }
-
-  void _handleFocusNodeChange(FocusNode node) {
-    final String name = node.debugLabel ?? 'control';
-    _appendLog(
-      node.hasFocus
-          ? 'becomeFirstResponder (FocusNode gained): $name'
-          : 'resignFirstResponder (FocusNode lost): $name',
-    );
-  }
-
-  void _handlePrimaryFocusChange() {
-    final FocusNode? primary = FocusManager.instance.primaryFocus;
-    final String description = primary == null
-        ? 'none'
-        : primary.debugLabel ?? primary.toStringShort();
-    _appendLog('didUpdateFocusIn (FKA primaryFocus): $description');
-  }
-
-  void _handleA11yAction() {
-    final A11yActionRecord? record = A11yActionObserver.instance.latest;
-    if (record == null) {
-      return;
-    }
-    _appendLog('VO action ${record.action.name}: ${record.description}');
+    setState(() => _lastEvent = entry);
   }
 
   void _handleTextChanged(
@@ -110,7 +69,7 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
     String placeholder,
   ) {
     final String text = controller.text;
-    _appendLog(
+    _setLastEvent(
       "$name text changed (isEmpty=${text.isEmpty}, "
       "placeholder='$placeholder')",
     );
@@ -136,7 +95,7 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
       message,
       Directionality.of(context),
     );
-    _appendLog('Posted polite announcement #$_announcementCount');
+    _setLastEvent('Posted polite announcement #$_announcementCount');
   }
 
   void _handleSliderChanged(double value) {
@@ -144,7 +103,7 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
     final String source = _sliderDragging
         ? 'drag'
         : 'accessibilityIncrement/Decrement or keyboard arrow';
-    _appendLog(
+    _setLastEvent(
       'Slider valueChanged: ${value.toStringAsFixed(2)} '
       '(${(value * 100).round()}%) via $source',
     );
@@ -161,145 +120,108 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
       navigationBar: CupertinoNavigationBar(
         middle: const Text('Focus & Keyboard'),
         previousPageTitle: 'Flutter A11y Benchmark',
-        trailing: A11yProbe(
-          identifier: 'focus.dismissKeyboardButton',
-          mergeDescendants: true,
-          child: CupertinoButton(
-            padding: EdgeInsets.zero,
-            onPressed: () => FocusManager.instance.primaryFocus?.unfocus(),
-            child: const Text('Dismiss Keyboard'),
-          ),
+        trailing: CupertinoButton(
+          padding: EdgeInsets.zero,
+          onPressed: () => FocusManager.instance.primaryFocus?.unfocus(),
+          child: const Text('Dismiss Keyboard'),
         ),
       ),
       child: SafeArea(
-        child: Semantics(
-          container: true,
-          identifier: 'focus.scrollView',
-          child: SingleChildScrollView(
-            primary: true,
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                const _SectionLabel(
-                  'Top Input Region (Pre-filled + Placeholder)',
-                ),
-                // UITextField(clearButtonMode = .whileEditing) twin.
-                A11yProbe(
-                  identifier: 'focus.topTextField',
-                  mergeDescendants: true,
-                  trackFocus: false,
-                  child: CupertinoTextField(
-                    controller: _topController,
-                    focusNode: _topFocus,
-                    placeholder: 'Enter username',
-                    clearButtonMode: OverlayVisibilityMode.editing,
-                    textInputAction: TextInputAction.done,
-                    padding: const EdgeInsets.all(12),
+        child: SingleChildScrollView(
+          primary: true,
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              const _SectionLabel(
+                'Top Input Region (Pre-filled + Placeholder)',
+              ),
+              // UITextField(clearButtonMode = .whileEditing) twin.
+              CupertinoTextField(
+                controller: _topController,
+                focusNode: _topFocus,
+                placeholder: 'Enter username',
+                clearButtonMode: OverlayVisibilityMode.editing,
+                textInputAction: TextInputAction.done,
+                padding: const EdgeInsets.all(12),
+              ),
+              const SizedBox(height: 12),
+              // Live region: UIKit twin posts `UIAccessibility.Notification
+              // .announcement` / marks the label as a live status.
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  _liveStatus,
+                  style: bodyStyle.copyWith(
+                    fontSize: 14,
+                    color: secondaryLabelColor,
+                    fontFeatures: const <FontFeature>[
+                      FontFeature.tabularFigures(),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                A11yProbe(
-                  identifier: 'focus.liveStatusLabel',
-                  container: true,
-                  liveRegion: true,
+              ),
+              const SizedBox(height: 8),
+              CupertinoButton.tinted(
+                onPressed: _postPoliteAnnouncement,
+                child: const Text('Post Polite Announcement'),
+              ),
+              const SizedBox(height: 20),
+              const _SectionLabel('Intermediate Slider (Initial Value 25%)'),
+              Text(
+                'Slider Value: ${_sliderValue.toStringAsFixed(2)} '
+                '(${(_sliderValue * 100).round()}%)',
+                style: bodyStyle.copyWith(
+                  fontFeatures: const <FontFeature>[
+                    FontFeature.tabularFigures(),
+                  ],
+                ),
+              ),
+              CupertinoSlider(
+                value: _sliderValue,
+                onChanged: _handleSliderChanged,
+                onChangeStart: (_) => _sliderDragging = true,
+                onChangeEnd: (_) => _sliderDragging = false,
+              ),
+              const SizedBox(height: 20),
+              const _SectionLabel('Last App Event'),
+              // Tall status panel: keeps the top and bottom fields far enough
+              // apart that reaching the bottom one requires scrolling. Shows
+              // only the latest app-state event (text / slider / announcement).
+              Container(
+                height: 520,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: logBackground,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: SingleChildScrollView(
+                  primary: false,
                   child: Text(
-                    _liveStatus,
+                    _lastEvent,
                     style: bodyStyle.copyWith(
-                      fontSize: 14,
-                      color: secondaryLabelColor,
-                      fontFeatures: const <FontFeature>[
-                        FontFeature.tabularFigures(),
+                      fontFamily: 'Menlo',
+                      fontFamilyFallback: const <String>[
+                        'Courier',
+                        'monospace',
                       ],
+                      fontSize: 12,
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
-                A11yProbe(
-                  identifier: 'focus.announceButton',
-                  mergeDescendants: true,
-                  child: CupertinoButton.tinted(
-                    onPressed: _postPoliteAnnouncement,
-                    child: const Text('Post Polite Announcement'),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const _SectionLabel('Intermediate Slider (Initial Value 25%)'),
-                A11yProbe(
-                  identifier: 'focus.sliderValueLabel',
-                  container: true,
-                  child: Text(
-                    'Slider Value: ${_sliderValue.toStringAsFixed(2)} '
-                    '(${(_sliderValue * 100).round()}%)',
-                    style: bodyStyle.copyWith(
-                      fontFeatures: const <FontFeature>[
-                        FontFeature.tabularFigures(),
-                      ],
-                    ),
-                  ),
-                ),
-                // CupertinoSlider is a semantics boundary of its own, so the
-                // identifier is merged onto it with MergeSemantics.
-                A11yProbe(
-                  identifier: 'focus.slider',
-                  mergeDescendants: true,
-                  trackFocus: false,
-                  child: CupertinoSlider(
-                    value: _sliderValue,
-                    onChanged: _handleSliderChanged,
-                    onChangeStart: (_) => _sliderDragging = true,
-                    onChangeEnd: (_) => _sliderDragging = false,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const _SectionLabel('Responder, VoiceOver & FKA Focus Log'),
-                // Tall log region: keeps the top and bottom fields far enough
-                // apart that reaching the bottom one requires scrolling.
-                A11yProbe(
-                  identifier: 'focus.eventLog',
-                  container: true,
-                  trackFocus: false,
-                  child: Container(
-                    height: 520,
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: logBackground,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: SingleChildScrollView(
-                      primary: false,
-                      child: Text(
-                        _logEntries.join('\n'),
-                        style: bodyStyle.copyWith(
-                          fontFamily: 'Menlo',
-                          fontFamilyFallback: const <String>[
-                            'Courier',
-                            'monospace',
-                          ],
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const _SectionLabel('Bottom Input Region (Secure Text Entry)'),
-                A11yProbe(
-                  identifier: 'focus.bottomTextField',
-                  mergeDescendants: true,
-                  trackFocus: false,
-                  child: CupertinoTextField(
-                    controller: _bottomController,
-                    focusNode: _bottomFocus,
-                    obscureText: true,
-                    placeholder: 'Password',
-                    textInputAction: TextInputAction.done,
-                    padding: const EdgeInsets.all(12),
-                  ),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 20),
+              const _SectionLabel('Bottom Input Region (Secure Text Entry)'),
+              CupertinoTextField(
+                controller: _bottomController,
+                focusNode: _bottomFocus,
+                obscureText: true,
+                placeholder: 'Password',
+                textInputAction: TextInputAction.done,
+                padding: const EdgeInsets.all(12),
+              ),
+            ],
           ),
         ),
       ),

@@ -2,21 +2,46 @@
 
 ## How this works
 
-Two apps with identical screens, side by side on the same iOS version:
+Two apps with identical screens, installed on the same phone (or two phones with the same iOS version):
 
-- **`UIKit A11y Benchmark`** — stock UIKit. Whatever it does is correct.
-- **`Flutter A11y Benchmark`** — the app under test.
+- **`UIKit A11y Benchmark`** — stock UIKit controls, **no custom accessibility code**. Whatever it does is correct.
+- **`Flutter A11y Benchmark`** — pure Cupertino, **only the semantics a developer would write** (a heading here, a live region there). The app under test.
 
-Every step below is: **do the same thing on both phones → compare one thing → tick a box.**
+Every step below is: **do the same thing in both apps → compare one thing → tick a box.**
 
-- **Same** — both phones did the same thing. Tick and move on.
-- **Different** — write down what *each* phone said or did, in the step's row of the [results sheet](https://docs.google.com/spreadsheets/d/1Hs36qt4wQvpky6DhGROSNSlJUOZlG-gJ5IcinnTwq2k/edit#gid=1933865667). Don't decide whether it matters — that's triage's job.
+- **Same** — both apps did the same thing. Tick and move on.
+- **Different** — write down what *each* app said or did, in the step's row of the [results sheet](https://docs.google.com/spreadsheets/d/1Hs36qt4wQvpky6DhGROSNSlJUOZlG-gJ5IcinnTwq2k/edit#gid=1933865667). Don't decide whether it matters — that's triage's job.
 
-You never need to know what the "right" answer is. The UIKit phone is the answer.
+You never need to know what the "right" answer is. The UIKit app is the answer.
 
-Tips: Always do UIKit first, Flutter immediately after. Turn on **Show Caption Panel** so you can read what VoiceOver said. "Where are you?" means: what does VoiceOver say if you tap once (don't swipe) right now. If you only have one device, build Flutter with `flutter build ios --release` and use the reference transcript at the bottom in place of the UIKit phone.
+Tips: Always do UIKit first, Flutter immediately after. Turn on **Show Caption Panel** so you can read what VoiceOver said. "Where are you?" means: what does VoiceOver say if you tap once (don't swipe) right now. Build Flutter in release mode (`flutter build ios --release`) so it survives being backgrounded while you switch apps. Two phones side by side are nice for demos but not required.
 
 Step IDs (`T3`, `M7`…) match the rows in the results sheet.
+
+## What is under test
+
+The Flutter iOS **embedder** — the code that turns Flutter's semantics tree into `UIAccessibility` objects ([`SemanticsObject.mm`](https://github.com/flutter/flutter/blob/master/engine/src/flutter/shell/platform/darwin/ios/framework/Source/SemanticsObject.mm), [`accessibility_bridge.mm`](https://github.com/flutter/flutter/blob/master/engine/src/flutter/shell/platform/darwin/ios/framework/Source/accessibility_bridge.mm)). That translation is a finite table. The screens exist so that **every row of it is exercised at least once**; that, not past bug counts, is the coverage claim.
+
+| Flutter semantics input | What the embedder does with it | Where it's exercised |
+|---|---|---|
+| `isButton`, `isLink`, `header`, `isImage` | `UIAccessibilityTrait` button / link / header / image | Traversal, every screen |
+| `isSelected` · `isEnabled = false` | `.selected` · `.notEnabled` ("Dimmed") | Traversal: Mutating Icon Button, Target Enableable Button |
+| `isToggled` / `isChecked` (not in a group) | proxied through a hidden **`UISwitch`** | Traversal: Notifications switch, Accept Terms checkbox |
+| `isChecked` + `isInMutuallyExclusiveGroup` | plain `.button`; value suppressed; state via `.selected` | Traversal: Shipping Speed radios |
+| `expanded` | **not mapped** to any trait or value | Traversal: Expandable Disclosure Section |
+| `liveRegion` | `.updatesFrequently` | Focus: live status label |
+| `increase` / `decrease` actions | `.adjustable` (swipe up/down) | Focus: slider |
+| `isTextField`, `isObscured` | `TextInputSemanticsObject` (a `UITextInput`) | Focus: username + password fields |
+| `hasImplicitScrolling`, `scrollUp` / `scrollDown`, `scrollToOffset` | `FlutterScrollableSemanticsObject` + `UIAccessibilityPageScrolled` | Scroll Baseline, Sliver Scroll |
+| `scopesRoute` / `namesRoute` | `UIAccessibilityScreenChanged` + route name, focus moved to the new route | every push, dialog, sheet, menu |
+| `BlockSemantics` behind a modal route | background elements removed from the tree | Modal: menu, alert, sheet |
+| `sortKey` / child ordering | `UIAccessibilityContainer` element order | Traversal: Column-Major mode |
+| `customSemanticsActions` | `UIAccessibilityCustomAction` (Actions rotor) | Traversal: "Message from Alex" |
+| `tap` / `dismiss` | `accessibilityActivate` / `accessibilityPerformEscape` (2-finger Z) | every control, every modal |
+| layout changes | `UIAccessibilityLayoutChanged` + refocus | state toggles, disclosure, route pop |
+| `SemanticsService.announce` | `UIAccessibilityAnnouncement` | Focus: Post Polite Announcement |
+
+Not covered on purpose: `UiKitView` / WebView embedding (different rig), OS features Flutter doesn't implement (Eye Tracking, Audio Graphs, Reduce Motion…), Dynamic Type beyond the visual pass.
 
 ---
 
@@ -52,6 +77,7 @@ Step IDs (`T3`, `M7`…) match the rows in the results sheet.
 - [ ] **T8** Rotor → **Headings**. Swipe down repeatedly from the top. ⟶ *Compare:* the list of headings.
 - [ ] **T9** Rotor → **Links**. Swipe down repeatedly. ⟶ *Compare:* the list of links.
 - [ ] **T10** Rotor → **Form Controls**. Swipe down repeatedly. ⟶ *Compare:* the list.
+- [ ] **T10a** Tap once on **Message from Alex** (the row after the links paragraph). Rotor → **Actions**. Swipe down twice, then double-tap on **Delete**. ⟶ *Compare:* what the row says on focus, the actions listed, and the status label after the double-tap.
 - [ ] **T11** Tap once on **Notifications**, double-tap it, double-tap again. ⟶ *Compare:* what is spoken on focus and after each tap; is it one element or two?
 - [ ] **T12** Tap once on **Accept Terms**, double-tap it, swipe left then right to come back. ⟶ *Compare:* what is spoken on focus, on tap, and when you return.
 - [ ] **T13** Tap once on **Standard**, then swipe right twice (Express, Overnight). ⟶ *Compare:* what each one says — especially any state word on **Standard**.
@@ -158,11 +184,11 @@ Only use this if you cannot run the UIKit app alongside. `N` = depends on device
 
 - **Home:** `"UIKit A11y Benchmark, Heading"`; rows `"<title>, <subtitle>, Button"`; Back `"UIKit A11y Benchmark, Back button"`.
 - **Scroll:** `"Item #0, Baseline scroll row 1 of 100"`; page scroll `"Page 2 of N"`, header `~1.000 (100.0%)`; status-bar tap → `contentOffset.y: 0.0`.
-- **Traversal:** `"Row-Major, Button, 1 of 2"` · `"Section Header 1, Heading"` · `"Mutating Icon Button, Button"` → `"Selected, Mutating Icon Button, Button"` · `"Target Enableable Button, Dimmed, Button"` → `"Target Enableable Button, Button"` · disclosure `"Collapsed"`/`"Expanded"` · `"Terms of Service, Link"`, `"Privacy Policy, Link"` · `"Selection Controls, Heading"` · `"Notifications, Switch button, Off, Double tap to toggle setting"` · `"Accept Terms, Button"` → `"Selected, Accept Terms, Button"` · `"Selected, Standard, Button"`, `"Express, Button"`, `"Overnight, Button"`.
+- **Traversal:** `"Row-Major, Button, 1 of 2"` · `"Section Header 1, Heading"` · `"Mutating Icon Button, Button"` → `"Selected, Mutating Icon Button, Button"` · `"Target Enableable Button, Dimmed, Button"` → `"Target Enableable Button, Button"` · disclosure `"Collapsed"`/`"Expanded"` · `"Terms of Service, Link"`, `"Privacy Policy, Link"` · `"Message from Alex, Lunch tomorrow?"` (Actions rotor: Archive, Delete) · `"Selection Controls, Heading"` · `"Notifications, Switch button, Off, Double tap to toggle setting"` · `"Accept Terms, Button"` → `"Selected, Accept Terms, Button"` · `"Selected, Standard, Button"`, `"Express, Button"`, `"Overnight, Button"`.
 - **Focus:** `"Enter username, A, Text field"` · `"Clear text, Button"` · `"Live Status: Polite Announcement #1"` · `"25%, Adjustable"` (±10%) · `"Password, Secure text field"`.
 - **Modal:** menu opens on `"Selected, Option Alpha, Button"`, last item `"Option Delta (Unavailable), Dimmed, Button"` · `"Alert, Benchmark Alert Dialog"` · sheet `"Modal Barrier Active, Heading"` · `"Tab Bar, Selected, Overview, Tab, 1 of 3"`.
 - **Sliver:** `"Sliver Scroll, Heading"` · `"Sliver Item 1"`… · page status `"Rows N to M of 60"` · `"End of List, Heading"` · `"Footer Action, Button"` · `"Compose, Button"`.
 
 ## Appendix — for triage, not for testers
 
-Issues previously filed against these surfaces, by step: H3–H5 #124361 · S2–S5 #189285 #193541 #191565 · T7 #138891 #175907 · T9 #159127 #166750 · T6 #171231-family · T11 #121636 · T12 #121636 (checkbox announced as switch was a documented decision — relitigate if the ruler disagrees) · T13–T14 #125495 (fixed P0; a Different here is a regression) · F3 #150260 · F6 #186178 · F8 #192171 · F10 #190320 · M4–M5, K4 #171231 · C1 (Traversal) #183821 · V2 #143437 #179687 · V4 #142065 · V6, K6 #184077.
+Issues previously filed against these surfaces, by step: T10a #183833 (custom actions) · H3–H5 #124361 · S2–S5 #189285 #193541 #191565 · T7 #138891 #175907 · T9 #159127 #166750 · T6 #171231-family · T11 #121636 · T12 #121636 (checkbox announced as switch was a documented decision — relitigate if the ruler disagrees) · T13–T14 #125495 (fixed P0; a Different here is a regression) · F3 #150260 · F6 #186178 · F8 #192171 · F10 #190320 · M4–M5, K4 #171231 · C1 (Traversal) #183821 · V2 #143437 #179687 · V4 #142065 · V6, K6 #184077.

@@ -1,7 +1,5 @@
 import 'package:cupertino_ui/cupertino_ui.dart';
 
-import '../a11y/a11y_probe.dart';
-
 /// Second scrolling fixture: a `CustomScrollView` whose header is a collapsing
 /// `CupertinoSliverNavigationBar`, followed by a 60-row `SliverList`, a
 /// `SliverFillRemaining` footer, and a floating circular `CupertinoButton`
@@ -54,34 +52,29 @@ class _SliverScrollPageState extends State<SliverScrollPage> {
     return CupertinoPageScaffold(
       child: Stack(
         children: <Widget>[
-          Semantics(
-            container: true,
-            identifier: 'sliver.list',
-            child: CustomScrollView(
-              // Attached to the PrimaryScrollController so the iOS status-bar
-              // tap scrolls *this* list (UIKit: scrollsToTop).
-              primary: true,
-              slivers: <Widget>[
-                const CupertinoSliverNavigationBar(
-                  previousPageTitle: 'Flutter A11y Benchmark',
-                  largeTitle: Text('Sliver Scroll'),
+          CustomScrollView(
+            // Attached to the PrimaryScrollController so the iOS status-bar
+            // tap scrolls *this* list (UIKit: scrollsToTop).
+            primary: true,
+            slivers: <Widget>[
+              const CupertinoSliverNavigationBar(
+                previousPageTitle: 'Flutter A11y Benchmark',
+                largeTitle: Text('Sliver Scroll'),
+              ),
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (BuildContext context, int index) => _SliverRow(index: index),
+                  childCount: rowCount,
                 ),
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (BuildContext context, int index) =>
-                        _SliverRow(index: index),
-                    childCount: rowCount,
-                  ),
+              ),
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _SliverFooter(
+                  tapCount: _footerTapCount,
+                  onPressed: _handleFooterPressed,
                 ),
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: _SliverFooter(
-                    tapCount: _footerTapCount,
-                    onPressed: _handleFooterPressed,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
           Positioned(
             right: 16,
@@ -89,9 +82,9 @@ class _SliverScrollPageState extends State<SliverScrollPage> {
             child: SafeArea(
               top: false,
               left: false,
-              child: A11yProbe(
-                identifier: 'sliver.fab',
-                mergeDescendants: true,
+              // Icon-only button: the developer must name it (UIKit twin sets
+              // accessibilityLabel = "Compose").
+              child: Semantics(
                 label: 'Compose',
                 child: SizedBox(
                   width: fabDiameter,
@@ -100,9 +93,7 @@ class _SliverScrollPageState extends State<SliverScrollPage> {
                     padding: EdgeInsets.zero,
                     borderRadius: BorderRadius.circular(fabDiameter / 2),
                     onPressed: _handleFabPressed,
-                    child: const ExcludeSemantics(
-                      child: Icon(CupertinoIcons.add, size: 24),
-                    ),
+                    child: const Icon(CupertinoIcons.add, size: 24),
                   ),
                 ),
               ),
@@ -114,9 +105,9 @@ class _SliverScrollPageState extends State<SliverScrollPage> {
   }
 }
 
-/// One fixed-height row; `MergeSemantics` makes it a single element like a
-/// `UITableViewCell` with a default content configuration. Rows are 1-based
-/// ("Sliver Item 1" … "Sliver Item 60") on both platforms.
+/// One fixed-height row, the twin of a `UITableViewCell` with a default
+/// content configuration. Rows are 1-based ("Sliver Item 1" … "Sliver Item 60")
+/// on both platforms.
 class _SliverRow extends StatelessWidget {
   const _SliverRow({required this.index});
 
@@ -127,23 +118,16 @@ class _SliverRow extends StatelessWidget {
     final int itemNumber = index + 1;
     final Color separatorColor = CupertinoColors.separator.resolveFrom(context);
     final Color primaryColor = CupertinoColors.label.resolveFrom(context);
-    return MergeSemantics(
-      child: A11yProbe(
-        identifier: 'sliver.row.$itemNumber',
-        child: Container(
-          height: _SliverScrollPageState.rowHeight,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: separatorColor, width: 0.5),
-            ),
-          ),
-          alignment: Alignment.centerLeft,
-          child: Text(
-            'Sliver Item $itemNumber',
-            style: TextStyle(fontSize: 17, color: primaryColor),
-          ),
-        ),
+    return Container(
+      height: _SliverScrollPageState.rowHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: separatorColor, width: 0.5)),
+      ),
+      alignment: Alignment.centerLeft,
+      child: Text(
+        'Sliver Item $itemNumber',
+        style: TextStyle(fontSize: 17, color: primaryColor),
       ),
     );
   }
@@ -171,8 +155,8 @@ class _SliverFooter extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            A11yProbe(
-              identifier: 'sliver.footerHeader',
+            // Footer heading: UIKit twin marks it `.header`.
+            Semantics(
               header: true,
               child: const Text(
                 'End of List',
@@ -180,13 +164,9 @@ class _SliverFooter extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            A11yProbe(
-              identifier: 'sliver.footerButton',
-              mergeDescendants: true,
-              child: CupertinoButton.filled(
-                onPressed: onPressed,
-                child: const Text('Footer Action'),
-              ),
+            CupertinoButton.filled(
+              onPressed: onPressed,
+              child: const Text('Footer Action'),
             ),
             const SizedBox(height: 8),
             Text(

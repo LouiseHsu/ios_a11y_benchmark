@@ -18,6 +18,11 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
     private let linksTextView = UITextView()
     private let statusLabel = UILabel()
 
+    // Custom-actions fixture row (VoiceOver Actions rotor).
+    private let messageRowView = UIView()
+    private let messageTitleLabel = UILabel()
+    private let messagePreviewLabel = UILabel()
+
     // "Selection Controls" section (Switch / Checkbox / Radio traits).
     private static let shippingSpeeds = ["Standard", "Express", "Overnight"]
     private let selectionControlsHeaderLabel = UILabel()
@@ -37,7 +42,6 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
 
         configureViews()
         configureSelectionControls()
-        registerNotifications()
         updateOrderingStatus()
     }
 
@@ -62,7 +66,6 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
 
         orderingControl.translatesAutoresizingMaskIntoConstraints = false
         orderingControl.selectedSegmentIndex = 0
-        orderingControl.accessibilityIdentifier = "traversal.orderingControl"
         orderingControl.addTarget(
             self,
             action: #selector(orderingChanged(_:)),
@@ -74,17 +77,13 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
         statusLabel.textColor = .secondaryLabel
         statusLabel.numberOfLines = 0
         statusLabel.textAlignment = .center
-        statusLabel.accessibilityIdentifier = "traversal.statusLabel"
 
         gridContainerView.translatesAutoresizingMaskIntoConstraints = false
-        gridContainerView.accessibilityIdentifier = "traversal.gridContainer"
         gridContainerView.onStatusEvent = { [weak self] eventMessage in
             self?.recordEvent(eventMessage)
         }
 
         disclosureHeaderButton.translatesAutoresizingMaskIntoConstraints = false
-        disclosureHeaderButton.accessibilityIdentifier = "traversal.disclosureHeader"
-        disclosureHeaderButton.accessibilityLabel = "Expandable Disclosure Section"
         disclosureHeaderButton.addTarget(
             self,
             action: #selector(toggleDisclosure),
@@ -98,7 +97,6 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
         disclosureBodyLabel.textColor = .secondaryLabel
         disclosureBodyLabel.numberOfLines = 0
         disclosureBodyLabel.isHidden = true
-        disclosureBodyLabel.accessibilityIdentifier = "traversal.disclosureBody"
 
         linksTextView.translatesAutoresizingMaskIntoConstraints = false
         linksTextView.isEditable = false
@@ -107,14 +105,16 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
         linksTextView.textContainerInset = .zero
         linksTextView.textContainer.lineFragmentPadding = 0
         linksTextView.delegate = self
-        linksTextView.accessibilityIdentifier = "traversal.linksParagraph"
         linksTextView.attributedText = makeLinksAttributedString()
+
+        configureMessageRow()
 
         contentView.addSubview(orderingControl)
         contentView.addSubview(gridContainerView)
         contentView.addSubview(disclosureHeaderButton)
         contentView.addSubview(disclosureBodyLabel)
         contentView.addSubview(linksTextView)
+        contentView.addSubview(messageRowView)
         contentView.addSubview(statusLabel)
 
         // The scroll view's adjusted content inset already accounts for the
@@ -140,10 +140,63 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
             linksTextView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             linksTextView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
 
-            statusLabel.topAnchor.constraint(equalTo: linksTextView.bottomAnchor, constant: 16),
+            messageRowView.topAnchor.constraint(equalTo: linksTextView.bottomAnchor, constant: 12),
+            messageRowView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            messageRowView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+
+            statusLabel.topAnchor.constraint(equalTo: messageRowView.bottomAnchor, constant: 16),
             statusLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             statusLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
         ])
+    }
+
+    // MARK: - Custom Actions fixture
+
+    /// Twin of the Flutter `customSemanticsActions` row. A message row that is
+    /// one accessibility element (title + preview) and exposes "Archive" /
+    /// "Delete" in the VoiceOver Actions rotor. Intent: nothing in a stock
+    /// UIView implies these actions; the developer must declare them.
+    private func configureMessageRow() {
+        messageRowView.translatesAutoresizingMaskIntoConstraints = false
+
+        messageTitleLabel.text = "Message from Alex"
+        messageTitleLabel.font = .preferredFont(forTextStyle: .body)
+        messageTitleLabel.adjustsFontForContentSizeCategory = true
+        messageTitleLabel.numberOfLines = 0
+
+        messagePreviewLabel.text = "Lunch tomorrow?"
+        messagePreviewLabel.font = .preferredFont(forTextStyle: .footnote)
+        messagePreviewLabel.adjustsFontForContentSizeCategory = true
+        messagePreviewLabel.textColor = .secondaryLabel
+        messagePreviewLabel.numberOfLines = 0
+
+        let messageStack = UIStackView(arrangedSubviews: [messageTitleLabel, messagePreviewLabel])
+        messageStack.translatesAutoresizingMaskIntoConstraints = false
+        messageStack.axis = .vertical
+        messageStack.spacing = 2
+        messageRowView.addSubview(messageStack)
+
+        NSLayoutConstraint.activate([
+            messageStack.topAnchor.constraint(equalTo: messageRowView.topAnchor, constant: 8),
+            messageStack.leadingAnchor.constraint(equalTo: messageRowView.leadingAnchor, constant: 4),
+            messageStack.trailingAnchor.constraint(equalTo: messageRowView.trailingAnchor, constant: -4),
+            messageStack.bottomAnchor.constraint(equalTo: messageRowView.bottomAnchor, constant: -8),
+        ])
+
+        // Group the two labels as a single element so the custom actions are
+        // offered on the row, not on each line of text.
+        messageRowView.isAccessibilityElement = true
+        messageRowView.accessibilityLabel = "Message from Alex, Lunch tomorrow?"
+        messageRowView.accessibilityCustomActions = [
+            UIAccessibilityCustomAction(name: "Archive") { [weak self] _ in
+                self?.recordEvent("Custom action -> Archive")
+                return true
+            },
+            UIAccessibilityCustomAction(name: "Delete") { [weak self] _ in
+                self?.recordEvent("Custom action -> Delete")
+                return true
+            },
+        ]
     }
 
     // MARK: - Selection Controls (v2)
@@ -164,7 +217,6 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
         selectionControlsHeaderLabel.font = .preferredFont(forTextStyle: .headline)
         selectionControlsHeaderLabel.adjustsFontForContentSizeCategory = true
         selectionControlsHeaderLabel.accessibilityTraits = .header
-        selectionControlsHeaderLabel.accessibilityIdentifier = "traversal.selectionControlsHeader"
 
         // 1. Switch row.
         notificationsLabel.text = "Notifications"
@@ -177,7 +229,6 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
         notificationsSwitch.isOn = false
         notificationsSwitch.setContentHuggingPriority(.required, for: .horizontal)
         notificationsSwitch.accessibilityLabel = "Notifications"
-        notificationsSwitch.accessibilityIdentifier = "traversal.notificationsSwitch"
         notificationsSwitch.addTarget(
             self,
             action: #selector(notificationsChanged(_:)),
@@ -194,8 +245,6 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
         // 2. Checkbox row (nearest idiom: checkmark toggle button).
         acceptTermsButton.translatesAutoresizingMaskIntoConstraints = false
         acceptTermsButton.contentHorizontalAlignment = .leading
-        acceptTermsButton.accessibilityIdentifier = "traversal.acceptTermsCheckbox"
-        acceptTermsButton.accessibilityLabel = "Accept Terms"
         acceptTermsButton.configurationUpdateHandler = { btn in
             var updated = btn.configuration ?? .plain()
             updated.title = "Accept Terms"
@@ -219,7 +268,6 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
         shippingSpeedLabel.font = .preferredFont(forTextStyle: .footnote)
         shippingSpeedLabel.adjustsFontForContentSizeCategory = true
         shippingSpeedLabel.textColor = .secondaryLabel
-        shippingSpeedLabel.accessibilityIdentifier = "traversal.shippingSpeedLabel"
 
         let shippingStack = UIStackView()
         shippingStack.translatesAutoresizingMaskIntoConstraints = false
@@ -229,8 +277,6 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
             let button = UIButton(configuration: .plain())
             button.tag = index
             button.contentHorizontalAlignment = .leading
-            button.accessibilityIdentifier = "traversal.radio\(speed)"
-            button.accessibilityLabel = speed
             button.isSelected = (speed == selectedShippingSpeed)
             button.configurationUpdateHandler = { btn in
                 var updated = btn.configuration ?? .plain()
@@ -310,7 +356,6 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
         updateDisclosureAppearance()
         let state = isDisclosureExpanded ? "Expanded" : "Collapsed"
         recordEvent("Disclosure toggled -> \(state)")
-        UIAccessibility.post(notification: .layoutChanged, argument: disclosureHeaderButton)
     }
 
     private func updateDisclosureAppearance() {
@@ -320,6 +365,7 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
         config.imagePlacement = .trailing
         config.imagePadding = 8
         disclosureHeaderButton.configuration = config
+        // UIKit has no disclosure control; mirrors SwiftUI DisclosureGroup, which exposes Expanded/Collapsed via accessibilityValue.
         disclosureHeaderButton.accessibilityValue = isDisclosureExpanded ? "Expanded" : "Collapsed"
     }
 
@@ -351,27 +397,11 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
         return false
     }
 
-    private func registerNotifications() {
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleElementFocused(_:)),
-            name: UIAccessibility.elementFocusedNotification,
-            object: nil
-        )
-    }
-
-    @objc private func handleElementFocused(_ notification: Notification) {
-        let focused = notification.userInfo?[UIAccessibility.focusedElementUserInfoKey] as? NSObject
-        let label = focused?.accessibilityLabel ?? "none"
-        Self.logger.info("[TraversalHierarchy] VoiceOver focused element: \(label, privacy: .public)")
-    }
-
     @objc private func orderingChanged(_ sender: UISegmentedControl) {
         let mode: TraversalGridContainerView.TraversalMode =
             sender.selectedSegmentIndex == 0 ? .rowMajor : .columnMajor
         gridContainerView.traversalMode = mode
         updateOrderingStatus()
-        UIAccessibility.post(notification: .layoutChanged, argument: gridContainerView)
     }
 
     private func updateOrderingStatus() {
@@ -421,7 +451,6 @@ final class TraversalGridContainerView: UIView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        isAccessibilityElement = false
         setupHierarchy()
         rebuildAccessibilityOrder()
     }
@@ -442,7 +471,6 @@ final class TraversalGridContainerView: UIView {
             headerLabel.text = "Section Header \(row + 1)"
             headerLabel.font = .preferredFont(forTextStyle: .headline)
             headerLabel.accessibilityTraits = .header
-            headerLabel.accessibilityIdentifier = "traversal.header.\(row)"
             rowHeaderLabels.append(headerLabel)
             outerStack.addArrangedSubview(headerLabel)
 
@@ -484,8 +512,6 @@ final class TraversalGridContainerView: UIView {
 
         if row == 0 && col == 0 {
             // Button A ("Mutating Icon Button")
-            button.accessibilityIdentifier = "traversal.buttonA"
-            button.accessibilityLabel = "Mutating Icon Button"
             button.configurationUpdateHandler = { btn in
                 var updated = btn.configuration ?? .tinted()
                 updated.title = "Mutating Icon Button"
@@ -502,8 +528,6 @@ final class TraversalGridContainerView: UIView {
             bConfig.title = "Target Enableable Button"
             button.configuration = bConfig
             button.isEnabled = false
-            button.accessibilityIdentifier = "traversal.buttonB"
-            button.accessibilityLabel = "Target Enableable Button"
             button.addTarget(self, action: #selector(buttonBTapped(_:)), for: .touchUpInside)
             buttonB = button
         } else if row == 0 && col == 2 {
@@ -511,16 +535,12 @@ final class TraversalGridContainerView: UIView {
             var cConfig = config
             cConfig.title = "Toggle Button B"
             button.configuration = cConfig
-            button.accessibilityIdentifier = "traversal.buttonC"
-            button.accessibilityLabel = "Toggle Button B"
             button.addTarget(self, action: #selector(buttonCTapped(_:)), for: .touchUpInside)
             buttonC = button
         } else {
             var cellConfig = config
             cellConfig.title = "R\(row + 1)C\(col + 1)"
             button.configuration = cellConfig
-            button.accessibilityLabel = "Grid Button Row \(row + 1) Column \(col + 1)"
-            button.accessibilityIdentifier = "traversal.button.\(row).\(col)"
             button.addTarget(self, action: #selector(standardGridButtonTapped(_:)), for: .touchUpInside)
         }
 
@@ -531,12 +551,8 @@ final class TraversalGridContainerView: UIView {
         sender.isSelected.toggle()
         sender.setNeedsUpdateConfiguration()
 
-        let focusedObject = UIAccessibility.focusedElement(using: nil) as AnyObject?
-        let focusAnchoredOnA = (focusedObject === sender)
         let stateDescription = sender.isSelected ? "Selected (with checkmark)" : "Unselected (no icon)"
-        onStatusEvent?(
-            "Button A: \(stateDescription) | VO Focus Anchored on A: \(focusAnchoredOnA)"
-        )
+        onStatusEvent?("Button A: \(stateDescription)")
     }
 
     @objc private func buttonBTapped(_ sender: UIButton) {

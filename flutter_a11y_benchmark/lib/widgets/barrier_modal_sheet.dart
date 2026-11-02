@@ -1,13 +1,11 @@
 import 'package:cupertino_ui/cupertino_ui.dart';
 
-import '../a11y/a11y_probe.dart';
-
 /// Presents [BarrierModalSheet] using [showCupertinoSheet], the Cupertino twin
 /// of UIKit's `UISheetPresentationController` (`BarrierModalSheetViewController`):
 ///
 ///  * `prefersGrabberVisible = true` → `showDragHandle: true`,
-///  * `accessibilityViewIsModal = true` → the modal route's barrier uses
-///    [BlockSemantics], hiding every route underneath from assistive tech.
+///  * `accessibilityViewIsModal = true` → the modal route's own barrier hides
+///    every route underneath from assistive tech; nothing extra is annotated.
 Future<void> showBarrierModalSheet(BuildContext context) {
   return showCupertinoSheet<void>(
     context: context,
@@ -42,64 +40,43 @@ class _BarrierModalSheetState extends State<BarrierModalSheet> {
         .resolveFrom(context);
     return CupertinoPageScaffold(
       child: SafeArea(
-        child: A11yProbe(
-          identifier: 'modal.sheetContainer',
-          container: true,
-          explicitChildNodes: true,
-          trackFocus: false,
-          child: SingleChildScrollView(
-            controller: widget.scrollController,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                A11yProbe(
-                  identifier: 'modal.sheetTitle',
-                  container: true,
-                  header: true,
-                  child: Text(
-                    _title,
-                    style: textTheme.navLargeTitleTextStyle.copyWith(
-                      fontSize: 22,
-                    ),
-                    textAlign: TextAlign.center,
+        child: SingleChildScrollView(
+          controller: widget.scrollController,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              // Sheet title: UIKit twin marks it `.header`.
+              Semantics(
+                header: true,
+                child: Text(
+                  _title,
+                  style: textTheme.navLargeTitleTextStyle.copyWith(
+                    fontSize: 22,
                   ),
+                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 16),
-                A11yProbe(
-                  identifier: 'modal.sheetDescription',
-                  container: true,
-                  child: Text(
-                    'Presented as a CupertinoSheetRoute (BlockSemantics '
-                    'barrier ≈ accessibilityViewIsModal = true) with a '
-                    'native-styled drag handle (showDragHandle: true).',
-                    style: textTheme.textStyle.copyWith(
-                      color: secondaryLabelColor,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                A11yProbe(
-                  identifier: 'modal.sheetActionButton',
-                  mergeDescendants: true,
-                  child: CupertinoButton.tinted(
-                    onPressed: () =>
-                        setState(() => _title = 'Modal Action Triggered'),
-                    child: const Text('Modal Sheet Action'),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                A11yProbe(
-                  identifier: 'modal.dismissButton',
-                  mergeDescendants: true,
-                  child: CupertinoButton.filled(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Dismiss Modal Sheet'),
-                  ),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Presented as a system sheet (CupertinoSheetRoute, '
+                'drag handle visible). Background content should be '
+                'unreachable while it is open.',
+                style: textTheme.textStyle.copyWith(color: secondaryLabelColor),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              CupertinoButton.tinted(
+                onPressed: () =>
+                    setState(() => _title = 'Modal Action Triggered'),
+                child: const Text('Modal Sheet Action'),
+              ),
+              const SizedBox(height: 16),
+              CupertinoButton.filled(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Dismiss Modal Sheet'),
+              ),
+            ],
           ),
         ),
       ),

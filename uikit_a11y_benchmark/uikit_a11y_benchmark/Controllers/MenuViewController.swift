@@ -5,7 +5,6 @@ final class MenuViewController: UIViewController {
     struct Destination {
         let title: String
         let subtitle: String
-        let accessibilityIdentifier: String
         let makeViewController: @MainActor () -> UIViewController
     }
 
@@ -17,31 +16,26 @@ final class MenuViewController: UIViewController {
         Destination(
             title: "Scroll Baseline",
             subtitle: "100-cell table with deltaY/viewportHeight ratio & page scroll status",
-            accessibilityIdentifier: "menu.scrollBaseline",
             makeViewController: { ScrollBaselineViewController() }
         ),
         Destination(
             title: "Traversal Hierarchy",
             subtitle: "3x3 grid with headers, container ordering & stateful buttons",
-            accessibilityIdentifier: "menu.traversalHierarchy",
             makeViewController: { TraversalHierarchyViewController() }
         ),
         Destination(
             title: "Focus & Keyboard",
             subtitle: "Prefilled & secure text fields, 25% slider, VO & FKA focus logs",
-            accessibilityIdentifier: "menu.focusKeyboard",
             makeViewController: { FocusKeyboardViewController() }
         ),
         Destination(
             title: "Modal Barrier",
             subtitle: "Background buttons & UISheetPresentationController modal barrier",
-            accessibilityIdentifier: "menu.modalBarrier",
             makeViewController: { ModalBarrierViewController() }
         ),
         Destination(
             title: "Sliver Scroll",
             subtitle: "Collapsing large title, 60-row table, footer & floating button",
-            accessibilityIdentifier: "menu.sliverScroll",
             makeViewController: { SliverScrollViewController() }
         ),
     ]
@@ -52,7 +46,6 @@ final class MenuViewController: UIViewController {
         view.backgroundColor = .systemGroupedBackground
 
         tableView.translatesAutoresizingMaskIntoConstraints = false
-        tableView.accessibilityIdentifier = "menu.tableView"
         tableView.dataSource = self
         tableView.delegate = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: Self.cellReuseIdentifier)
@@ -91,7 +84,6 @@ extension MenuViewController: UITableViewDataSource {
         content.secondaryTextProperties.color = .secondaryLabel
         cell.contentConfiguration = content
         cell.accessoryType = .disclosureIndicator
-        cell.accessibilityIdentifier = destination.accessibilityIdentifier
         return cell
     }
 }

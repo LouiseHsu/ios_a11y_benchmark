@@ -13,7 +13,7 @@ final class ScrollBaselineViewController: UIViewController {
     private let deltaLabel = UILabel()
     private let ratioLabel = UILabel()
     private let pageScrolledLabel = UILabel()
-    private let tableView = BaselineTableView(frame: .zero, style: .plain)
+    private let tableView = UITableView(frame: .zero, style: .plain)
 
     private var previousFrameOffsetY: CGFloat = 0
     private var gestureStartOffsetY: CGFloat = 0
@@ -43,7 +43,6 @@ final class ScrollBaselineViewController: UIViewController {
     private func configureHeader() {
         headerContainerView.translatesAutoresizingMaskIntoConstraints = false
         headerContainerView.backgroundColor = .secondarySystemBackground
-        headerContainerView.accessibilityIdentifier = "scroll.headerView"
 
         let metricsStack = UIStackView(arrangedSubviews: [
             offsetYLabel,
@@ -62,12 +61,6 @@ final class ScrollBaselineViewController: UIViewController {
         }
         pageScrolledLabel.textColor = .secondaryLabel
         pageScrolledLabel.text = "Page Scroll Status: Page 1 of 1"
-
-        offsetYLabel.accessibilityIdentifier = "scroll.offsetYLabel"
-        heightLabel.accessibilityIdentifier = "scroll.heightLabel"
-        deltaLabel.accessibilityIdentifier = "scroll.deltaLabel"
-        ratioLabel.accessibilityIdentifier = "scroll.ratioLabel"
-        pageScrolledLabel.accessibilityIdentifier = "scroll.pageScrolledLabel"
 
         let separator = UIView()
         separator.translatesAutoresizingMaskIntoConstraints = false
@@ -96,25 +89,11 @@ final class ScrollBaselineViewController: UIViewController {
 
     private func configureTableView() {
         tableView.translatesAutoresizingMaskIntoConstraints = false
-        tableView.accessibilityIdentifier = "scroll.tableView"
         tableView.scrollsToTop = true
         tableView.dataSource = self
         tableView.delegate = self
         tableView.rowHeight = 72
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: Self.cellReuseIdentifier)
-        tableView.onWillBeginAccessibilityScroll = { [weak self] startOffsetY in
-            self?.gestureStartOffsetY = startOffsetY
-        }
-        tableView.onDidPerformAccessibilityScroll = { [weak self] direction in
-            guard let self else { return }
-            let status = self.computePageScrollStatus(for: self.tableView)
-            self.pageScrolledLabel.text = "Page Scroll Status: \(status) (dir=\(direction.rawValue))"
-            self.pageScrolledLabel.accessibilityValue = status
-            Self.logger.info(
-                "[ScrollBaseline] UIAccessibilityPageScrolledNotification status: \(status, privacy: .public)"
-            )
-            print("[ScrollBaseline] UIAccessibilityPageScrolledNotification status: \(status)")
-        }
         view.addSubview(tableView)
 
         NSLayoutConstraint.activate([
@@ -125,6 +104,8 @@ final class ScrollBaselineViewController: UIViewController {
         ])
     }
 
+    // On-screen diagnostic only. VoiceOver's own "Page X of Y" scroll status is
+    // deliberately left to the system; nothing here feeds UIAccessibility.
     private func computePageScrollStatus(for scrollView: UIScrollView) -> String {
         let viewportHeight = max(1, scrollView.frame.size.height)
         let contentHeight = max(viewportHeight, scrollView.contentSize.height)
@@ -146,23 +127,14 @@ final class ScrollBaselineViewController: UIViewController {
         let pageStatus = computePageScrollStatus(for: tableView)
 
         offsetYLabel.text = String(format: "contentOffset.y: %.1f", contentOffsetY)
-        offsetYLabel.accessibilityValue = String(format: "%.1f", contentOffsetY)
-
         heightLabel.text = String(format: "frame.size.height: %.1f", viewportHeight)
-        heightLabel.accessibilityValue = String(format: "%.1f", viewportHeight)
-
         deltaLabel.text = String(format: "deltaY: %.1f (step: %.1f)", deltaY, stepDeltaY)
-        deltaLabel.accessibilityValue = String(format: "%.1f", deltaY)
-
         ratioLabel.text = String(
             format: "deltaY / viewportHeight: %.3f (%.1f%%)",
             ratio,
             ratio * 100.0
         )
-        ratioLabel.accessibilityValue = String(format: "%.3f", ratio)
-
         pageScrolledLabel.text = "Page Scroll Status: \(pageStatus)"
-        pageScrolledLabel.accessibilityValue = pageStatus
     }
 }
 
@@ -186,24 +158,13 @@ extension ScrollBaselineViewController: UITableViewDataSource {
         content.secondaryTextProperties.font = .preferredFont(forTextStyle: .subheadline)
         content.secondaryTextProperties.color = .secondaryLabel
         cell.contentConfiguration = content
-        cell.accessibilityIdentifier = "scroll.cell.\(indexPath.row)"
         return cell
     }
 }
 
-// MARK: - UITableViewDelegate & UIScrollViewAccessibilityDelegate
+// MARK: - UITableViewDelegate
 
-extension ScrollBaselineViewController: UITableViewDelegate, UIScrollViewAccessibilityDelegate {
-
-    func accessibilityScrollStatus(for scrollView: UIScrollView) -> String? {
-        guard scrollView === tableView else { return nil }
-        let status = computePageScrollStatus(for: scrollView)
-        Self.logger.info(
-            "[ScrollBaseline] accessibilityScrollStatus: \(status, privacy: .public)"
-        )
-        print("[ScrollBaseline] accessibilityScrollStatus: \(status)")
-        return status
-    }
+extension ScrollBaselineViewController: UITableViewDelegate {
 
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
         guard scrollView === tableView else { return }
@@ -249,22 +210,5 @@ extension ScrollBaselineViewController: UITableViewDelegate, UIScrollViewAccessi
         guard scrollView === tableView else { return false }
         gestureStartOffsetY = scrollView.contentOffset.y
         return true
-    }
-}
-
-// MARK: - BaselineTableView
-
-final class BaselineTableView: UITableView {
-
-    var onWillBeginAccessibilityScroll: ((CGFloat) -> Void)?
-    var onDidPerformAccessibilityScroll: ((UIAccessibilityScrollDirection) -> Void)?
-
-    override func accessibilityScroll(_ direction: UIAccessibilityScrollDirection) -> Bool {
-        onWillBeginAccessibilityScroll?(contentOffset.y)
-        let handled = super.accessibilityScroll(direction)
-        if handled {
-            onDidPerformAccessibilityScroll?(direction)
-        }
-        return handled
     }
 }

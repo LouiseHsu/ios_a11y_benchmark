@@ -34,12 +34,10 @@ final class ModalBarrierViewController: UIViewController, UITabBarDelegate {
         statusLabel.font = .preferredFont(forTextStyle: .headline)
         statusLabel.textAlignment = .center
         statusLabel.numberOfLines = 0
-        statusLabel.accessibilityIdentifier = "modal.statusLabel"
 
         var button1Config = UIButton.Configuration.bordered()
         button1Config.title = "Background Button 1"
         backgroundButton1.configuration = button1Config
-        backgroundButton1.accessibilityIdentifier = "modal.backgroundButton1"
         backgroundButton1.addTarget(
             self,
             action: #selector(backgroundButton1Tapped),
@@ -49,21 +47,18 @@ final class ModalBarrierViewController: UIViewController, UITabBarDelegate {
         var button2Config = UIButton.Configuration.bordered()
         button2Config.title = "Background Button 2"
         backgroundButton2.configuration = button2Config
-        backgroundButton2.accessibilityIdentifier = "modal.backgroundButton2"
         backgroundButton2.addTarget(
             self,
             action: #selector(backgroundButton2Tapped),
             for: .touchUpInside
         )
 
-        popupMenuButton.accessibilityIdentifier = "modal.popupMenuButton"
         popupMenuButton.showsMenuAsPrimaryAction = true
         rebuildPopupMenu()
 
         var alertConfig = UIButton.Configuration.tinted()
         alertConfig.title = "Present Alert Dialog"
         presentAlertButton.configuration = alertConfig
-        presentAlertButton.accessibilityIdentifier = "modal.presentAlertButton"
         presentAlertButton.addTarget(
             self,
             action: #selector(presentAlertDialog),
@@ -73,7 +68,6 @@ final class ModalBarrierViewController: UIViewController, UITabBarDelegate {
         var presentConfig = UIButton.Configuration.filled()
         presentConfig.title = "Present Modal Sheet"
         presentModalButton.configuration = presentConfig
-        presentModalButton.accessibilityIdentifier = "modal.presentButton"
         presentModalButton.addTarget(
             self,
             action: #selector(presentModalSheet),
@@ -86,14 +80,12 @@ final class ModalBarrierViewController: UIViewController, UITabBarDelegate {
                 image: UIImage(systemName: Self.tabSymbols[index]),
                 tag: index
             )
-            item.accessibilityIdentifier = "modal.tab.\(index)"
             return item
         }
         bottomTabBar.translatesAutoresizingMaskIntoConstraints = false
         bottomTabBar.items = tabItems
         bottomTabBar.selectedItem = tabItems.first
         bottomTabBar.delegate = self
-        bottomTabBar.accessibilityIdentifier = "modal.tabBar"
 
         let stackView = UIStackView(arrangedSubviews: [
             statusLabel,
@@ -139,7 +131,6 @@ final class ModalBarrierViewController: UIViewController, UITabBarDelegate {
         var menuConfig = UIButton.Configuration.tinted()
         menuConfig.title = "Anchored Popup Menu: \(selectedPopupOption)"
         popupMenuButton.configuration = menuConfig
-        popupMenuButton.accessibilityValue = selectedPopupOption
 
         let actions: [UIAction] = Self.popupOptions.enumerated().map { index, option in
             let action = UIAction(
@@ -153,7 +144,6 @@ final class ModalBarrierViewController: UIViewController, UITabBarDelegate {
                 self.rebuildPopupMenu()
                 Self.logger.info("[ModalBarrier] \(message, privacy: .public)")
             }
-            action.accessibilityIdentifier = "modal.popupOption.\(index)"
             return action
         }
         // Disabled item (issue #171231: disabled menu item not announced as
@@ -162,7 +152,6 @@ final class ModalBarrierViewController: UIViewController, UITabBarDelegate {
             title: "Option Delta (Unavailable)",
             attributes: .disabled
         ) { _ in }
-        disabledAction.accessibilityIdentifier = "modal.popupOption.disabled"
         popupMenuButton.menu = UIMenu(title: "Anchored Options", children: actions + [disabledAction])
     }
 
@@ -177,14 +166,12 @@ final class ModalBarrierViewController: UIViewController, UITabBarDelegate {
             self?.statusLabel.text = message
             Self.logger.info("[ModalBarrier] \(message, privacy: .public)")
         }
-        cancelAction.accessibilityIdentifier = "modal.alertCancelButton"
 
         let confirmAction = UIAlertAction(title: "Confirm", style: .default) { [weak self] _ in
             let message = "Alert Dialog: Confirm"
             self?.statusLabel.text = message
             Self.logger.info("[ModalBarrier] \(message, privacy: .public)")
         }
-        confirmAction.accessibilityIdentifier = "modal.alertConfirmButton"
 
         alert.addAction(cancelAction)
         alert.addAction(confirmAction)
@@ -230,27 +217,23 @@ final class BarrierModalSheetViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .secondarySystemBackground
-        view.accessibilityViewIsModal = true
-        view.accessibilityIdentifier = "modal.sheetContainer"
 
         titleLabel.text = "Modal Barrier Active"
         titleLabel.font = .preferredFont(forTextStyle: .title2)
         titleLabel.textAlignment = .center
+        // Intent: the sheet title is a heading; a plain UILabel does not imply it.
         titleLabel.accessibilityTraits = .header
-        titleLabel.accessibilityIdentifier = "modal.sheetTitle"
 
         descriptionLabel.text =
-            "Configured with accessibilityViewIsModal = true and UISheetPresentationController (detents: [.medium(), .large()], prefersGrabberVisible: true)."
+            "Presented as a system sheet (UISheetPresentationController, medium and large detents, grabber visible). Background content should be unreachable while it is open."
         descriptionLabel.font = .preferredFont(forTextStyle: .body)
         descriptionLabel.textColor = .secondaryLabel
         descriptionLabel.numberOfLines = 0
         descriptionLabel.textAlignment = .center
-        descriptionLabel.accessibilityIdentifier = "modal.sheetDescription"
 
         var actionConfig = UIButton.Configuration.tinted()
         actionConfig.title = "Modal Sheet Action"
         modalActionButton.configuration = actionConfig
-        modalActionButton.accessibilityIdentifier = "modal.sheetActionButton"
         modalActionButton.addTarget(
             self,
             action: #selector(modalActionTapped),
@@ -260,7 +243,6 @@ final class BarrierModalSheetViewController: UIViewController {
         var dismissConfig = UIButton.Configuration.filled()
         dismissConfig.title = "Dismiss Modal Sheet"
         dismissButton.configuration = dismissConfig
-        dismissButton.accessibilityIdentifier = "modal.dismissButton"
         dismissButton.addTarget(
             self,
             action: #selector(dismissModalTapped),
@@ -283,12 +265,6 @@ final class BarrierModalSheetViewController: UIViewController {
             stackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
             stackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
         ])
-    }
-
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        view.accessibilityViewIsModal = true
-        UIAccessibility.post(notification: .screenChanged, argument: titleLabel)
     }
 
     @objc private func modalActionTapped() {

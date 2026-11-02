@@ -66,7 +66,6 @@ final class SliverScrollViewController: UIViewController {
 
     private func configureTableView() {
         tableView.translatesAutoresizingMaskIntoConstraints = false
-        tableView.accessibilityIdentifier = "sliver.list"
         tableView.scrollsToTop = true
         tableView.dataSource = self
         tableView.delegate = self
@@ -94,12 +93,10 @@ final class SliverScrollViewController: UIViewController {
         footerHeaderLabel.adjustsFontForContentSizeCategory = true
         footerHeaderLabel.numberOfLines = 0
         footerHeaderLabel.accessibilityTraits.insert(.header)
-        footerHeaderLabel.accessibilityIdentifier = "sliver.footerHeader"
 
         var footerConfig = UIButton.Configuration.filled()
         footerConfig.title = "Footer Action"
         footerActionButton.configuration = footerConfig
-        footerActionButton.accessibilityIdentifier = "sliver.footerButton"
         footerActionButton.addTarget(
             self,
             action: #selector(footerActionTapped),
@@ -149,7 +146,6 @@ final class SliverScrollViewController: UIViewController {
         composeButton.configuration = composeConfig
         composeButton.translatesAutoresizingMaskIntoConstraints = false
         composeButton.accessibilityLabel = "Compose"
-        composeButton.accessibilityIdentifier = "sliver.fab"
         composeButton.layer.shadowColor = UIColor.black.cgColor
         composeButton.layer.shadowOpacity = 0.25
         composeButton.layer.shadowRadius = 6
@@ -206,7 +202,6 @@ extension SliverScrollViewController: UITableViewDataSource {
         content.textProperties.font = .preferredFont(forTextStyle: .body)
         cell.contentConfiguration = content
         cell.selectionStyle = .none
-        cell.accessibilityIdentifier = "sliver.row.\(itemNumber)"
         return cell
     }
 }

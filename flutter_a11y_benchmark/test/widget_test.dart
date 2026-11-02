@@ -1,43 +1,69 @@
 import 'dart:ui' show Tristate;
 
 import 'package:cupertino_ui/cupertino_ui.dart'
-    show CupertinoCheckbox, CupertinoRadio, CupertinoSwitch;
+    show
+        CupertinoButton,
+        CupertinoCheckbox,
+        CupertinoRadio,
+        CupertinoSwitch,
+        CupertinoTextField;
 import 'package:flutter/semantics.dart';
-import 'package:flutter/widgets.dart' show Scrollable;
+import 'package:flutter/widgets.dart' show Scrollable, Text;
 import 'package:flutter_a11y_benchmark/main.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Widget-level twins of the XCUITests shared with `uikit_a11y_benchmark`.
+/// Widget-level smoke tests for the Flutter twin of `uikit_a11y_benchmark`.
+///
+/// Elements are located by their visible text / widget type only, exactly as
+/// a QA tester would find them; the semantics tree is inspected through the
+/// *merged* data (`simulatedAccessibilityTraversal`), i.e. what the platform
+/// embedder receives.
 void main() {
-  const List<String> menuIdentifiers = <String>[
-    'menu.scrollBaseline',
-    'menu.traversalHierarchy',
-    'menu.focusKeyboard',
-    'menu.modalBarrier',
+  const List<String> menuTitles = <String>[
+    'Scroll Baseline',
+    'Traversal Hierarchy',
+    'Focus & Keyboard',
+    'Modal Barrier',
+    'Sliver Scroll',
   ];
 
-  bool traversalContains(WidgetTester tester, String identifier) {
-    // Compare the *merged* data, i.e. what the platform embedder receives.
-    return tester.semantics.simulatedAccessibilityTraversal().any(
-      (SemanticsNode node) => node.getSemanticsData().identifier == identifier,
-    );
+  List<SemanticsNode> traversal(WidgetTester tester) =>
+      tester.semantics.simulatedAccessibilityTraversal().toList();
+
+  /// Merged traversal nodes whose label contains [text].
+  Iterable<SemanticsNode> nodesWithLabel(WidgetTester tester, String text) {
+    return traversal(tester)
+        .where((SemanticsNode n) => n.getSemanticsData().label.contains(text));
   }
 
-  double semanticsValue(WidgetTester tester, String identifier) {
-    return double.parse(
-      tester.getSemantics(find.bySemanticsIdentifier(identifier)).value,
-    );
+  SemanticsNode nodeWithLabel(WidgetTester tester, String text) =>
+      nodesWithLabel(tester, text).single;
+
+  bool traversalContains(WidgetTester tester, String text) =>
+      nodesWithLabel(tester, text).isNotEmpty;
+
+  /// Parses the number that follows `prefix` in the first matching Text.
+  double metricValue(WidgetTester tester, String prefix) {
+    final Text text = tester.widget<Text>(find.textContaining(prefix));
+    final String rest = text.data!.substring(prefix.length).trim();
+    return double.parse(rest.split(' ').first);
   }
 
-  testWidgets('menu exposes the four destinations with shared identifiers', (
+  Future<void> openScreen(WidgetTester tester, String title) async {
+    await tester.pumpWidget(const FlutterA11yBenchmarkApp());
+    await tester.tap(find.text(title));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('menu exposes the five destinations', (
     WidgetTester tester,
   ) async {
     final SemanticsHandle handle = tester.ensureSemantics();
     await tester.pumpWidget(const FlutterA11yBenchmarkApp());
 
-    for (final String identifier in menuIdentifiers) {
-      expect(find.bySemanticsIdentifier(identifier), findsOneWidget);
-      expect(traversalContains(tester, identifier), isTrue);
+    for (final String title in menuTitles) {
+      expect(find.text(title), findsOneWidget);
+      expect(traversalContains(tester, title), isTrue, reason: title);
     }
     handle.dispose();
   });
@@ -46,22 +72,17 @@ void main() {
     WidgetTester tester,
   ) async {
     final SemanticsHandle handle = tester.ensureSemantics();
-    await tester.pumpWidget(const FlutterA11yBenchmarkApp());
-    await tester.tap(find.bySemanticsIdentifier('menu.scrollBaseline'));
+    await openScreen(tester, 'Scroll Baseline');
+
+    expect(metricValue(tester, 'frame.size.height:'), greaterThan(0));
+    expect(metricValue(tester, 'contentOffset.y:'), 0);
+
+    await tester.drag(find.text('Item #3'), const Offset(0, -300));
     await tester.pumpAndSettle();
 
-    expect(semanticsValue(tester, 'scroll.heightLabel'), greaterThan(0));
-    expect(semanticsValue(tester, 'scroll.offsetYLabel'), 0);
-
-    await tester.drag(
-      find.bySemanticsIdentifier('scroll.cell.3'),
-      const Offset(0, -300),
-    );
-    await tester.pumpAndSettle();
-
-    expect(semanticsValue(tester, 'scroll.offsetYLabel'), greaterThan(0));
-    expect(semanticsValue(tester, 'scroll.deltaLabel'), greaterThan(0));
-    expect(semanticsValue(tester, 'scroll.ratioLabel'), greaterThan(0));
+    expect(metricValue(tester, 'contentOffset.y:'), greaterThan(0));
+    expect(metricValue(tester, 'deltaY:'), greaterThan(0));
+    expect(metricValue(tester, 'deltaY / viewportHeight:'), greaterThan(0));
     handle.dispose();
   });
 
@@ -69,132 +90,190 @@ void main() {
     WidgetTester tester,
   ) async {
     final SemanticsHandle handle = tester.ensureSemantics();
-    await tester.pumpWidget(const FlutterA11yBenchmarkApp());
-    await tester.tap(find.bySemanticsIdentifier('menu.modalBarrier'));
+    await openScreen(tester, 'Modal Barrier');
+
+    expect(traversalContains(tester, 'Background Button 1'), isTrue);
+    expect(traversalContains(tester, 'Background Button 2'), isTrue);
+
+    await tester.tap(find.text('Present Modal Sheet'));
     await tester.pumpAndSettle();
 
-    expect(traversalContains(tester, 'modal.backgroundButton1'), isTrue);
-    expect(traversalContains(tester, 'modal.backgroundButton2'), isTrue);
+    expect(traversalContains(tester, 'Modal Barrier Active'), isTrue);
+    expect(traversalContains(tester, 'Dismiss Modal Sheet'), isTrue);
+    // The modal route's own barrier (accessibilityViewIsModal twin) must
+    // remove the background controls from the accessibility tree.
+    expect(traversalContains(tester, 'Background Button 1'), isFalse);
+    expect(traversalContains(tester, 'Background Button 2'), isFalse);
 
-    await tester.tap(find.bySemanticsIdentifier('modal.presentButton'));
+    await tester.tap(find.text('Dismiss Modal Sheet'));
     await tester.pumpAndSettle();
 
-    expect(traversalContains(tester, 'modal.sheetTitle'), isTrue);
-    expect(traversalContains(tester, 'modal.dismissButton'), isTrue);
-    // The modal route's BlockSemantics barrier (accessibilityViewIsModal twin)
-    // must remove the background controls from the accessibility tree.
-    expect(traversalContains(tester, 'modal.backgroundButton1'), isFalse);
-    expect(traversalContains(tester, 'modal.backgroundButton2'), isFalse);
-
-    await tester.tap(find.bySemanticsIdentifier('modal.dismissButton'));
-    await tester.pumpAndSettle();
-
-    expect(traversalContains(tester, 'modal.backgroundButton1'), isTrue);
-    expect(traversalContains(tester, 'modal.backgroundButton2'), isTrue);
+    expect(traversalContains(tester, 'Background Button 1'), isTrue);
+    expect(traversalContains(tester, 'Background Button 2'), isTrue);
     handle.dispose();
   });
 
   testWidgets(
-    'traversal hierarchy merges button semantics and reorders row vs column major',
+    'traversal hierarchy exposes headers/buttons and reorders row vs column major',
     (WidgetTester tester) async {
       final SemanticsHandle handle = tester.ensureSemantics();
-      await tester.pumpWidget(const FlutterA11yBenchmarkApp());
-      await tester.tap(find.bySemanticsIdentifier('menu.traversalHierarchy'));
-      await tester.pumpAndSettle();
+      await openScreen(tester, 'Traversal Hierarchy');
 
-      List<String> gridIdentifiersInTraversalOrder() {
-        return tester.semantics
-            .simulatedAccessibilityTraversal()
-            .map((SemanticsNode node) => node.getSemanticsData().identifier)
+      List<String> gridLabelsInTraversalOrder() {
+        return traversal(tester)
+            .map((SemanticsNode node) => node.getSemanticsData().label)
             .where(
-              (String id) =>
-                  id.startsWith('traversal.header.') ||
-                  id.startsWith('traversal.button'),
+              (String label) =>
+                  label.startsWith('Section Header ') ||
+                  label.startsWith('R') && label.contains('C') ||
+                  label == 'Mutating Icon Button' ||
+                  label == 'Target Enableable Button' ||
+                  label == 'Toggle Button B',
             )
             .toList();
       }
 
-      // Verify buttonA merges the button trait with the probe's identifier.
-      final SemanticsNode buttonANode = tester.semantics
-          .simulatedAccessibilityTraversal()
-          .firstWhere(
-            (SemanticsNode n) =>
-                n.getSemanticsData().identifier == 'traversal.buttonA',
-          );
-      expect(buttonANode.getSemanticsData().flagsCollection.isButton, isTrue);
+      // Headers carry the header flag; Button A is a button with a selected
+      // state that flips on tap.
+      final SemanticsData header1 = nodeWithLabel(
+        tester,
+        'Section Header 1',
+      ).getSemanticsData();
+      expect(header1.flagsCollection.isHeader, isTrue);
+      SemanticsData buttonA = nodeWithLabel(
+        tester,
+        'Mutating Icon Button',
+      ).getSemanticsData();
+      expect(buttonA.flagsCollection.isButton, isTrue);
+      expect(buttonA.flagsCollection.isSelected, Tristate.isFalse);
+      await tester.tap(find.text('Mutating Icon Button'));
+      await tester.pumpAndSettle();
+      buttonA = nodeWithLabel(
+        tester,
+        'Mutating Icon Button',
+      ).getSemanticsData();
+      expect(buttonA.flagsCollection.isSelected, Tristate.isTrue);
+      expect(find.text('Button A: Selected (with checkmark)'), findsOneWidget);
 
-      // Default Row-Major order: Row 0 buttons precede Row 1 header/buttons.
-      final List<String> rowMajor = gridIdentifiersInTraversalOrder();
+      // Default Row-Major order: Row 1 buttons precede Row 2 header/buttons.
+      final List<String> rowMajor = gridLabelsInTraversalOrder();
       expect(
-        rowMajor.indexOf('traversal.buttonB'),
-        lessThan(rowMajor.indexOf('traversal.header.1')),
+        rowMajor.indexOf('Target Enableable Button'),
+        lessThan(rowMajor.indexOf('Section Header 2')),
       );
       expect(
-        rowMajor.indexOf('traversal.header.1'),
-        lessThan(rowMajor.indexOf('traversal.button.1.0')),
+        rowMajor.indexOf('Section Header 2'),
+        lessThan(rowMajor.indexOf('R2C1')),
       );
 
-      // Switch to Column-Major order: Column 0 buttons (buttonA, button.1.0,
-      // button.2.0) precede Column 1 (header.1, buttonB).
+      // Switch to Column-Major order: Column 1 (button A, R2C1, R3C1)
+      // precedes Column 2 (Section Header 2, button B).
       await tester.tap(find.text('Column-Major'));
       await tester.pumpAndSettle();
 
-      final List<String> columnMajor = gridIdentifiersInTraversalOrder();
+      final List<String> columnMajor = gridLabelsInTraversalOrder();
       expect(
-        columnMajor.indexOf('traversal.button.1.0'),
-        lessThan(columnMajor.indexOf('traversal.header.1')),
+        columnMajor.indexOf('R2C1'),
+        lessThan(columnMajor.indexOf('Section Header 2')),
       );
       expect(
-        columnMajor.indexOf('traversal.button.2.0'),
-        lessThan(columnMajor.indexOf('traversal.buttonB')),
+        columnMajor.indexOf('R3C1'),
+        lessThan(columnMajor.indexOf('Target Enableable Button')),
       );
 
-      // Verify disclosure header exposes expanded state and reveals body.
-      final SemanticsNode disclosureCollapsed = tester.semantics
-          .simulatedAccessibilityTraversal()
-          .firstWhere(
-            (SemanticsNode n) =>
-                n.getSemanticsData().identifier == 'traversal.disclosureHeader',
-          );
+      // Disclosure header exposes expanded state and reveals the body.
+      final SemanticsData disclosureCollapsed = nodeWithLabel(
+        tester,
+        'Expandable Disclosure Section',
+      ).getSemanticsData();
       // `isExpanded` is a tri-state: `isFalse` means "has an expanded state
       // and is currently collapsed" (≈ UIKit's collapsed disclosure).
+      expect(disclosureCollapsed.flagsCollection.isExpanded, Tristate.isFalse);
       expect(
-        disclosureCollapsed.getSemanticsData().flagsCollection.isExpanded,
-        Tristate.isFalse,
+        find.text('Hidden detail content revealed when expanded.'),
+        findsNothing,
       );
-      expect(traversalContains(tester, 'traversal.disclosureBody'), isFalse);
 
-      await tester.tap(
-        find.bySemanticsIdentifier('traversal.disclosureHeader'),
-      );
+      await tester.tap(find.text('Expandable Disclosure Section'));
       await tester.pumpAndSettle();
-      expect(traversalContains(tester, 'traversal.disclosureBody'), isTrue);
+      expect(
+        nodeWithLabel(
+          tester,
+          'Expandable Disclosure Section',
+        ).getSemanticsData().flagsCollection.isExpanded,
+        Tristate.isTrue,
+      );
+      expect(
+        find.text('Hidden detail content revealed when expanded.'),
+        findsOneWidget,
+      );
       handle.dispose();
     },
   );
+
+  testWidgets('traversal custom actions row exposes Archive and Delete', (
+    WidgetTester tester,
+  ) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+    await openScreen(tester, 'Traversal Hierarchy');
+
+    const CustomSemanticsAction archive = CustomSemanticsAction(
+      label: 'Archive',
+    );
+    const CustomSemanticsAction delete = CustomSemanticsAction(label: 'Delete');
+
+    final SemanticsNode row = nodeWithLabel(tester, 'Message from Alex');
+    final SemanticsData data = row.getSemanticsData();
+    expect(data.label, contains('Lunch tomorrow?'));
+    expect(
+      data.customSemanticsActionIds,
+      containsAll(<int>[
+        CustomSemanticsAction.getIdentifier(archive),
+        CustomSemanticsAction.getIdentifier(delete),
+      ]),
+    );
+
+    row.owner!.performAction(
+      row.id,
+      SemanticsAction.customAction,
+      CustomSemanticsAction.getIdentifier(archive),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Custom action -> Archive'), findsOneWidget);
+
+    row.owner!.performAction(
+      row.id,
+      SemanticsAction.customAction,
+      CustomSemanticsAction.getIdentifier(delete),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Custom action -> Delete'), findsOneWidget);
+    handle.dispose();
+  });
 
   testWidgets(
     'modal barrier exposes anchored popup menu, alert dialog, and bottom tab bar',
     (WidgetTester tester) async {
       final SemanticsHandle handle = tester.ensureSemantics();
-      await tester.pumpWidget(const FlutterA11yBenchmarkApp());
-      await tester.tap(find.bySemanticsIdentifier('menu.modalBarrier'));
+      await openScreen(tester, 'Modal Barrier');
+
+      expect(
+        traversalContains(tester, 'Anchored Popup Menu: Option Alpha'),
+        isTrue,
+      );
+      await tester.tap(find.text('Anchored Popup Menu: Option Alpha'));
       await tester.pumpAndSettle();
 
-      expect(traversalContains(tester, 'modal.popupMenuButton'), isTrue);
-      await tester.tap(find.bySemanticsIdentifier('modal.popupMenuButton'));
-      await tester.pumpAndSettle();
-
-      expect(traversalContains(tester, 'modal.popupOption.1'), isTrue);
-      await tester.tap(find.bySemanticsIdentifier('modal.popupOption.1'));
+      expect(traversalContains(tester, 'Option Beta'), isTrue);
+      await tester.tap(find.text('Option Beta'));
       await tester.pumpAndSettle();
 
       expect(find.text('Popup Selected: Option Beta'), findsOneWidget);
 
-      await tester.tap(find.bySemanticsIdentifier('modal.presentAlertButton'));
+      await tester.tap(find.text('Present Alert Dialog'));
       await tester.pumpAndSettle();
-      expect(traversalContains(tester, 'modal.alertConfirmButton'), isTrue);
-      await tester.tap(find.bySemanticsIdentifier('modal.alertConfirmButton'));
+      expect(traversalContains(tester, 'Confirm'), isTrue);
+      await tester.tap(find.text('Confirm'));
       await tester.pumpAndSettle();
       expect(find.text('Alert Dialog: Confirm'), findsOneWidget);
 
@@ -209,36 +288,24 @@ void main() {
     'focus keyboard exposes live region status label and polite announcement button',
     (WidgetTester tester) async {
       final SemanticsHandle handle = tester.ensureSemantics();
-      await tester.pumpWidget(const FlutterA11yBenchmarkApp());
-      await tester.tap(find.bySemanticsIdentifier('menu.focusKeyboard'));
-      await tester.pumpAndSettle();
+      await openScreen(tester, 'Focus & Keyboard');
 
-      final SemanticsNode liveNode = tester.semantics
-          .simulatedAccessibilityTraversal()
-          .firstWhere(
-            (SemanticsNode n) =>
-                n.getSemanticsData().identifier == 'focus.liveStatusLabel',
-          );
-      expect(liveNode.getSemanticsData().flagsCollection.isLiveRegion, isTrue);
+      final SemanticsData liveData = nodeWithLabel(
+        tester,
+        'Live Status: Username length 1 chars',
+      ).getSemanticsData();
+      expect(liveData.flagsCollection.isLiveRegion, isTrue);
 
-      final SemanticsNode bottomFieldNode = tester.semantics
-          .simulatedAccessibilityTraversal()
-          .firstWhere(
-            (SemanticsNode n) =>
-                n.getSemanticsData().identifier == 'focus.bottomTextField',
-          );
-      expect(
-        bottomFieldNode.getSemanticsData().flagsCollection.isTextField,
-        isTrue,
-      );
-      expect(
-        bottomFieldNode.getSemanticsData().flagsCollection.isObscured,
-        isTrue,
-      );
+      final SemanticsData bottomField = tester
+          .getSemantics(find.byType(CupertinoTextField).last)
+          .getSemanticsData();
+      expect(bottomField.flagsCollection.isTextField, isTrue);
+      expect(bottomField.flagsCollection.isObscured, isTrue);
 
-      await tester.tap(find.bySemanticsIdentifier('focus.announceButton'));
+      await tester.tap(find.text('Post Polite Announcement'));
       await tester.pump();
       expect(find.text('Live Status: Polite Announcement #1'), findsOneWidget);
+      expect(find.text('Posted polite announcement #1'), findsOneWidget);
       handle.dispose();
     },
   );
@@ -246,42 +313,39 @@ void main() {
   v2Tests();
 }
 
-/// v2 fixtures: selection controls, pickers, limited-length field, Sliver Scroll.
+/// v2 fixtures: selection controls and Sliver Scroll.
 void v2Tests() {
-  testWidgets('menu exposes the sliver scroll destination', (
-    WidgetTester tester,
-  ) async {
-    final SemanticsHandle handle = tester.ensureSemantics();
-    await tester.pumpWidget(const FlutterA11yBenchmarkApp());
-    expect(find.bySemanticsIdentifier('menu.sliverScroll'), findsWidgets);
-    handle.dispose();
-  });
-
   testWidgets('traversal selection controls toggle, select and log', (
     WidgetTester tester,
   ) async {
     final SemanticsHandle handle = tester.ensureSemantics();
     await tester.pumpWidget(const FlutterA11yBenchmarkApp());
-    await tester.tap(find.bySemanticsIdentifier('menu.traversalHierarchy'));
+    await tester.tap(find.text('Traversal Hierarchy'));
     await tester.pumpAndSettle();
 
-    for (final String id in <String>[
-      'traversal.selectionControlsHeader',
-      'traversal.notificationsSwitch',
-      'traversal.acceptTermsCheckbox',
-      'traversal.radioStandard',
-      'traversal.radioExpress',
-      'traversal.radioOvernight',
-    ]) {
-      await tester.ensureVisible(find.bySemanticsIdentifier(id).first);
-      await tester.pumpAndSettle();
-      expect(find.bySemanticsIdentifier(id), findsWidgets, reason: id);
-    }
+    await tester.ensureVisible(find.text('Selection Controls'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.semantics
+          .simulatedAccessibilityTraversal()
+          .singleWhere(
+            (SemanticsNode n) =>
+                n.getSemanticsData().label == 'Selection Controls',
+          )
+          .getSemanticsData()
+          .flagsCollection
+          .isHeader,
+      isTrue,
+    );
 
+    await tester.ensureVisible(find.byType(CupertinoSwitch));
+    await tester.pumpAndSettle();
     await tester.tap(find.byType(CupertinoSwitch));
     await tester.pumpAndSettle();
     expect(find.textContaining('Notifications switch -> on'), findsOneWidget);
 
+    await tester.ensureVisible(find.byType(CupertinoCheckbox));
+    await tester.pumpAndSettle();
     await tester.tap(find.byType(CupertinoCheckbox));
     await tester.pumpAndSettle();
     expect(
@@ -289,6 +353,8 @@ void v2Tests() {
       findsOneWidget,
     );
 
+    await tester.ensureVisible(find.byType(CupertinoRadio<String>).at(1));
+    await tester.pumpAndSettle();
     await tester.tap(find.byType(CupertinoRadio<String>).at(1));
     await tester.pumpAndSettle();
     expect(
@@ -303,10 +369,10 @@ void v2Tests() {
   ) async {
     final SemanticsHandle handle = tester.ensureSemantics();
     await tester.pumpWidget(const FlutterA11yBenchmarkApp());
-    await tester.tap(find.bySemanticsIdentifier('menu.modalBarrier'));
+    await tester.tap(find.text('Modal Barrier'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.bySemanticsIdentifier('modal.popupMenuButton').first);
+    await tester.tap(find.textContaining('Anchored Popup Menu:'));
     await tester.pumpAndSettle();
     expect(find.text('Option Delta (Unavailable)'), findsOneWidget);
     handle.dispose();
@@ -317,30 +383,43 @@ void v2Tests() {
   ) async {
     final SemanticsHandle handle = tester.ensureSemantics();
     await tester.pumpWidget(const FlutterA11yBenchmarkApp());
-    await tester.tap(find.bySemanticsIdentifier('menu.sliverScroll'));
+    await tester.tap(find.text('Sliver Scroll'));
     await tester.pumpAndSettle();
 
     expect(find.text('Sliver Item 1'), findsOneWidget);
-    expect(find.bySemanticsIdentifier('sliver.fab'), findsWidgets);
 
-    await tester.tap(find.bySemanticsIdentifier('sliver.fab').first);
+    // The icon-only floating button is named "Compose" and is a button.
+    final SemanticsNode fab = tester.semantics
+        .simulatedAccessibilityTraversal()
+        .singleWhere(
+          (SemanticsNode n) => n.getSemanticsData().label == 'Compose',
+        );
+    expect(fab.getSemanticsData().flagsCollection.isButton, isTrue);
+    await tester.tap(find.byType(CupertinoButton).last);
     await tester.pumpAndSettle();
 
     for (
       int i = 0;
-      i < 40 &&
-          find.bySemanticsIdentifier('sliver.footerButton').evaluate().isEmpty;
+      i < 40 && find.text('Footer Action').evaluate().isEmpty;
       i++
     ) {
       await tester.drag(find.byType(Scrollable).first, const Offset(0, -600));
       await tester.pumpAndSettle();
     }
-    await tester.ensureVisible(
-      find.bySemanticsIdentifier('sliver.footerButton').first,
-    );
+    await tester.ensureVisible(find.text('Footer Action'));
     await tester.pumpAndSettle();
-    expect(find.bySemanticsIdentifier('sliver.footerHeader'), findsWidgets);
-    await tester.tap(find.bySemanticsIdentifier('sliver.footerButton').first);
+    expect(
+      tester.semantics
+          .simulatedAccessibilityTraversal()
+          .singleWhere(
+            (SemanticsNode n) => n.getSemanticsData().label == 'End of List',
+          )
+          .getSemanticsData()
+          .flagsCollection
+          .isHeader,
+      isTrue,
+    );
+    await tester.tap(find.text('Footer Action'));
     await tester.pumpAndSettle();
     expect(find.text('Footer Action taps: 1'), findsOneWidget);
     handle.dispose();

@@ -1,21 +1,19 @@
 import 'package:cupertino_ui/cupertino_ui.dart';
 
-import 'a11y/a11y_action_observer.dart';
 import 'pages/menu_page.dart';
 
 void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  // Mirrors the UIKit twin's global `UIAccessibility.elementFocusedNotification`
-  // observer: records every semantics action the platform sends to Flutter.
-  A11yActionObserver.install();
   runApp(const FlutterA11yBenchmarkApp());
 }
 
 /// Flutter Cupertino twin of `uikit_a11y_benchmark`.
 ///
-/// Both apps expose the same five screens, the same iOS control structure, and
-/// the same `accessibilityIdentifier`s (via [SemanticsProperties.identifier])
-/// so that identical XCUITests and manual QA checks can be run side by side.
+/// Both apps expose the same five screens and the same iOS control structure
+/// so that identical manual QA checks (VoiceOver, Voice Control, Full Keyboard
+/// Access) can be run side by side. The Flutter side uses stock Cupertino
+/// widgets with no accessibility annotations beyond the intent a developer has
+/// to state explicitly (headings, expanded state, live region, icon-only
+/// labels, explicit traversal order, custom actions).
 class FlutterA11yBenchmarkApp extends StatelessWidget {
   const FlutterA11yBenchmarkApp({super.key});
 
