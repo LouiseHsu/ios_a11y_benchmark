@@ -18,6 +18,8 @@ Tips: Always do UIKit first, Flutter immediately after. Turn on **Show Caption P
 
 Step IDs (`T3`, `M7`…) match the rows in the results sheet.
 
+Divergences found so far, with repro steps and root causes, are logged in [FINDINGS.md](FINDINGS.md).
+
 ## What is under test
 
 The Flutter iOS **embedder** — the code that turns Flutter's semantics tree into `UIAccessibility` objects ([`SemanticsObject.mm`](https://github.com/flutter/flutter/blob/master/engine/src/flutter/shell/platform/darwin/ios/framework/Source/SemanticsObject.mm), [`accessibility_bridge.mm`](https://github.com/flutter/flutter/blob/master/engine/src/flutter/shell/platform/darwin/ios/framework/Source/accessibility_bridge.mm)). That translation is a finite table. The screens exist so that **every row of it is exercised at least once**; that, not past bug counts, is the coverage claim.
