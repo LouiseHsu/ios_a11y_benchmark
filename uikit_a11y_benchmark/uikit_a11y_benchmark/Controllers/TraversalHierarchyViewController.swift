@@ -23,6 +23,21 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
     private let messageTitleLabel = UILabel()
     private let messagePreviewLabel = UILabel()
 
+    // "Traits & Attributes" section (image / hidden / hint / attributed label /
+    // focus highlight fixtures).
+    private let traitsSectionStack = UIStackView()
+    private let traitsHeaderLabel = UILabel()
+    private let meaningfulImageView = UIImageView()
+    private let decorativeImageView = UIImageView()
+    private let imageCaptionLabel = UILabel()
+    private let toggleHiddenRowButton = UIButton(configuration: .bordered())
+    private let hiddenRowLabel = UILabel()
+    private let offstageLabel = UILabel()
+    private let sendButton = UIButton(configuration: .tinted())
+    private let orderIdLabel = UILabel()
+    private let frenchLabel = UILabel()
+    private let focusHighlightRowView = FocusHighlightRowView()
+
     // "Selection Controls" section (Switch / Checkbox / Radio traits).
     private static let shippingSpeeds = ["Standard", "Express", "Overnight"]
     private let selectionControlsHeaderLabel = UILabel()
@@ -108,6 +123,7 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
         linksTextView.attributedText = makeLinksAttributedString()
 
         configureMessageRow()
+        configureTraitsAndAttributes()
 
         contentView.addSubview(orderingControl)
         contentView.addSubview(gridContainerView)
@@ -115,6 +131,7 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
         contentView.addSubview(disclosureBodyLabel)
         contentView.addSubview(linksTextView)
         contentView.addSubview(messageRowView)
+        contentView.addSubview(traitsSectionStack)
         contentView.addSubview(statusLabel)
 
         // The scroll view's adjusted content inset already accounts for the
@@ -144,7 +161,11 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
             messageRowView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             messageRowView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
 
-            statusLabel.topAnchor.constraint(equalTo: messageRowView.bottomAnchor, constant: 16),
+            traitsSectionStack.topAnchor.constraint(equalTo: messageRowView.bottomAnchor, constant: 24),
+            traitsSectionStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            traitsSectionStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+
+            statusLabel.topAnchor.constraint(equalTo: traitsSectionStack.bottomAnchor, constant: 16),
             statusLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             statusLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
         ])
@@ -197,6 +218,129 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
                 return true
             },
         ]
+    }
+
+    // MARK: - Traits & Attributes fixtures
+
+    /// Twins of the Flutter image / hidden / hint / attributed-label / focus
+    /// fixtures. Each item uses only the one stock accessibility API that is
+    /// itself the thing under test.
+    private func configureTraitsAndAttributes() {
+        traitsSectionStack.translatesAutoresizingMaskIntoConstraints = false
+        traitsSectionStack.axis = .vertical
+        traitsSectionStack.spacing = 8
+
+        traitsHeaderLabel.text = "Traits & Attributes"
+        traitsHeaderLabel.font = .preferredFont(forTextStyle: .headline)
+        traitsHeaderLabel.adjustsFontForContentSizeCategory = true
+        traitsHeaderLabel.accessibilityTraits = .header
+
+        // 1. Image: meaningful (labelled) vs decorative (left inert).
+        //    UIImageView supplies the .image trait by itself.
+        meaningfulImageView.image = UIImage(systemName: "photo")
+        meaningfulImageView.contentMode = .scaleAspectFit
+        meaningfulImageView.isAccessibilityElement = true
+        meaningfulImageView.accessibilityLabel = "Sunset over the bay"
+
+        decorativeImageView.image = UIImage(systemName: "sparkles")
+        decorativeImageView.contentMode = .scaleAspectFit
+
+        let imageSpacer = UIView()
+        imageSpacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        let imageRow = UIStackView(arrangedSubviews: [meaningfulImageView, decorativeImageView, imageSpacer])
+        imageRow.axis = .horizontal
+        imageRow.alignment = .center
+        imageRow.spacing = 12
+
+        imageCaptionLabel.text = "Meaningful image / Decorative image"
+        imageCaptionLabel.font = .preferredFont(forTextStyle: .footnote)
+        imageCaptionLabel.adjustsFontForContentSizeCategory = true
+        imageCaptionLabel.textColor = .secondaryLabel
+        imageCaptionLabel.numberOfLines = 0
+
+        // 2. Hidden: a row toggled at runtime plus one permanently offstage.
+        toggleHiddenRowButton.configuration?.title = "Toggle hidden row"
+        toggleHiddenRowButton.addTarget(
+            self,
+            action: #selector(toggleHiddenRow),
+            for: .touchUpInside
+        )
+
+        hiddenRowLabel.text = "You should not hear this"
+        hiddenRowLabel.font = .preferredFont(forTextStyle: .body)
+        hiddenRowLabel.adjustsFontForContentSizeCategory = true
+        hiddenRowLabel.numberOfLines = 0
+        hiddenRowLabel.isHidden = true
+
+        offstageLabel.text = "Offstage text"
+        offstageLabel.font = .preferredFont(forTextStyle: .body)
+        offstageLabel.adjustsFontForContentSizeCategory = true
+        offstageLabel.numberOfLines = 0
+        offstageLabel.isHidden = true
+
+        // 3. Hint.
+        sendButton.configuration?.title = "Send"
+        sendButton.accessibilityHint = "Sends the message"
+        sendButton.addTarget(
+            self,
+            action: #selector(sendTapped),
+            for: .touchUpInside
+        )
+
+        // 4. Attributed label: spell-out range and per-label speech language.
+        orderIdLabel.text = "Order ID: ABC123"
+        orderIdLabel.font = .preferredFont(forTextStyle: .body)
+        orderIdLabel.adjustsFontForContentSizeCategory = true
+        orderIdLabel.numberOfLines = 0
+        let orderText = NSMutableAttributedString(string: "Order ID: ABC123")
+        let codeRange = (orderText.string as NSString).range(of: "ABC123")
+        orderText.addAttribute(.accessibilitySpeechSpellOut, value: true, range: codeRange)
+        orderIdLabel.accessibilityAttributedLabel = orderText
+
+        frenchLabel.text = "Bonjour tout le monde"
+        frenchLabel.font = .preferredFont(forTextStyle: .body)
+        frenchLabel.adjustsFontForContentSizeCategory = true
+        frenchLabel.numberOfLines = 0
+        frenchLabel.accessibilityAttributedLabel = NSAttributedString(
+            string: "Bonjour tout le monde",
+            attributes: [.accessibilitySpeechLanguage: "fr-FR"]
+        )
+
+        // 5. Focus highlight.
+        focusHighlightRowView.onFocus = { [weak self] eventMessage in
+            self?.recordEvent(eventMessage)
+        }
+
+        for item in [
+            traitsHeaderLabel,
+            imageRow,
+            imageCaptionLabel,
+            toggleHiddenRowButton,
+            hiddenRowLabel,
+            offstageLabel,
+            sendButton,
+            orderIdLabel,
+            frenchLabel,
+            focusHighlightRowView,
+        ] {
+            traitsSectionStack.addArrangedSubview(item)
+        }
+
+        NSLayoutConstraint.activate([
+            meaningfulImageView.widthAnchor.constraint(equalToConstant: 44),
+            meaningfulImageView.heightAnchor.constraint(equalToConstant: 44),
+            decorativeImageView.widthAnchor.constraint(equalToConstant: 44),
+            decorativeImageView.heightAnchor.constraint(equalToConstant: 44),
+        ])
+    }
+
+    @objc private func toggleHiddenRow() {
+        hiddenRowLabel.isHidden.toggle()
+        recordEvent("Hidden row -> \(hiddenRowLabel.isHidden ? "hidden" : "shown")")
+    }
+
+    @objc private func sendTapped() {
+        recordEvent("Send tapped")
     }
 
     // MARK: - Selection Controls (v2)
@@ -416,6 +560,55 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
         statusLabel.text = message
         Self.logger.info("[TraversalHierarchy] \(message, privacy: .public)")
         print("[TraversalHierarchy] \(message)")
+    }
+}
+
+// MARK: - FocusHighlightRowView
+
+/// Twin of the Flutter `onFocus`-style fixture: a single element that reacts
+/// visually (and logs) when VoiceOver focus lands on / leaves it.
+final class FocusHighlightRowView: UIView {
+
+    var onFocus: ((String) -> Void)?
+
+    private let titleLabel = UILabel()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        titleLabel.text = "Focus-highlight row"
+        titleLabel.font = .preferredFont(forTextStyle: .body)
+        titleLabel.adjustsFontForContentSizeCategory = true
+        titleLabel.numberOfLines = 0
+        addSubview(titleLabel)
+
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: topAnchor, constant: 8),
+            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
+            titleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
+            titleLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8),
+        ])
+
+        isAccessibilityElement = true
+        accessibilityLabel = "Focus-highlight row"
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func accessibilityElementDidBecomeFocused() {
+        super.accessibilityElementDidBecomeFocused()
+        backgroundColor = .systemYellow
+        onFocus?("VO focus -> gained (highlight row)")
+    }
+
+    override func accessibilityElementDidLoseFocus() {
+        super.accessibilityElementDidLoseFocus()
+        backgroundColor = nil
+        onFocus?("VO focus -> lost (highlight row)")
     }
 }
 

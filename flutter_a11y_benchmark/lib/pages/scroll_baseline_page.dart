@@ -22,6 +22,10 @@ class ScrollBaselinePage extends StatefulWidget {
 class _ScrollBaselinePageState extends State<ScrollBaselinePage> {
   static const int rowCount = 100;
   static const double rowHeight = 72;
+  static const int chipCount = 20;
+  static const double chipStripHeight = 72;
+  static const double chipWidth = 120;
+  static const double chipSpacing = 8;
 
   double _contentOffsetY = 0;
   double _viewportHeight = 0;
@@ -123,6 +127,27 @@ class _ScrollBaselinePageState extends State<ScrollBaselinePage> {
               stepDeltaY: _stepDeltaY,
               ratio: _ratio,
               pageStatus: _pageStatus,
+            ),
+            // Horizontal chip strip: exercises ScrollLeft/ScrollRight and a
+            // nested FlutterSemanticsScrollView (status-bar-tap interception,
+            // #191565). Deliberately NOT primary so the status-bar tap still
+            // targets the vertical list below.
+            SizedBox(
+              height: chipStripHeight,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                itemCount: chipCount,
+                itemBuilder: (BuildContext context, int index) => Padding(
+                  padding: EdgeInsets.only(
+                    right: index == chipCount - 1 ? 0 : chipSpacing,
+                  ),
+                  child: _Chip(index: index),
+                ),
+              ),
             ),
             Expanded(
               child: NotificationListener<ScrollMetricsNotification>(
@@ -232,6 +257,34 @@ class _MetricLabel extends StatelessWidget {
           fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
           color: textColor,
         ),
+      ),
+    );
+  }
+}
+
+/// One fixed-width chip in the horizontal strip. Plain text in a filled
+/// rounded box; no semantics are added.
+class _Chip extends StatelessWidget {
+  const _Chip({required this.index});
+
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color fillColor = CupertinoColors.tertiarySystemFill.resolveFrom(
+      context,
+    );
+    final Color textColor = CupertinoColors.label.resolveFrom(context);
+    return Container(
+      width: _ScrollBaselinePageState.chipWidth,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: fillColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        'Chip ${index + 1}',
+        style: TextStyle(fontSize: 15, color: textColor),
       ),
     );
   }

@@ -1,14 +1,21 @@
-import 'dart:ui' show Tristate;
+import 'dart:ui'
+    show
+        LocaleStringAttribute,
+        SpellOutStringAttribute,
+        StringAttribute,
+        Tristate;
 
 import 'package:cupertino_ui/cupertino_ui.dart'
     show
         CupertinoButton,
         CupertinoCheckbox,
+        CupertinoIcons,
         CupertinoRadio,
         CupertinoSwitch,
         CupertinoTextField;
 import 'package:flutter/semantics.dart';
-import 'package:flutter/widgets.dart' show Scrollable, Text;
+import 'package:flutter/widgets.dart'
+    show Axis, ListView, Scrollable, Text, TextRange, Widget;
 import 'package:flutter_a11y_benchmark/main.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -422,6 +429,181 @@ void v2Tests() {
     await tester.tap(find.text('Footer Action'));
     await tester.pumpAndSettle();
     expect(find.text('Footer Action taps: 1'), findsOneWidget);
+    handle.dispose();
+  });
+
+  traitsAndAttributesTests();
+}
+
+/// "Traits & Attributes" fixtures on Traversal Hierarchy plus the horizontal
+/// chip strip on Scroll Baseline.
+void traitsAndAttributesTests() {
+  Future<void> openTraitsSection(WidgetTester tester) async {
+    await tester.pumpWidget(const FlutterA11yBenchmarkApp());
+    await tester.tap(find.text('Traversal Hierarchy'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Traits & Attributes'));
+    await tester.pumpAndSettle();
+  }
+
+  SemanticsNode mergedNode(WidgetTester tester, String label) {
+    return tester.semantics.simulatedAccessibilityTraversal().singleWhere(
+      (SemanticsNode n) => n.getSemanticsData().label == label,
+    );
+  }
+
+  bool merged(WidgetTester tester, String label) {
+    return tester.semantics.simulatedAccessibilityTraversal().any(
+      (SemanticsNode n) => n.getSemanticsData().label == label,
+    );
+  }
+
+  testWidgets('traits: meaningful image has image flag, decorative excluded', (
+    WidgetTester tester,
+  ) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+    await openTraitsSection(tester);
+
+    expect(
+      mergedNode(
+        tester,
+        'Traits & Attributes',
+      ).getSemanticsData().flagsCollection.isHeader,
+      isTrue,
+    );
+    final SemanticsData image = mergedNode(
+      tester,
+      'Sunset over the bay',
+    ).getSemanticsData();
+    expect(image.flagsCollection.isImage, isTrue);
+
+    // The decorative icon renders but produces no semantics node at all.
+    expect(find.byIcon(CupertinoIcons.sparkles), findsOneWidget);
+    expect(
+      tester.getSemantics(find.byIcon(CupertinoIcons.sparkles)).label,
+      isEmpty,
+    );
+    handle.dispose();
+  });
+
+  testWidgets('traits: hidden row absent until toggled, offstage never', (
+    WidgetTester tester,
+  ) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+    await openTraitsSection(tester);
+
+    expect(find.text('You should not hear this'), findsNothing);
+    expect(merged(tester, 'You should not hear this'), isFalse);
+    expect(merged(tester, 'Offstage text'), isFalse);
+
+    await tester.ensureVisible(find.text('Toggle hidden row'));
+    await tester.tap(find.text('Toggle hidden row'));
+    await tester.pumpAndSettle();
+    expect(find.text('Hidden row -> shown'), findsOneWidget);
+    expect(find.text('You should not hear this'), findsOneWidget);
+    expect(merged(tester, 'You should not hear this'), isTrue);
+    // Offstage text is laid out but never an accessibility element.
+    expect(find.text('Offstage text', skipOffstage: false), findsOneWidget);
+    expect(merged(tester, 'Offstage text'), isFalse);
+
+    await tester.tap(find.text('Toggle hidden row'));
+    await tester.pumpAndSettle();
+    expect(find.text('Hidden row -> hidden'), findsOneWidget);
+    expect(merged(tester, 'You should not hear this'), isFalse);
+    handle.dispose();
+  });
+
+  testWidgets('traits: Send button node carries the hint', (
+    WidgetTester tester,
+  ) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+    await openTraitsSection(tester);
+
+    final SemanticsData send = mergedNode(tester, 'Send').getSemanticsData();
+    expect(send.flagsCollection.isButton, isTrue);
+    expect(send.hint, 'Sends the message');
+    expect(send.hasAction(SemanticsAction.tap), isTrue);
+
+    await tester.ensureVisible(find.text('Send'));
+    await tester.tap(find.text('Send'));
+    await tester.pumpAndSettle();
+    expect(find.text('Send tapped'), findsOneWidget);
+    handle.dispose();
+  });
+
+  testWidgets('traits: attributed labels carry spell-out and locale ranges', (
+    WidgetTester tester,
+  ) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+    await openTraitsSection(tester);
+
+    final SemanticsData order = mergedNode(
+      tester,
+      'Order ID: ABC123',
+    ).getSemanticsData();
+    final StringAttribute spellOut = order.attributedLabel.attributes.single;
+    expect(spellOut, isA<SpellOutStringAttribute>());
+    expect(spellOut.range, const TextRange(start: 10, end: 16));
+
+    final SemanticsData bonjour = mergedNode(
+      tester,
+      'Bonjour tout le monde',
+    ).getSemanticsData();
+    final StringAttribute locale = bonjour.attributedLabel.attributes.single;
+    expect(locale, isA<LocaleStringAttribute>());
+    expect(locale.range, const TextRange(start: 0, end: 21));
+    expect((locale as LocaleStringAttribute).locale.toLanguageTag(), 'fr-FR');
+    handle.dispose();
+  });
+
+  testWidgets('traits: focus-highlight row exposes focus actions and logs', (
+    WidgetTester tester,
+  ) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+    await openTraitsSection(tester);
+
+    final SemanticsNode row = mergedNode(tester, 'Focus-highlight row');
+    final SemanticsData data = row.getSemanticsData();
+    expect(data.hasAction(SemanticsAction.didGainAccessibilityFocus), isTrue);
+    expect(data.hasAction(SemanticsAction.didLoseAccessibilityFocus), isTrue);
+
+    row.owner!.performAction(row.id, SemanticsAction.didGainAccessibilityFocus);
+    await tester.pumpAndSettle();
+    expect(find.text('VO focus -> gained (highlight row)'), findsOneWidget);
+
+    row.owner!.performAction(row.id, SemanticsAction.didLoseAccessibilityFocus);
+    await tester.pumpAndSettle();
+    expect(find.text('VO focus -> lost (highlight row)'), findsOneWidget);
+    handle.dispose();
+  });
+
+  testWidgets('scroll baseline horizontal strip has 20 chips, list scrolls', (
+    WidgetTester tester,
+  ) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+    await tester.pumpWidget(const FlutterA11yBenchmarkApp());
+    await tester.tap(find.text('Scroll Baseline'));
+    await tester.pumpAndSettle();
+
+    final Finder horizontal = find.byWidgetPredicate(
+      (Widget w) => w is ListView && w.scrollDirection == Axis.horizontal,
+    );
+    expect(horizontal, findsOneWidget);
+    final ListView strip = tester.widget<ListView>(horizontal);
+    expect(strip.childrenDelegate.estimatedChildCount, 20);
+    expect(strip.primary, isNot(true));
+    expect(find.text('Chip 1'), findsOneWidget);
+
+    // The strip scrolls horizontally all the way to the last chip.
+    await tester.drag(find.text('Chip 1'), const Offset(-3000, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Chip 20'), findsOneWidget);
+
+    // The vertical list is still the primary one and still scrolls.
+    expect(find.textContaining('contentOffset.y: 0.0'), findsOneWidget);
+    await tester.drag(find.text('Item #3'), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('contentOffset.y: 0.0'), findsNothing);
     handle.dispose();
   });
 }

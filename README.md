@@ -40,6 +40,12 @@ The Flutter iOS **embedder** — the code that turns Flutter's semantics tree in
 | `tap` / `dismiss` | `accessibilityActivate` / `accessibilityPerformEscape` (2-finger Z) | every control, every modal |
 | layout changes | `UIAccessibilityLayoutChanged` + refocus | state toggles, disclosure, route pop |
 | `SemanticsService.announce` | `UIAccessibilityAnnouncement` | Focus: Post Polite Announcement |
+| `isImage` (and decorative images excluded) | `.image` trait / no element | Traversal › Traits & Attributes: two images |
+| `isHidden` (not by scrolling) | element removed | Traversal: Toggle hidden row, Offstage text |
+| `hint` / `tooltip` | `accessibilityHint` | Traversal: Send button |
+| `attributedLabel` (`SpellOut`, `Locale`) | `accessibilityAttributedLabel` speech attributes | Traversal: "Order ID: ABC123", "Bonjour tout le monde" |
+| `onDidGain/LoseAccessibilityFocus` | focus callbacks dispatched to the node | Traversal: Focus-highlight row |
+| `scrollLeft` / `scrollRight`, nested scrollables | nested `FlutterSemanticsScrollView` | Scroll Baseline: horizontal chip strip |
 
 Not covered on purpose: `UiKitView` / WebView embedding (different rig), OS features Flutter doesn't implement (Eye Tracking, Audio Graphs, Reduce Motion…), Dynamic Type beyond the visual pass.
 
@@ -60,10 +66,12 @@ Not covered on purpose: `UiKitView` / WebView embedding (different rig), OS feat
 ### S — Scroll Baseline
 
 - [ ] **S1** Open **Scroll Baseline**. ⟶ *Compare:* first thing spoken.
+- [ ] **S1a** Swipe right from the header into the chip strip (`Chip 1`, `Chip 2`…) and keep going. ⟶ *Compare:* does the strip scroll sideways to reveal off-screen chips, and after the last chip do you land on `Item #0`?
+- [ ] **S1b** Tap once on `Chip 3`. 3-finger swipe **left**, then **right**. ⟶ *Compare:* what is spoken, and that only the strip moves (not the list).
 - [ ] **S2** Swipe right one element at a time from `Item #0` until you pass `Item #15` (past the bottom of the screen). ⟶ *Compare:* does the list scroll itself to keep up, and does any swipe jump somewhere unexpected?
 - [ ] **S3** Tap once on `Item #2`. 3-finger swipe **up**. ⟶ *Compare:* what is spoken, and the `Δy / viewportHeight` value in the header.
 - [ ] **S4** 3-finger swipe **down**. ⟶ *Compare:* what is spoken, and where are you?
-- [ ] **S5** Scroll to around `Item #30`. Tap the status bar (clock) once, then double-tap it. ⟶ *Compare:* does the list return to the top (`contentOffset.y: 0.0`)?
+- [ ] **S5** Scroll to around `Item #30`. Tap the status bar (clock) once, then double-tap it. ⟶ *Compare:* does the **list** return to the top (`contentOffset.y: 0.0`) — not the chip strip?
 
 ### T — Traversal Hierarchy
 
@@ -78,6 +86,11 @@ Not covered on purpose: `UiKitView` / WebView embedding (different rig), OS feat
 - [ ] **T9** Rotor → **Links**. Swipe down repeatedly. ⟶ *Compare:* the list of links.
 - [ ] **T10** Rotor → **Form Controls**. Swipe down repeatedly. ⟶ *Compare:* the list.
 - [ ] **T10a** Tap once on **Message from Alex** (the row after the links paragraph). Rotor → **Actions**. Swipe down twice, then double-tap on **Delete**. ⟶ *Compare:* what the row says on focus, the actions listed, and the status label after the double-tap.
+- [ ] **T10b** Swipe right from `Traits & Attributes` through the two pictures. ⟶ *Compare:* how many elements the pictures are (one or two), and what the first says (trait word and label).
+- [ ] **T10c** Swipe right past the pictures until you reach **Send**. ⟶ *Compare:* whether you passed any element saying "You should not hear this" or "Offstage text"; then double-tap **Toggle hidden row** and swipe right again. ⟶ *Compare:* the hidden row is now spoken (once).
+- [ ] **T10d** Tap once on **Send** and wait two seconds. ⟶ *Compare:* the hint spoken after the pause.
+- [ ] **T10e** Swipe right onto **Order ID: ABC123**, then onto **Bonjour tout le monde**. ⟶ *Compare:* is the ID spelled out letter by letter; is the French read with a French voice.
+- [ ] **T10f** Swipe right onto **Focus-highlight row**, then swipe right once more. ⟶ *Compare:* the row turns yellow while focused and clears when you leave; the status label logs gained/lost.
 - [ ] **T11** Tap once on **Notifications**, double-tap it, double-tap again. ⟶ *Compare:* what is spoken on focus and after each tap; is it one element or two?
 - [ ] **T12** Tap once on **Accept Terms**, double-tap it, swipe left then right to come back. ⟶ *Compare:* what is spoken on focus, on tap, and when you return.
 - [ ] **T13** Tap once on **Standard**, then swipe right twice (Express, Overnight). ⟶ *Compare:* what each one says — especially any state word on **Standard**.
@@ -134,6 +147,7 @@ For **each** of the six screens:
 - [ ] **C1** Open the screen. Say **"Show numbers."** ⟶ *Compare:* **how many badges** (UIKit __ / Flutter __), and what each badge sits on. Any badge on plain text, or any button without one, is a Different.
 - [ ] **C2** Say **"Show names."** ⟶ *Compare:* the list of names.
 - [ ] **C3** Say **"Tap \<name\>"** for every name on the screen (or **"Tap \<number\>"** if a name isn't recognised — note which). ⟶ *Compare:* does each one activate the right control?
+- [ ] **C3a** *(Traversal)* With the hidden row hidden, say **"Show numbers"** and count the badges in `Traits & Attributes`. ⟶ *Compare:* no badge on the hidden row, none on the decorative picture, exactly one on each button.
 - [ ] **C4** After changing some state (toggle a switch, select a tab, expand the section), say **"Show numbers"** again. ⟶ *Compare:* badges still aligned and the same count?
 
 Plus, on the screens where they apply:
@@ -191,4 +205,4 @@ Only use this if you cannot run the UIKit app alongside. `N` = depends on device
 
 ## Appendix — for triage, not for testers
 
-Issues previously filed against these surfaces, by step: T10a #183833 (custom actions) · H3–H5 #124361 · S2–S5 #189285 #193541 #191565 · T7 #138891 #175907 · T9 #159127 #166750 · T6 #171231-family · T11 #121636 · T12 #121636 (checkbox announced as switch was a documented decision — relitigate if the ruler disagrees) · T13–T14 #125495 (fixed P0; a Different here is a regression) · F3 #150260 · F6 #186178 · F8 #192171 · F10 #190320 · M4–M5, K4 #171231 · C1 (Traversal) #183821 · V2 #143437 #179687 · V4 #142065 · V6, K6 #184077.
+Issues previously filed against these surfaces, by step: T10a #183833 (custom actions) · S1a–S1b, S5 #191565 (nested scroll view intercepts status-bar tap) · H3–H5 #124361 · S2–S5 #189285 #193541 #191565 · T7 #138891 #175907 · T9 #159127 #166750 · T6 #171231-family · T11 #121636 · T12 #121636 (checkbox announced as switch was a documented decision — relitigate if the ruler disagrees) · T13–T14 #125495 (fixed P0; a Different here is a regression) · F3 #150260 · F6 #186178 · F8 #192171 · F10 #190320 · M4–M5, K4 #171231 · C1 (Traversal) #183821 · V2 #143437 #179687 · V4 #142065 · V6, K6 #184077.

@@ -41,6 +41,9 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
   bool _notificationsEnabled = false;
   bool _acceptedTerms = false;
   String _shippingSpeed = shippingSpeeds.first;
+  // "Traits & Attributes" section state.
+  bool _showHiddenRow = false;
+  bool _focusRowHighlighted = false;
   String _status = '';
   late final TapGestureRecognizer _termsLinkRecognizer;
   late final TapGestureRecognizer _privacyLinkRecognizer;
@@ -138,6 +141,21 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
     }
     setState(() => _shippingSpeed = value);
     _recordEvent('Shipping Speed radio -> $value');
+  }
+
+  void _toggleHiddenRow() {
+    setState(() => _showHiddenRow = !_showHiddenRow);
+    _recordEvent('Hidden row -> ${_showHiddenRow ? 'shown' : 'hidden'}');
+  }
+
+  void _onFocusRowGainedFocus() {
+    setState(() => _focusRowHighlighted = true);
+    _recordEvent('VO focus -> gained (highlight row)');
+  }
+
+  void _onFocusRowLostFocus() {
+    setState(() => _focusRowHighlighted = false);
+    _recordEvent('VO focus -> lost (highlight row)');
   }
 
   @override
@@ -285,6 +303,8 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
                 ),
               ),
               const SizedBox(height: 16),
+              _buildTraitsAndAttributesSection(bodyStyle, secondaryLabelColor),
+              const SizedBox(height: 16),
               Text(
                 _status,
                 textAlign: TextAlign.center,
@@ -376,6 +396,129 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
                   ),
                 ),
             ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// "Traits & Attributes": one small fixture per `SemanticsObject.mm` input
+  /// that no other screen exercises — image trait, hidden/offstage elements,
+  /// hint, attributed label (spell-out / locale), and accessibility-focus
+  /// gain/lose callbacks.
+  Widget _buildTraitsAndAttributesSection(
+    TextStyle bodyStyle,
+    Color secondaryLabelColor,
+  ) {
+    final TextStyle titleStyle = CupertinoTheme.of(context)
+        .textTheme
+        .navTitleTextStyle;
+    final TextStyle captionStyle = bodyStyle.copyWith(
+      fontSize: 13,
+      color: secondaryLabelColor,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Semantics(
+          header: true,
+          child: Text('Traits & Attributes', style: titleStyle),
+        ),
+        const SizedBox(height: 8),
+        // 1. Image trait: a meaningful image (`SemanticsFlag.isImage` + label)
+        // next to a decorative one that is excluded from the tree entirely.
+        Row(
+          children: <Widget>[
+            Semantics(
+              image: true,
+              label: 'Sunset over the bay',
+              child: const Icon(CupertinoIcons.photo, size: 44),
+            ),
+            const SizedBox(width: 16),
+            const ExcludeSemantics(
+              child: Icon(CupertinoIcons.sparkles, size: 44),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text('Meaningful image / Decorative image', style: captionStyle),
+        const SizedBox(height: 8),
+        // 2. Hidden elements: a row that is only built while shown, plus a
+        // permanently offstage text that must never become an element.
+        CupertinoButton.tinted(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          onPressed: _toggleHiddenRow,
+          child: const Text('Toggle hidden row'),
+        ),
+        Visibility(
+          visible: _showHiddenRow,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Text('You should not hear this', style: bodyStyle),
+          ),
+        ),
+        Offstage(
+          offstage: true,
+          child: Text('Offstage text', style: bodyStyle),
+        ),
+        const SizedBox(height: 8),
+        // 3. Hint: merges into the CupertinoButton's own semantics node
+        // (`accessibilityHint` on iOS).
+        Semantics(
+          hint: 'Sends the message',
+          child: CupertinoButton.tinted(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            onPressed: () => _recordEvent('Send tapped'),
+            child: const Text('Send'),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // 4. Attributed labels: spell-out range and locale range
+        // (`accessibilityAttributedLabel`). The Semantics wrapper supplies the
+        // label itself, so the Text's own semantics are excluded to avoid
+        // announcing it twice.
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Semantics(
+            excludeSemantics: true,
+            attributedLabel: AttributedString(
+              'Order ID: ABC123',
+              attributes: <StringAttribute>[
+                SpellOutStringAttribute(
+                  range: const TextRange(start: 10, end: 16),
+                ),
+              ],
+            ),
+            child: Text('Order ID: ABC123', style: bodyStyle),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Semantics(
+            excludeSemantics: true,
+            attributedLabel: AttributedString(
+              'Bonjour tout le monde',
+              attributes: <StringAttribute>[
+                LocaleStringAttribute(
+                  range: const TextRange(start: 0, end: 21),
+                  locale: const Locale('fr', 'FR'),
+                ),
+              ],
+            ),
+            child: Text('Bonjour tout le monde', style: bodyStyle),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // 5. Accessibility-focus callbacks: the row highlights while VoiceOver
+        // focus is on it (`accessibilityElementDidBecomeFocused` /
+        // `accessibilityElementDidLoseFocus`).
+        Semantics(
+          onDidGainAccessibilityFocus: _onFocusRowGainedFocus,
+          onDidLoseAccessibilityFocus: _onFocusRowLostFocus,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            color: _focusRowHighlighted ? CupertinoColors.systemYellow : null,
+            child: Text('Focus-highlight row', style: bodyStyle),
           ),
         ),
       ],

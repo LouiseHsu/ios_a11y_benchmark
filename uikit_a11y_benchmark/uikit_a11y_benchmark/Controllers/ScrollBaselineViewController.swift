@@ -13,6 +13,7 @@ final class ScrollBaselineViewController: UIViewController {
     private let deltaLabel = UILabel()
     private let ratioLabel = UILabel()
     private let pageScrolledLabel = UILabel()
+    private let chipStripScrollView = UIScrollView()
     private let tableView = UITableView(frame: .zero, style: .plain)
 
     private var previousFrameOffsetY: CGFloat = 0
@@ -26,6 +27,7 @@ final class ScrollBaselineViewController: UIViewController {
         view.backgroundColor = .systemBackground
 
         configureHeader()
+        configureChipStrip()
         configureTableView()
         updateMetricsDisplay(contentOffsetY: 0, viewportHeight: 0, deltaY: 0, stepDeltaY: 0)
     }
@@ -87,6 +89,59 @@ final class ScrollBaselineViewController: UIViewController {
         ])
     }
 
+    /// Horizontal strip of 20 chips between the metrics header and the table.
+    /// Plain views only; nothing here touches UIAccessibility — the fixture is
+    /// how the system handles a nested horizontal scroll view by itself.
+    private func configureChipStrip() {
+        chipStripScrollView.translatesAutoresizingMaskIntoConstraints = false
+        chipStripScrollView.showsHorizontalScrollIndicator = true
+        // Keep the status-bar tap targeting the table, not this strip.
+        chipStripScrollView.scrollsToTop = false
+
+        let chipStack = UIStackView()
+        chipStack.translatesAutoresizingMaskIntoConstraints = false
+        chipStack.axis = .horizontal
+        chipStack.alignment = .center
+        chipStack.spacing = 8
+
+        for index in 1...20 {
+            let chip = UIView()
+            chip.backgroundColor = .secondarySystemFill
+            chip.layer.cornerRadius = 12
+
+            let chipLabel = UILabel()
+            chipLabel.translatesAutoresizingMaskIntoConstraints = false
+            chipLabel.text = "Chip \(index)"
+            chipLabel.font = .preferredFont(forTextStyle: .body)
+            chipLabel.textAlignment = .center
+            chip.addSubview(chipLabel)
+
+            NSLayoutConstraint.activate([
+                chip.widthAnchor.constraint(equalToConstant: 120),
+                chip.heightAnchor.constraint(equalToConstant: 56),
+                chipLabel.centerXAnchor.constraint(equalTo: chip.centerXAnchor),
+                chipLabel.centerYAnchor.constraint(equalTo: chip.centerYAnchor),
+            ])
+            chipStack.addArrangedSubview(chip)
+        }
+
+        chipStripScrollView.addSubview(chipStack)
+        view.addSubview(chipStripScrollView)
+
+        NSLayoutConstraint.activate([
+            chipStripScrollView.topAnchor.constraint(equalTo: headerContainerView.bottomAnchor),
+            chipStripScrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            chipStripScrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            chipStripScrollView.heightAnchor.constraint(equalToConstant: 72),
+
+            chipStack.topAnchor.constraint(equalTo: chipStripScrollView.contentLayoutGuide.topAnchor),
+            chipStack.leadingAnchor.constraint(equalTo: chipStripScrollView.contentLayoutGuide.leadingAnchor, constant: 16),
+            chipStack.trailingAnchor.constraint(equalTo: chipStripScrollView.contentLayoutGuide.trailingAnchor, constant: -16),
+            chipStack.bottomAnchor.constraint(equalTo: chipStripScrollView.contentLayoutGuide.bottomAnchor),
+            chipStack.heightAnchor.constraint(equalTo: chipStripScrollView.frameLayoutGuide.heightAnchor),
+        ])
+    }
+
     private func configureTableView() {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.scrollsToTop = true
@@ -97,7 +152,7 @@ final class ScrollBaselineViewController: UIViewController {
         view.addSubview(tableView)
 
         NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: headerContainerView.bottomAnchor),
+            tableView.topAnchor.constraint(equalTo: chipStripScrollView.bottomAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
