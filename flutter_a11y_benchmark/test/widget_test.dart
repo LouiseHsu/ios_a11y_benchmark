@@ -492,16 +492,16 @@ void traitsAndAttributesTests() {
     final SemanticsHandle handle = tester.ensureSemantics();
     await openTraitsSection(tester);
 
-    expect(find.text('You should not hear this'), findsNothing);
-    expect(merged(tester, 'You should not hear this'), isFalse);
+    expect(find.text('Hidden row (visible only after toggle)'), findsNothing);
+    expect(merged(tester, 'Hidden row (visible only after toggle)'), isFalse);
     expect(merged(tester, 'Offstage text'), isFalse);
 
     await tester.ensureVisible(find.text('Toggle hidden row'));
     await tester.tap(find.text('Toggle hidden row'));
     await tester.pumpAndSettle();
     expect(find.text('Hidden row -> shown'), findsOneWidget);
-    expect(find.text('You should not hear this'), findsOneWidget);
-    expect(merged(tester, 'You should not hear this'), isTrue);
+    expect(find.text('Hidden row (visible only after toggle)'), findsOneWidget);
+    expect(merged(tester, 'Hidden row (visible only after toggle)'), isTrue);
     // Offstage text is laid out but never an accessibility element.
     expect(find.text('Offstage text', skipOffstage: false), findsOneWidget);
     expect(merged(tester, 'Offstage text'), isFalse);
@@ -509,7 +509,7 @@ void traitsAndAttributesTests() {
     await tester.tap(find.text('Toggle hidden row'));
     await tester.pumpAndSettle();
     expect(find.text('Hidden row -> hidden'), findsOneWidget);
-    expect(merged(tester, 'You should not hear this'), isFalse);
+    expect(merged(tester, 'Hidden row (visible only after toggle)'), isFalse);
     handle.dispose();
   });
 

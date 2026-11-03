@@ -454,7 +454,7 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
           visible: _showHiddenRow,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Text('You should not hear this', style: bodyStyle),
+            child: Text('Hidden row (visible only after toggle)', style: bodyStyle),
           ),
         ),
         Offstage(

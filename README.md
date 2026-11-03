@@ -87,7 +87,7 @@ Not covered on purpose: `UiKitView` / WebView embedding (different rig), OS feat
 - [ ] **T10** Rotor → **Form Controls**. Swipe down repeatedly. ⟶ *Compare:* the list.
 - [ ] **T10a** Tap once on **Message from Alex** (the row after the links paragraph). Rotor → **Actions**. Swipe down twice, then double-tap on **Delete**. ⟶ *Compare:* what the row says on focus, the actions listed, and the status label after the double-tap.
 - [ ] **T10b** Swipe right from `Traits & Attributes` through the two pictures. ⟶ *Compare:* how many elements the pictures are (one or two), and what the first says (trait word and label).
-- [ ] **T10c** Swipe right past the pictures until you reach **Send**. ⟶ *Compare:* whether you passed any element saying "You should not hear this" or "Offstage text"; then double-tap **Toggle hidden row** and swipe right again. ⟶ *Compare:* the hidden row is now spoken (once).
+- [ ] **T10c** Swipe right past the pictures until you reach **Send**. ⟶ *Compare:* whether you passed any element saying "Hidden row (visible only after toggle)" or "Offstage text"; then double-tap **Toggle hidden row** and swipe right again. ⟶ *Compare:* the hidden row is now spoken (once).
 - [ ] **T10d** Tap once on **Send** and wait two seconds. ⟶ *Compare:* the hint spoken after the pause.
 - [ ] **T10e** Swipe right onto **Order ID: ABC123**, then onto **Bonjour tout le monde**. ⟶ *Compare:* is the ID spelled out letter by letter; is the French read with a French voice.
 - [ ] **T10f** Swipe right onto **Focus-highlight row**, then swipe right once more. ⟶ *Compare:* the row turns yellow while focused and clears when you leave; the status label logs gained/lost.

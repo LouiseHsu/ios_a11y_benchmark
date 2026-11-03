@@ -266,7 +266,7 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
             for: .touchUpInside
         )
 
-        hiddenRowLabel.text = "You should not hear this"
+        hiddenRowLabel.text = "Hidden row (visible only after toggle)"
         hiddenRowLabel.font = .preferredFont(forTextStyle: .body)
         hiddenRowLabel.adjustsFontForContentSizeCategory = true
         hiddenRowLabel.numberOfLines = 0
