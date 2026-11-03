@@ -4,7 +4,9 @@ import os
 final class ScrollBaselineViewController: UIViewController {
 
     private static let cellReuseIdentifier = "ScrollBaselineCell"
+    private static let chipCellReuseIdentifier = "ScrollBaselineChipCell"
     private static let rowCount = 100
+    private static let chipCount = 20
     private static let logger = Logger(subsystem: "com.example.uikit-a11y-benchmark", category: "ScrollBaseline")
 
     private let headerContainerView = UIView()
@@ -13,7 +15,14 @@ final class ScrollBaselineViewController: UIViewController {
     private let deltaLabel = UILabel()
     private let ratioLabel = UILabel()
     private let pageScrolledLabel = UILabel()
-    private let chipStripScrollView = UIScrollView()
+    private let chipCollectionView: UICollectionView = {
+        let layout = UICollectionViewFlowLayout()
+        layout.scrollDirection = .horizontal
+        layout.itemSize = CGSize(width: 120, height: 56)
+        layout.minimumLineSpacing = 8
+        layout.sectionInset = UIEdgeInsets(top: 8, left: 16, bottom: 8, right: 16)
+        return UICollectionView(frame: .zero, collectionViewLayout: layout)
+    }()
     private let tableView = UITableView(frame: .zero, style: .plain)
 
     private var previousFrameOffsetY: CGFloat = 0
@@ -90,55 +99,26 @@ final class ScrollBaselineViewController: UIViewController {
     }
 
     /// Horizontal strip of 20 chips between the metrics header and the table.
-    /// Plain views only; nothing here touches UIAccessibility — the fixture is
+    /// A horizontal UICollectionView so cells are recycled like Flutter's
+    /// ListView.builder. Nothing here touches UIAccessibility — the fixture is
     /// how the system handles a nested horizontal scroll view by itself.
     private func configureChipStrip() {
-        chipStripScrollView.translatesAutoresizingMaskIntoConstraints = false
-        chipStripScrollView.showsHorizontalScrollIndicator = true
+        chipCollectionView.translatesAutoresizingMaskIntoConstraints = false
+        chipCollectionView.backgroundColor = .clear
+        chipCollectionView.showsHorizontalScrollIndicator = true
         // Keep the status-bar tap targeting the table, not this strip.
-        chipStripScrollView.scrollsToTop = false
-
-        let chipStack = UIStackView()
-        chipStack.translatesAutoresizingMaskIntoConstraints = false
-        chipStack.axis = .horizontal
-        chipStack.alignment = .center
-        chipStack.spacing = 8
-
-        for index in 1...20 {
-            let chip = UIView()
-            chip.backgroundColor = .secondarySystemFill
-            chip.layer.cornerRadius = 12
-
-            let chipLabel = UILabel()
-            chipLabel.translatesAutoresizingMaskIntoConstraints = false
-            chipLabel.text = "Chip \(index)"
-            chipLabel.font = .preferredFont(forTextStyle: .body)
-            chipLabel.textAlignment = .center
-            chip.addSubview(chipLabel)
-
-            NSLayoutConstraint.activate([
-                chip.widthAnchor.constraint(equalToConstant: 120),
-                chip.heightAnchor.constraint(equalToConstant: 56),
-                chipLabel.centerXAnchor.constraint(equalTo: chip.centerXAnchor),
-                chipLabel.centerYAnchor.constraint(equalTo: chip.centerYAnchor),
-            ])
-            chipStack.addArrangedSubview(chip)
-        }
-
-        chipStripScrollView.addSubview(chipStack)
-        view.addSubview(chipStripScrollView)
+        chipCollectionView.scrollsToTop = false
+        // Delegate intentionally left nil so this strip never reaches the
+        // scroll-view delegate methods that feed the table metrics.
+        chipCollectionView.dataSource = self
+        chipCollectionView.register(ChipCell.self, forCellWithReuseIdentifier: Self.chipCellReuseIdentifier)
+        view.addSubview(chipCollectionView)
 
         NSLayoutConstraint.activate([
-            chipStripScrollView.topAnchor.constraint(equalTo: headerContainerView.bottomAnchor),
-            chipStripScrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            chipStripScrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            chipStripScrollView.heightAnchor.constraint(equalToConstant: 72),
-
-            chipStack.topAnchor.constraint(equalTo: chipStripScrollView.contentLayoutGuide.topAnchor),
-            chipStack.leadingAnchor.constraint(equalTo: chipStripScrollView.contentLayoutGuide.leadingAnchor, constant: 16),
-            chipStack.trailingAnchor.constraint(equalTo: chipStripScrollView.contentLayoutGuide.trailingAnchor, constant: -16),
-            chipStack.bottomAnchor.constraint(equalTo: chipStripScrollView.contentLayoutGuide.bottomAnchor),
-            chipStack.heightAnchor.constraint(equalTo: chipStripScrollView.frameLayoutGuide.heightAnchor),
+            chipCollectionView.topAnchor.constraint(equalTo: headerContainerView.bottomAnchor),
+            chipCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            chipCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            chipCollectionView.heightAnchor.constraint(equalToConstant: 72),
         ])
     }
 
@@ -152,7 +132,7 @@ final class ScrollBaselineViewController: UIViewController {
         view.addSubview(tableView)
 
         NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: chipStripScrollView.bottomAnchor),
+            tableView.topAnchor.constraint(equalTo: chipCollectionView.bottomAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -214,6 +194,58 @@ extension ScrollBaselineViewController: UITableViewDataSource {
         content.secondaryTextProperties.color = .secondaryLabel
         cell.contentConfiguration = content
         return cell
+    }
+}
+
+// MARK: - UICollectionViewDataSource (chip strip)
+
+extension ScrollBaselineViewController: UICollectionViewDataSource {
+
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        return Self.chipCount
+    }
+
+    func collectionView(
+        _ collectionView: UICollectionView,
+        cellForItemAt indexPath: IndexPath
+    ) -> UICollectionViewCell {
+        let cell = collectionView.dequeueReusableCell(
+            withReuseIdentifier: Self.chipCellReuseIdentifier,
+            for: indexPath
+        )
+        if let chipCell = cell as? ChipCell {
+            chipCell.label.text = "Chip \(indexPath.item + 1)"
+        }
+        return cell
+    }
+}
+
+// MARK: - ChipCell
+
+/// Recycled chip cell for the horizontal strip. Plain label only; no
+/// accessibility code so the system's default handling is what gets measured.
+final class ChipCell: UICollectionViewCell {
+
+    let label = UILabel()
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        contentView.backgroundColor = .secondarySystemFill
+        contentView.layer.cornerRadius = 12
+
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = .preferredFont(forTextStyle: .body)
+        label.textAlignment = .center
+        contentView.addSubview(label)
+
+        NSLayoutConstraint.activate([
+            label.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+        ])
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 }
 
