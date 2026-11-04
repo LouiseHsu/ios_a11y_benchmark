@@ -55,11 +55,13 @@ Setup for all entries unless noted: iPhone, iOS 26, both apps release builds, Fl
 - **Repro:** Open **Anchored Popup Menu**. Say "Show numbers". Also note VoiceOver caption after opening.
 - **UIKit:** only the three menu items are badged (plus system). VoiceOver focus moves into the menu (`Anchored Options`).
 - **Flutter:** Background Button 1/2, Present Alert/Sheet buttons and all three tabs are badged and activatable while the menu is open. VoiceOver focus stays on the anchor button.
+- **VoiceOver confirmation (`M4`):** UIKit traversal with the menu open is `Anchored Options` (title) → Option Alpha/Beta/Gamma/Delta → **"Dismiss context menu"** (the scrim), then stops. Flutter traversal is Option Alpha/Beta/Gamma/Delta → `Present Alert Dialog` → `Present Modal Sheet` → tab bar… — it walks out of the menu into the background, and there is no dismiss element. This is the symptom #171548 was filed for; reproduced on `CupertinoMenuAnchor`.
+- **Twin note:** UIKit's first element is the menu *title* because `UIMenu(title:)` has one; `CupertinoMenuAnchor` has no title parameter. Intentional difference, no action.
 - **Also:** UIKit's menu scrim is an accessibility element named **"Dismiss"** (Voice Control shows it; "Tap Dismiss" closes the menu). Flutter's menu has no scrim element at all — no barrier means no blocking *and* no named way out. Flutter does provide this for real modal routes (`ModalBarrier.barrierLabel` → "Dismiss"), so compare the sheet with "Show names" on both: the sheet should offer Dismiss on both sides, the menu only on UIKit.
 - **Cause:** `RawMenuAnchor` renders through `OverlayPortal` (`raw_menu_anchor.dart` ~869), not a modal route: no barrier, no `BlockSemantics`, no route change → background nodes stay in the tree, no screen-changed notification. Embedder reports what it is given.
 - **Owner:** framework (`RawMenuAnchor`; affects Material `MenuAnchor` and `CupertinoMenuAnchor`).
 - **Related:** **#171548** (open, P2, customer: google) — filed for screen readers; this shows Voice Control can *activate* background controls, which is worse.
-- **Status:** `observed` → comment on #171548 with the Voice Control screenshot and severity note.
+- **Status:** `confirmed` (VoiceOver + Voice Control) → comment on #171548: Cupertino repro, Voice Control can *activate* background controls, no dismiss affordance; fix is to present through a route/`ModalBarrier` like the alert and sheet already do.
 
 ## F6 · After a route push, VoiceOver focus goes to Back (Flutter) vs first content element (UIKit)
 
