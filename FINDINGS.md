@@ -55,6 +55,7 @@ Setup for all entries unless noted: iPhone, iOS 26, both apps release builds, Fl
 - **Repro:** Open **Anchored Popup Menu**. Say "Show numbers". Also note VoiceOver caption after opening.
 - **UIKit:** only the three menu items are badged (plus system). VoiceOver focus moves into the menu (`Anchored Options`).
 - **Flutter:** Background Button 1/2, Present Alert/Sheet buttons and all three tabs are badged and activatable while the menu is open. VoiceOver focus stays on the anchor button.
+- **Also:** UIKit's menu scrim is an accessibility element named **"Dismiss"** (Voice Control shows it; "Tap Dismiss" closes the menu). Flutter's menu has no scrim element at all — no barrier means no blocking *and* no named way out. Flutter does provide this for real modal routes (`ModalBarrier.barrierLabel` → "Dismiss"), so compare the sheet with "Show names" on both: the sheet should offer Dismiss on both sides, the menu only on UIKit.
 - **Cause:** `RawMenuAnchor` renders through `OverlayPortal` (`raw_menu_anchor.dart` ~869), not a modal route: no barrier, no `BlockSemantics`, no route change → background nodes stay in the tree, no screen-changed notification. Embedder reports what it is given.
 - **Owner:** framework (`RawMenuAnchor`; affects Material `MenuAnchor` and `CupertinoMenuAnchor`).
 - **Related:** **#171548** (open, P2, customer: google) — filed for screen readers; this shows Voice Control can *activate* background controls, which is worse.
