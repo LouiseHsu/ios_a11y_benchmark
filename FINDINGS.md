@@ -111,14 +111,11 @@ Setup for all entries unless noted: iPhone, iOS 26, both apps release builds, Fl
 - **Also observed:** neither side exposes a "Dismiss" scrim element for the sheet (Same). Re-check once detents match.
 - **Status:** `observed`.
 
-## F11 · `CupertinoTextField` exposes a "Clear" target to Voice Control while the clear button is not shown
+## F11 · (retracted — twin config mismatch) "Clear" button visible/exposed on Flutter but not UIKit when unfocused
 
-- **Screen / step:** Focus & Keyboard · Voice Control `C2`, field not editing (`clearButtonMode: OverlayVisibilityMode.editing`).
-- **UIKit:** `UITextField(clearButtonMode: .whileEditing)` — no clear button exists until editing; no badge.
-- **Flutter:** a `Clear` badge sits at the field's trailing edge with no ✕ drawn. The hidden clear button appears to remain in the semantics tree.
-- **To confirm:** VoiceOver, swipe right from the unfocused field — does it land on "Clear text, Button" with nothing visible?
-- **Owner:** cupertino_ui (`CupertinoTextField` clear-button visibility vs semantics). Not the embedder.
-- **Status:** `observed`.
+- **What it was:** `UITextField.clearButtonMode = .whileEditing` shows the button only while first responder; `CupertinoTextField(clearButtonMode: OverlayVisibilityMode.editing)` shows it whenever the text is **non-empty** (docs: "includes prefilled text"). Same name, different predicate — so Flutter correctly drew and exposed a clear button that UIKit's config didn't. Voice Control was right on both sides.
+- **Resolution:** both twins now use `.always`, the only mode with identical semantics. Not an accessibility bug.
+- **Side note (not a11y):** there is no Flutter mode equivalent to UIKit's "while focused"; minor Cupertino API-fidelity gap.
 
 ## Confirmed Same (worth knowing)
 

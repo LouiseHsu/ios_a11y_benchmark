@@ -139,7 +139,10 @@ final class FocusKeyboardViewController: UIViewController {
         textField.placeholder = placeholder
         textField.text = initialText
         textField.isSecureTextEntry = isSecure
-        textField.clearButtonMode = .whileEditing
+        // .always on both twins: UIKit's .whileEditing (first responder) and
+        // Flutter's OverlayVisibilityMode.editing (text non-empty) mean different
+        // things, so .always is the only mode with identical behaviour.
+        textField.clearButtonMode = .always
         textField.returnKeyType = .done
         textField.delegate = self
         textField.addTarget(self, action: #selector(textFieldEditingChanged(_:)), for: .editingChanged)

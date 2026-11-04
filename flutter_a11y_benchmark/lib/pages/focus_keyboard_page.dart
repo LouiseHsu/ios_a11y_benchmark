@@ -137,12 +137,14 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
               const _SectionLabel(
                 'Top Input Region (Pre-filled + Placeholder)',
               ),
-              // UITextField(clearButtonMode = .whileEditing) twin.
+              // UITextField(clearButtonMode = .always) twin. Note Flutter's
+              // OverlayVisibilityMode.editing means "text non-empty", not
+              // "focused" like UIKit's .whileEditing; .always matches on both.
               CupertinoTextField(
                 controller: _topController,
                 focusNode: _topFocus,
                 placeholder: 'Enter username',
-                clearButtonMode: OverlayVisibilityMode.editing,
+                clearButtonMode: OverlayVisibilityMode.always,
                 textInputAction: TextInputAction.done,
                 padding: const EdgeInsets.all(12),
               ),
