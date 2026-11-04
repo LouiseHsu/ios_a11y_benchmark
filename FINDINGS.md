@@ -90,6 +90,16 @@ Setup for all entries unless noted: iPhone, iOS 26, both apps release builds, Fl
 - **Cause:** `UITableViewCell`s are selectable → Voice Control treats them as actionable. Flutter's rows were two `Text`s with no `onTap` → correctly not actionable. Not a Flutter bug; the twins differed.
 - **Resolution:** Flutter Scroll Baseline / Sliver rows now have an `onTap` that logs to the status line, matching a native selectable list. Re-run `C1`/`C2` on Scroll Baseline: rows should now be badged and named on both.
 
+## F9 · Merged multi-line labels reach iOS joined by "\n"; Voice Control displays them run together
+
+- **Screen / step:** Scroll Baseline · Voice Control `C2` ("Show names"), any two-line row.
+- **UIKit:** cell label is `"Item #0, Baseline scroll row 1 of 100"`; "Show names" displays `Item 0`.
+- **Flutter:** merged label is `"Item #0\nBaseline scroll row 1 of 100"`; "Show names" displays `Item 0Baseline…`. Speech matching still works ("Tap Item 3" and "Tap Item 3 Baseline" both resolve) — display only.
+- **Cause:** the framework joins merged child labels with a literal newline (`semantics.dart` `_concatAttributedString`: `… + AttributedString('\n') + …`); the iOS embedder passes it through unchanged to `accessibilityLabel` (and appends tooltips the same way, `SemanticsObject.mm` ~592). VoiceOver speaks `\n` as a pause so it is inaudible there; Voice Control renders the string.
+- **Owner:** embedder (translate `\n` → `", "` for iOS, matching UIKit's convention, in `accessibilityLabel`/`accessibilityAttributedLabel`); alternatively framework (platform-aware separator). Twin construction is not at fault — both sides are the idiomatic two-line selectable row.
+- **Severity:** cosmetic (P3-ish) but universal: every two-line list row in every Flutter iOS app.
+- **Status:** `confirmed`.
+
 ## Confirmed Same (worth knowing)
 
 - **Hidden row** (`T10c`): not reachable until toggled; both announce it once shown. `isHidden` path OK.
