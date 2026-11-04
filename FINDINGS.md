@@ -4,7 +4,7 @@ Divergences observed while running the twin apps, with repro steps, what each ap
 
 Legend — **Owner:** who would fix it. **Status:** `observed` (seen once, not yet re-run) · `confirmed` (re-run, stable) · `filed #N` · `commented #N` · `same` (recorded for the record, no action).
 
-Setup for all entries unless noted: iPhone, iOS 26, both apps release builds, Flutter master (3.50.0-x), `ios_a11y_benchmark` at the commit named in the entry.
+Setup for all entries unless noted: iPhone, iOS 26, both apps release builds, Flutter master (3.50.0-x), `ios_a11y_benchmark` at the commit named in the entry. **Assistive technologies are run one at a time** (VoiceOver pass with Voice Control off; Voice Control pass with VoiceOver off) unless an entry says otherwise — some embedder code paths branch on `isVoiceOverRunning`.
 
 ---
 
@@ -34,6 +34,7 @@ Setup for all entries unless noted: iPhone, iOS 26, both apps release builds, Fl
 
 - **Screen / step:** Traversal Hierarchy (`C1`: badge at the origin of the page's `SingleChildScrollView`), Scroll Baseline (`C1`: badge at the origin of the horizontal chip strip). Reproduced on two screens.
 - **Repro:** Voice Control on (VoiceOver off). Say "Show numbers". A badge sits at the top-left corner of a scroll view, over no control. "Show names" shows nothing for it; "Tap N" does nothing.
+- **Condition:** reproduces **only with VoiceOver off** (the normal Voice Control configuration). With VoiceOver also running, the scroll view takes the other branch of `isAccessibilityElement` and the badge disappears — which is why early runs with both technologies on did not show it. Triage must test with VoiceOver off.
 - **UIKit:** `UITableView` / `UICollectionView` are never elements themselves; only cells are badged.
 - **Cause:** `FlutterSemanticsScrollView.isAccessibilityElement` — when VoiceOver is **not** running it returns YES for any scroll view whose `contentSize` exceeds its frame (a branch added so Switch Control / XCUITest can see scrollables). Voice Control runs with VoiceOver off, so it gets a nameless element with `UIScrollView`'s default `accessibilityRespondsToUserInteraction`, and badges it at the frame origin. There is no `accessibilityRespondsToUserInteraction` override in `FlutterSemanticsScrollView.mm`.
 - **Fix candidates:** return `NO` from `accessibilityRespondsToUserInteraction` on `FlutterSemanticsScrollView` (scrolling is driven by scroll commands, not tap); or gate the overflow branch on `UIAccessibilityIsSwitchControlRunning()`.
