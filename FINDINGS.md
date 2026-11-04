@@ -101,6 +101,16 @@ Setup for all entries unless noted: iPhone, iOS 26, both apps release builds, Fl
 - **Severity:** cosmetic (P3-ish) but universal: every two-line list row in every Flutter iOS app.
 - **Status:** `confirmed`.
 
+## F10 · `CupertinoSheetRoute` drag handle has no accessibility element
+
+- **Screen / step:** Modal Barrier · sheet open · Voice Control `C2`, VoiceOver `M11`.
+- **UIKit:** the grabber is an element (label "Sheet grabber"; Voice Control shows `Sheet`); VoiceOver can focus it and use it to dismiss.
+- **Flutter:** the handle is decorative only — no node, no badge, no name; VoiceOver skips it.
+- **Owner:** cupertino_ui (`CupertinoSheetRoute` / `showCupertinoSheet`). Not the embedder.
+- **Twin note:** UIKit sheet detents changed from `[.medium(), .large()]` to `[.large()]` (commit after `cacb529`) so both twins present the same full-height sheet; `CupertinoSheetRoute` has no detents, so UIKit's grabber *resize* semantics are not a fair expectation — the missing *element* is.
+- **Also observed:** neither side exposes a "Dismiss" scrim element for the sheet (Same). Re-check once detents match.
+- **Status:** `observed`.
+
 ## Confirmed Same (worth knowing)
 
 - **Hidden row** (`T10c`): not reachable until toggled; both announce it once shown. `isHidden` path OK.

@@ -191,7 +191,8 @@ final class ModalBarrierViewController: UIViewController, UITabBarDelegate {
         let sheetViewController = BarrierModalSheetViewController()
         sheetViewController.modalPresentationStyle = .pageSheet
         if let sheet = sheetViewController.sheetPresentationController {
-            sheet.detents = [.medium(), .large()]
+            // Single detent to match CupertinoSheetRoute, which has no detents.
+            sheet.detents = [.large()]
             sheet.prefersGrabberVisible = true
         }
         sheetViewController.onDismiss = { [weak self] in
@@ -225,7 +226,7 @@ final class BarrierModalSheetViewController: UIViewController {
         titleLabel.accessibilityTraits = .header
 
         descriptionLabel.text =
-            "Presented as a system sheet (UISheetPresentationController, medium and large detents, grabber visible). Background content should be unreachable while it is open."
+            "Presented as a system sheet (UISheetPresentationController, large detent, grabber visible). Background content should be unreachable while it is open."
         descriptionLabel.font = .preferredFont(forTextStyle: .body)
         descriptionLabel.textColor = .secondaryLabel
         descriptionLabel.numberOfLines = 0
