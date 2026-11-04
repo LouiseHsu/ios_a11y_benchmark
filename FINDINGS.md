@@ -111,10 +111,21 @@ Setup for all entries unless noted: iPhone, iOS 26, both apps release builds, Fl
 - **Also observed:** neither side exposes a "Dismiss" scrim element for the sheet (Same). Re-check once detents match.
 - **Status:** `observed`.
 
+## F11 · `CupertinoTextField` exposes a "Clear" target to Voice Control while the clear button is not shown
+
+- **Screen / step:** Focus & Keyboard · Voice Control `C2`, field not editing (`clearButtonMode: OverlayVisibilityMode.editing`).
+- **UIKit:** `UITextField(clearButtonMode: .whileEditing)` — no clear button exists until editing; no badge.
+- **Flutter:** a `Clear` badge sits at the field's trailing edge with no ✕ drawn. The hidden clear button appears to remain in the semantics tree.
+- **To confirm:** VoiceOver, swipe right from the unfocused field — does it land on "Clear text, Button" with nothing visible?
+- **Owner:** cupertino_ui (`CupertinoTextField` clear-button visibility vs semantics). Not the embedder.
+- **Status:** `observed`.
+
 ## Confirmed Same (worth knowing)
 
 - **Hidden row** (`T10c`): not reachable until toggled; both announce it once shown. `isHidden` path OK.
 - **Attributed label** (`T10e`): both apps insert a pause/comma between "Order ID:" and the spelled-out "A B C 1 2 3" — native behaviour, not an embedder artifact.
 - **Focus callbacks** (`T10f`): `onDidGain/LoseAccessibilityFocus` fire (status label logs gained/lost). Voice Control does *not* badge the row in Flutter (correct: no user action); UIKit badges the custom `UIView` twin — twin artifact, not a Flutter bug.
 - **Disabled menu item** (`M4`): neither app badges `Option Delta`.
+- **Live-region label** (Focus): UIKit badges the `.updatesFrequently` label under Voice Control (`Live`); Flutter does not. UIKit quirk for trait-bearing non-controls (same as the focus-highlight row); Flutter's behaviour is the sensible one. Twin artifact, not a Flutter bug.
+- **Slider name**: was `Volume` (UIKit) vs `Adjustable` (Flutter) — twin disparity, fixed by giving the Flutter slider the same label a developer would.
 - **Static trait table:** on the first pass no divergence was found in the flag→trait mapping itself (button/header/link/image/selected). The divergences so far are upstream widgets (F1, F2, F5) or dynamic focus/scroll handling (F6, F7).

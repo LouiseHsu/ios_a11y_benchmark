@@ -178,11 +178,16 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
                   ],
                 ),
               ),
-              CupertinoSlider(
-                value: _sliderValue,
-                onChanged: _handleSliderChanged,
-                onChangeStart: (_) => _sliderDragging = true,
-                onChangeEnd: (_) => _sliderDragging = false,
+              // A slider has no visible title; a developer must name it. The
+              // UIKit twin sets the same accessibilityLabel on its UISlider.
+              Semantics(
+                label: 'Volume Benchmark Slider',
+                child: CupertinoSlider(
+                  value: _sliderValue,
+                  onChanged: _handleSliderChanged,
+                  onChangeStart: (_) => _sliderDragging = true,
+                  onChangeEnd: (_) => _sliderDragging = false,
+                ),
               ),
               const SizedBox(height: 20),
               const _SectionLabel('Last App Event'),
