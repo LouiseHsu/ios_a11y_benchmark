@@ -30,15 +30,15 @@ Setup for all entries unless noted: iPhone, iOS 26, both apps release builds, Fl
 - **Note:** `CupertinoMenuItem` *does* set enabled — the disabled `Option Delta` correctly gets no badge (F5 screenshot).
 - **Status:** `observed` → file. Also verify VoiceOver omits "Dimmed" on Flutter (expected). Commit `6021f1f`.
 
-## F3 · Nameless Voice Control badge at the content's top-left corner
+## F3 · Flutter scroll views are exposed to Voice Control as nameless actionable elements
 
-- **Screen / step:** Traversal Hierarchy · `C1`.
-- **Repro:** "Show numbers". A badge (`12` in the first run) sits at x≈0 just below the nav bar, over nothing. "Tap 12" does nothing. "Show names" shows no name there.
-- **UIKit:** no such element.
-- **Candidates:** (a) the back button's actionable node (F1) with a collapsed/misplaced frame — embedder `accessibilityFrame`/`accessibilityActivationPoint`; (b) the page's scroll container being exposed as actionable — embedder `accessibilityRespondsToUserInteraction` / `isAccessibilityElement`.
-- **To resolve:** VoiceOver on, single-finger tap exactly at the badge position; or Xcode Accessibility Inspector pointed at it. Not reproduced in the second run (badge `12` was the system timer that time) — may depend on scroll offset / fresh open.
-- **Owner:** TBD (embedder if either candidate).
-- **Status:** `observed`, unresolved.
+- **Screen / step:** Traversal Hierarchy (`C1`: badge at the origin of the page's `SingleChildScrollView`), Scroll Baseline (`C1`: badge at the origin of the horizontal chip strip). Reproduced on two screens.
+- **Repro:** Voice Control on (VoiceOver off). Say "Show numbers". A badge sits at the top-left corner of a scroll view, over no control. "Show names" shows nothing for it; "Tap N" does nothing.
+- **UIKit:** `UITableView` / `UICollectionView` are never elements themselves; only cells are badged.
+- **Cause:** `FlutterSemanticsScrollView.isAccessibilityElement` — when VoiceOver is **not** running it returns YES for any scroll view whose `contentSize` exceeds its frame (a branch added so Switch Control / XCUITest can see scrollables). Voice Control runs with VoiceOver off, so it gets a nameless element with `UIScrollView`'s default `accessibilityRespondsToUserInteraction`, and badges it at the frame origin. There is no `accessibilityRespondsToUserInteraction` override in `FlutterSemanticsScrollView.mm`.
+- **Fix candidates:** return `NO` from `accessibilityRespondsToUserInteraction` on `FlutterSemanticsScrollView` (scrolling is driven by scroll commands, not tap); or gate the overflow branch on `UIAccessibilityIsSwitchControlRunning()`.
+- **Owner:** embedder (team-ios).
+- **Status:** `confirmed` (two screens) → file.
 
 ## F4 · Inline links are individually badged in Flutter, not in UIKit
 
@@ -83,6 +83,11 @@ Setup for all entries unless noted: iPhone, iOS 26, both apps release builds, Fl
 - **Status:** `observed` on master; re-run with the PR stack applied (focus Chip 3 → swipe → tap once → does it say "Chip 3"?).
 
 ---
+
+## F8 · (twin artifact, fixed) Flutter list rows had no Voice Control name/badge; UIKit cells did
+
+- **Cause:** `UITableViewCell`s are selectable → Voice Control treats them as actionable. Flutter's rows were two `Text`s with no `onTap` → correctly not actionable. Not a Flutter bug; the twins differed.
+- **Resolution:** Flutter Scroll Baseline / Sliver rows now have an `onTap` that logs to the status line, matching a native selectable list. Re-run `C1`/`C2` on Scroll Baseline: rows should now be badged and named on both.
 
 ## Confirmed Same (worth knowing)
 

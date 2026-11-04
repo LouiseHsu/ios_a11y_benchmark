@@ -305,26 +305,32 @@ class _BaselineRow extends StatelessWidget {
     final Color secondaryColor = CupertinoColors.secondaryLabel.resolveFrom(
       context,
     );
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: separatorColor, width: 0.5)),
-      ),
-      alignment: Alignment.centerLeft,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Text(
-            'Item #$index',
-            style: TextStyle(fontSize: 17, color: primaryColor),
-          ),
-          Text(
-            'Baseline scroll row ${index + 1} of '
-            '${_ScrollBaselinePageState.rowCount}',
-            style: TextStyle(fontSize: 15, color: secondaryColor),
-          ),
-        ],
+    // Tappable like a selectable UITableViewCell (the UIKit twin logs
+    // didSelectRowAt), so Voice Control treats rows as actionable on both sides.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => debugPrint('[ScrollBaseline] Row tapped: Item #$index'),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: separatorColor, width: 0.5)),
+        ),
+        alignment: Alignment.centerLeft,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text(
+              'Item #$index',
+              style: TextStyle(fontSize: 17, color: primaryColor),
+            ),
+            Text(
+              'Baseline scroll row ${index + 1} of '
+              '${_ScrollBaselinePageState.rowCount}',
+              style: TextStyle(fontSize: 15, color: secondaryColor),
+            ),
+          ],
+        ),
       ),
     );
   }

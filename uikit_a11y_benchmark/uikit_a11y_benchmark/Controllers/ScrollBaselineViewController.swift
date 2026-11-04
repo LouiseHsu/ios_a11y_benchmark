@@ -253,6 +253,12 @@ final class ChipCell: UICollectionViewCell {
 
 extension ScrollBaselineViewController: UITableViewDelegate {
 
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        Self.logger.info("[ScrollBaseline] Row tapped: Item #\(indexPath.row)")
+        print("[ScrollBaseline] Row tapped: Item #\(indexPath.row)")
+    }
+
     func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
         guard scrollView === tableView else { return }
         gestureStartOffsetY = scrollView.contentOffset.y

@@ -210,6 +210,12 @@ extension SliverScrollViewController: UITableViewDataSource {
 
 extension SliverScrollViewController: UITableViewDelegate {
 
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        Self.logger.info("[SliverScroll] Row tapped: Sliver Item \(indexPath.row + 1)")
+        print("[SliverScroll] Row tapped: Sliver Item \(indexPath.row + 1)")
+    }
+
     func scrollViewDidScroll(_ scrollView: UIScrollView) {
         guard scrollView === tableView else { return }
         Self.logger.debug(

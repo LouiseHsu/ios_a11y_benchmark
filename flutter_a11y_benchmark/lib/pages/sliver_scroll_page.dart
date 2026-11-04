@@ -118,16 +118,23 @@ class _SliverRow extends StatelessWidget {
     final int itemNumber = index + 1;
     final Color separatorColor = CupertinoColors.separator.resolveFrom(context);
     final Color primaryColor = CupertinoColors.label.resolveFrom(context);
-    return Container(
-      height: _SliverScrollPageState.rowHeight,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: separatorColor, width: 0.5)),
-      ),
-      alignment: Alignment.centerLeft,
-      child: Text(
-        'Sliver Item $itemNumber',
-        style: TextStyle(fontSize: 17, color: primaryColor),
+    // Tappable like a selectable UITableViewCell (UIKit twin logs
+    // didSelectRowAt), so Voice Control treats rows as actionable on both sides.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () =>
+          debugPrint('[SliverScroll] Row tapped: Sliver Item $itemNumber'),
+      child: Container(
+        height: _SliverScrollPageState.rowHeight,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: separatorColor, width: 0.5)),
+        ),
+        alignment: Alignment.centerLeft,
+        child: Text(
+          'Sliver Item $itemNumber',
+          style: TextStyle(fontSize: 17, color: primaryColor),
+        ),
       ),
     );
   }
