@@ -4,7 +4,7 @@ Divergences observed while running the twin apps, with repro steps, what each ap
 
 Legend — **Owner:** who would fix it. **Status:** `observed` (seen once, not yet re-run) · `confirmed` (re-run, stable) · `filed #N` · `commented #N` · `same` (recorded for the record, no action).
 
-Setup for all entries unless noted: iPhone, iOS 26, both apps release builds, Flutter master (3.50.0-x), `ios_a11y_benchmark` at the commit named in the entry. **Assistive technologies are run one at a time** (VoiceOver pass with Voice Control off; Voice Control pass with VoiceOver off) unless an entry says otherwise — some embedder code paths branch on `isVoiceOverRunning`.
+Setup for all entries unless noted: iPhone (two devices: **iOS 18** and **iOS 27** — entries should say which; F13 differs between them), both apps release builds, Flutter master (3.50.0-x), `ios_a11y_benchmark` at the commit named in the entry. **Assistive technologies are run one at a time** (VoiceOver pass with Voice Control off; Voice Control pass with VoiceOver off) unless an entry says otherwise — some embedder code paths branch on `isVoiceOverRunning`.
 
 ---
 
@@ -139,7 +139,9 @@ Setup for all entries unless noted: iPhone, iOS 26, both apps release builds, Fl
 - **Flutter:** as soon as the title begins to re-expand, focus jumps to the heading, skipping the remaining rows above the viewport.
 - **Related:** **#179022** (`PinnedHeaderSliver`, closed Mar 2026, fixed by PR #179023 — change confined to `pinned_header_sliver.dart`) and **#179687** (`SliverResizingHeader`, closed as duplicate). Same symptom; the fix was never applied to `CupertinoSliverNavigationBar`'s own persistent header.
 - **Owner:** cupertino_ui (primary — the fixed sibling proves it is fixable in the framework). Embedder secondary: the `layoutChanged` refocus on header resize may contribute.
-- **Status:** `observed once — NOT reproduced on retry`, same code. A standalone minimal repro does not show it either. State-dependent; candidates: mixed VoiceOver+Voice Control mode at the time of observation; focus history (previously focused row recycled during the scroll-down, so `last_focused` was Invalid when the title re-expanded — would make this F6/F7's bookkeeping, i.e. embedder, not the header); debug vs release build timing. Do **not** file until a reliable trigger is found. Bisect harness: `repro_sliver_title_focus_bisect.dart`.
+- **Status:** `confirmed — OS-dependent`. Reproduces on the **iOS 27** device; does **not** reproduce on the **iOS 18** device with identical app code (the earlier "not reproduced" retry and the standalone minimal repro were run on iOS 18). This is platform drift: VoiceOver's handling of a resizing header (or of the embedder's `layoutChanged`/`ScreenChanged` posts during backward traversal) changed between releases.
+- **To close out:** (1) UIKit on iOS 27 — does `UINavigationController` large title also hijack? If yes → iOS behaviour change, Flutter matches it, record as Same. If no → Flutter-specific divergence on the new OS, file with both OS versions. (2) Run the minimal repro on iOS 27; if it reproduces, file with that.
+- **Note for all entries:** record the iOS version per observation from here on; the two test devices differ (iOS 18 vs iOS 27).
 
 ## F14 · No VoiceOver-adjustable scroll bar element on Flutter scroll views
 
