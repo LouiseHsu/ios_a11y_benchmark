@@ -141,6 +141,15 @@ Setup for all entries unless noted: iPhone, iOS 26, both apps release builds, Fl
 - **Owner:** cupertino_ui (primary — the fixed sibling proves it is fixable in the framework). Embedder secondary: the `layoutChanged` refocus on header resize may contribute.
 - **Status:** `observed` → file as "same as #179022 for CupertinoSliverNavigationBar", link PR #179023.
 
+## F14 · No VoiceOver-adjustable scroll bar element on Flutter scroll views
+
+- **Screen / step:** Scroll Baseline · chip strip (and the vertical list) · VoiceOver · swipe right past the last reachable item.
+- **UIKit:** after the last chip, focus lands on **"Horizontal scroll bar, N percent, adjustable"**; one-finger swipe up/down moves the content by pages. Same for the vertical list's bar. (iOS 13+ behaviour of `UIScrollView` indicators; VoiceOver-only — under Voice Control alone these elements don't exist.)
+- **Flutter:** no such element. The embedder hides the native indicators on `FlutterSemanticsScrollView` (`showsHorizontal/VerticalScrollIndicator = NO`) and the Flutter-painted `CupertinoScrollbar` has no semantics. VoiceOver users get row-by-row traversal and 3-finger page scrolls only.
+- **Owner:** embedder (preferred): expose one adjustable element per `FlutterScrollableSemanticsObject` (value = scroll %, increment/decrement → `scrollToOffset` by a page). Alternative: framework adds adjustable semantics to `Scrollbar`/`CupertinoScrollbar`, but that only covers views that have a scrollbar widget.
+- **Related:** #189285 / #193384 (page status), F7 (focus during page scroll) — same scroll-affordance family.
+- **Status:** `observed`.
+
 ## Confirmed Same (worth knowing)
 
 - **Hidden row** (`T10c`): not reachable until toggled; both announce it once shown. `isHidden` path OK.
