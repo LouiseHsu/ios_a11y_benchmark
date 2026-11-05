@@ -37,6 +37,7 @@ Setup for all entries unless noted: iPhone, iOS 26, both apps release builds, Fl
 - **Condition:** reproduces **only with VoiceOver off** (the normal Voice Control configuration). With VoiceOver also running, the scroll view takes the other branch of `isAccessibilityElement` and the badge disappears — which is why early runs with both technologies on did not show it. Triage must test with VoiceOver off.
 - **UIKit:** `UITableView` / `UICollectionView` are never elements themselves; only cells are badged.
 - **Cause:** `FlutterSemanticsScrollView.isAccessibilityElement` — when VoiceOver is **not** running it returns YES for any scroll view whose `contentSize` exceeds its frame (a branch added so Switch Control / XCUITest can see scrollables). Voice Control runs with VoiceOver off, so it gets a nameless element with `UIScrollView`'s default `accessibilityRespondsToUserInteraction`, and badges it at the frame origin. There is no `accessibilityRespondsToUserInteraction` override in `FlutterSemanticsScrollView.mm`.
+- **History:** the overflow branch predates #184155 (it read `return !isVoiceOverRunning()` with a comment claiming Voice Control needs it for scroll actions — UIKit shows it doesn't; Switch Control may).
 - **Fix candidates:** return `NO` from `accessibilityRespondsToUserInteraction` on `FlutterSemanticsScrollView` (scrolling is driven by scroll commands, not tap); or gate the overflow branch on `UIAccessibilityIsSwitchControlRunning()`.
 - **Owner:** embedder (team-ios).
 - **Status:** `confirmed` (two screens) → file.
