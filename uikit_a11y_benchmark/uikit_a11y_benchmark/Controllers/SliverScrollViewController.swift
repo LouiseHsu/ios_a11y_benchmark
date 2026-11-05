@@ -72,8 +72,10 @@ final class SliverScrollViewController: UIViewController {
         tableView.rowHeight = 60
         // Keep the last rows / footer reachable above the floating button
         // (Flutter twin: 96pt bottom padding inside SliverFillRemaining).
-        tableView.contentInset.bottom = Self.fabDiameter + 32
-        tableView.verticalScrollIndicatorInsets.bottom = Self.fabDiameter + 32
+        // No bottom contentInset: UIKit treats the inset band as off-screen, so
+        // Voice Control/VoiceOver would ignore rows drawn inside it. Clearance for
+        // the floating button is provided by the footer's bottom padding instead,
+        // matching the Flutter twin (SliverFillRemaining padding).
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: Self.cellReuseIdentifier)
         view.addSubview(tableView)
 
@@ -123,7 +125,8 @@ final class SliverScrollViewController: UIViewController {
             footerStack.topAnchor.constraint(equalTo: footerContainerView.topAnchor, constant: 24),
             footerStack.leadingAnchor.constraint(equalTo: footerContainerView.leadingAnchor, constant: 16),
             footerStack.trailingAnchor.constraint(equalTo: footerContainerView.trailingAnchor, constant: -16),
-            footerStack.bottomAnchor.constraint(equalTo: footerContainerView.bottomAnchor, constant: -24),
+            // 96pt bottom padding = Flutter twin's EdgeInsets.fromLTRB(16, 24, 16, 96).
+            footerStack.bottomAnchor.constraint(equalTo: footerContainerView.bottomAnchor, constant: -96),
         ])
 
         // tableFooterView needs an explicit frame height; width is fixed up in

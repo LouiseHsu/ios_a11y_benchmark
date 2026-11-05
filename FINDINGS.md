@@ -138,6 +138,7 @@ Setup for all entries unless noted: iPhone, iOS 26, both apps release builds, Fl
 - **Attributed label** (`T10e`): both apps insert a pause/comma between "Order ID:" and the spelled-out "A B C 1 2 3" — native behaviour, not an embedder artifact.
 - **Focus callbacks** (`T10f`): `onDidGain/LoseAccessibilityFocus` fire (status label logs gained/lost). Voice Control does *not* badge the row in Flutter (correct: no user action); UIKit badges the custom `UIView` twin — twin artifact, not a Flutter bug.
 - **Disabled menu item** (`M4`): neither app badges `Option Delta`.
+- **UIKit `contentInset.bottom` hides rows from Voice Control** (Sliver): rows drawn inside the table's bottom inset band got no names. iOS treats the inset as off-screen. Twin artifact — UIKit Sliver now uses footer padding (like Flutter) instead of a content inset. Real-world gotcha for native apps that inset for a floating button.
 - **UIKit scroll-bar elements** (`Horizontal`/`Vertical`): appear only when VoiceOver is on. iOS behaviour, not a twin or Flutter issue; another reason to keep passes single-AT.
 - **Live-region label** (Focus): UIKit badges the `.updatesFrequently` label under Voice Control (`Live`); Flutter does not. UIKit quirk for trait-bearing non-controls (same as the focus-highlight row); Flutter's behaviour is the sensible one. Twin artifact, not a Flutter bug.
 - **Slider name**: was `Volume` (UIKit) vs `Adjustable` (Flutter) — twin disparity, fixed by giving the Flutter slider the same label a developer would.
