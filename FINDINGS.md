@@ -119,6 +119,18 @@ Setup for all entries unless noted: iPhone, iOS 26, both apps release builds, Fl
 - **Resolution:** both twins now use `.always`, the only mode with identical semantics. Not an accessibility bug.
 - **Side note (not a11y):** there is no Flutter mode equivalent to UIKit's "while focused"; minor Cupertino API-fidelity gap.
 
+## F12 · VoiceOver traversal falls out of a nested horizontal list after the cached children
+
+- **Screen / step:** Scroll Baseline · chip strip · `S1a`.
+- **Repro:** VoiceOver on. From the header, swipe right repeatedly through the chips.
+- **UIKit:** `UICollectionView` — traverses all 20 chips (scrolling as needed), then moves to `Item #0`.
+- **Flutter:** Chip 1, 2, 3, scrolls to reveal Chip 4, then leaves the strip and lands on `Item #0`. Chips 5–20 are never reached by swiping.
+- **Mechanism (suspected):** only children inside the viewport + `cacheExtent` (250 px ≈ 2 chips) have semantics nodes; off-screen cached ones are `isHidden`. Focusing a hidden child triggers `showOnScreen` and the strip scrolls, but the newly built chips arrive in a later semantics update — VoiceOver has already chosen the next element from the current list, which is the vertical list. `UICollectionView` materialises cells synchronously during traversal, so UIKit never falls through.
+- **To isolate:** swipe through the vertical list past `Item #15/#20/#30` without manual scrolling. Works → bug is specific to nested horizontal lists (ordering/race). Also bails → general implicit-scroll hand-off bug; the vertical list only looks fine because nothing follows it.
+- **Owner:** embedder-adjacent — node existence is framework (`describeSemanticsClip`/`cacheExtent`); keeping focus inside an implicitly-scrolling container across the `showOnScreen` hand-off is the embedder's (`FlutterScrollableSemanticsObject`, `accessibilityElements`). #195722 (larger default cache extent) would mask it, not fix it.
+- **Related:** #191565 (nested scroll view), #79457 (implicit scrolling with `shrinkWrap`).
+- **Status:** `observed`; no existing issue found.
+
 ## Confirmed Same (worth knowing)
 
 - **Hidden row** (`T10c`): not reachable until toggled; both announce it once shown. `isHidden` path OK.
