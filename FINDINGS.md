@@ -132,6 +132,15 @@ Setup for all entries unless noted: iPhone, iOS 26, both apps release builds, Fl
 - **Related:** #191565 (nested scroll view), #79457 (implicit scrolling with `shrinkWrap`).
 - **Status:** `observed`; no existing issue found.
 
+## F13 · Swiping back up a list, the `CupertinoSliverNavigationBar` large title hijacks VoiceOver focus
+
+- **Screen / step:** Sliver Scroll · VoiceOver · scroll down a page or two, then swipe **left** repeatedly back toward the top.
+- **UIKit:** focus walks back through every row; the large title re-expands silently and is reached only after `Sliver Item 1`.
+- **Flutter:** as soon as the title begins to re-expand, focus jumps to the heading, skipping the remaining rows above the viewport.
+- **Related:** **#179022** (`PinnedHeaderSliver`, closed Mar 2026, fixed by PR #179023 — change confined to `pinned_header_sliver.dart`) and **#179687** (`SliverResizingHeader`, closed as duplicate). Same symptom; the fix was never applied to `CupertinoSliverNavigationBar`'s own persistent header.
+- **Owner:** cupertino_ui (primary — the fixed sibling proves it is fixable in the framework). Embedder secondary: the `layoutChanged` refocus on header resize may contribute.
+- **Status:** `observed` → file as "same as #179022 for CupertinoSliverNavigationBar", link PR #179023.
+
 ## Confirmed Same (worth knowing)
 
 - **Hidden row** (`T10c`): not reachable until toggled; both announce it once shown. `isHidden` path OK.
