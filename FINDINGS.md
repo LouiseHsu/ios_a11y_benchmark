@@ -139,7 +139,7 @@ Setup for all entries unless noted: iPhone, iOS 26, both apps release builds, Fl
 - **Flutter:** as soon as the title begins to re-expand, focus jumps to the heading, skipping the remaining rows above the viewport.
 - **Related:** **#179022** (`PinnedHeaderSliver`, closed Mar 2026, fixed by PR #179023 — change confined to `pinned_header_sliver.dart`) and **#179687** (`SliverResizingHeader`, closed as duplicate). Same symptom; the fix was never applied to `CupertinoSliverNavigationBar`'s own persistent header.
 - **Owner:** cupertino_ui (primary — the fixed sibling proves it is fixable in the framework). Embedder secondary: the `layoutChanged` refocus on header resize may contribute.
-- **Status:** `observed` → file as "same as #179022 for CupertinoSliverNavigationBar", link PR #179023.
+- **Status:** `observed once — NOT reproduced on retry`, same code. A standalone minimal repro does not show it either. State-dependent; candidates: mixed VoiceOver+Voice Control mode at the time of observation; focus history (previously focused row recycled during the scroll-down, so `last_focused` was Invalid when the title re-expanded — would make this F6/F7's bookkeeping, i.e. embedder, not the header); debug vs release build timing. Do **not** file until a reliable trigger is found. Bisect harness: `repro_sliver_title_focus_bisect.dart`.
 
 ## F14 · No VoiceOver-adjustable scroll bar element on Flutter scroll views
 
