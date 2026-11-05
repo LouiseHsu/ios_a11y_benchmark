@@ -86,6 +86,45 @@ class _ModalBarrierPageState extends State<ModalBarrierPage> {
     }
   }
 
+  /// Action sheet: the one modal with a *dismissible* barrier, so the
+  /// ModalBarrier's "Dismiss" semantics element appears (UIKit twin: the
+  /// action sheet's backdrop, "Dismiss pop-up").
+  Future<void> _presentActionSheet() async {
+    debugPrint('[ModalBarrier] Presenting CupertinoActionSheet');
+    final String? result = await showCupertinoModalPopup<String>(
+      context: context,
+      builder: (BuildContext sheetContext) {
+        return CupertinoActionSheet(
+          title: const Text('Benchmark Action Sheet'),
+          message: const Text('Choose an action.'),
+          actions: <Widget>[
+            CupertinoActionSheetAction(
+              onPressed: () => Navigator.of(sheetContext).pop('Share'),
+              child: const Text('Share'),
+            ),
+            CupertinoActionSheetAction(
+              onPressed: () => Navigator.of(sheetContext).pop('Duplicate'),
+              child: const Text('Duplicate'),
+            ),
+            CupertinoActionSheetAction(
+              isDestructiveAction: true,
+              onPressed: () => Navigator.of(sheetContext).pop('Delete'),
+              child: const Text('Delete'),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.of(sheetContext).pop('Cancel'),
+            child: const Text('Cancel'),
+          ),
+        );
+      },
+    );
+    if (mounted) {
+      _setStatus('Action Sheet: ${result ?? 'Dismissed'}');
+    }
+  }
+
   Future<void> _presentModalSheet() async {
     debugPrint(
       '[ModalBarrier] Presenting Cupertino modal sheet '
@@ -176,6 +215,11 @@ class _ModalBarrierPageState extends State<ModalBarrierPage> {
                     CupertinoButton.tinted(
                       onPressed: _presentAlertDialog,
                       child: const Text('Present Alert Dialog'),
+                    ),
+                    const SizedBox(height: 16),
+                    CupertinoButton.tinted(
+                      onPressed: _presentActionSheet,
+                      child: const Text('Present Action Sheet'),
                     ),
                     const SizedBox(height: 16),
                     CupertinoButton.filled(

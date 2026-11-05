@@ -37,6 +37,7 @@ The Flutter iOS **embedder** — the code that turns Flutter's semantics tree in
 | `hasImplicitScrolling`, `scrollUp` / `scrollDown`, `scrollToOffset` | `FlutterScrollableSemanticsObject` + `UIAccessibilityPageScrolled` | Scroll Baseline, Sliver Scroll |
 | `scopesRoute` / `namesRoute` | `UIAccessibilityScreenChanged` + route name, focus moved to the new route | every push, dialog, sheet, menu |
 | `BlockSemantics` behind a modal route | background elements removed from the tree | Modal: menu, alert, sheet |
+| `ModalBarrier` with `barrierDismissible` + `barrierLabel` | full-screen "Dismiss" element, `accessibilityPerformEscape` | Modal: action sheet |
 | `sortKey` / child ordering | `UIAccessibilityContainer` element order | Traversal: Column-Major mode |
 | `customSemanticsActions` | `UIAccessibilityCustomAction` (Actions rotor) | Traversal: "Message from Alex" |
 | `tap` / `dismiss` | `accessibilityActivate` / `accessibilityPerformEscape` (2-finger Z) | every control, every modal |
@@ -123,6 +124,8 @@ Not covered on purpose: `UiKitView` / WebView embedding (different rig), OS feat
 - [ ] **M7** Double-tap **Present Alert Dialog**. ⟶ *Compare:* what is spoken on open.
 - [ ] **M8** Swipe right until bonk, then drag a finger over the background. ⟶ *Compare:* the dialog's elements, and whether background buttons are reachable.
 - [ ] **M9** Double-tap **Confirm**. ⟶ *Compare:* where are you, and the status label text.
+- [ ] **M9a** Double-tap **Present Action Sheet**. ⟶ *Compare:* what is spoken on open, and where are you?
+- [ ] **M9b** Swipe right until bonk. ⟶ *Compare:* the elements in order — especially the **last** one (UIKit ends on a full-screen "Dismiss pop-up" element). Double-tap that last element. ⟶ *Compare:* does the sheet close, where are you, and the status label text.
 - [ ] **M10** Double-tap **Present Modal Sheet**. ⟶ *Compare:* where are you?
 - [ ] **M11** Swipe right until bonk, then drag a finger over the dimmed area above the sheet and over where the background buttons were. ⟶ *Compare:* the sheet's elements (is the drag handle one of them?), and whether anything behind the sheet is reachable.
 - [ ] **M12** 2-finger Z-scrub. ⟶ *Compare:* did the sheet close, and where are you?

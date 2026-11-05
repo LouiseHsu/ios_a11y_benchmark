@@ -14,6 +14,7 @@ final class ModalBarrierViewController: UIViewController, UITabBarDelegate {
     private let backgroundButton2 = UIButton(type: .system)
     private let popupMenuButton = UIButton(type: .system)
     private let presentAlertButton = UIButton(type: .system)
+    private let presentActionSheetButton = UIButton(type: .system)
     private let presentModalButton = UIButton(type: .system)
     private let bottomTabBar = UITabBar()
 
@@ -65,6 +66,15 @@ final class ModalBarrierViewController: UIViewController, UITabBarDelegate {
             for: .touchUpInside
         )
 
+        var actionSheetConfig = UIButton.Configuration.tinted()
+        actionSheetConfig.title = "Present Action Sheet"
+        presentActionSheetButton.configuration = actionSheetConfig
+        presentActionSheetButton.addTarget(
+            self,
+            action: #selector(presentActionSheet),
+            for: .touchUpInside
+        )
+
         var presentConfig = UIButton.Configuration.filled()
         presentConfig.title = "Present Modal Sheet"
         presentModalButton.configuration = presentConfig
@@ -93,6 +103,7 @@ final class ModalBarrierViewController: UIViewController, UITabBarDelegate {
             backgroundButton2,
             popupMenuButton,
             presentAlertButton,
+            presentActionSheetButton,
             presentModalButton,
         ])
         stackView.translatesAutoresizingMaskIntoConstraints = false
@@ -177,6 +188,32 @@ final class ModalBarrierViewController: UIViewController, UITabBarDelegate {
         alert.addAction(confirmAction)
         Self.logger.info("[ModalBarrier] Presenting UIAlertController (.alert)")
         present(alert, animated: true)
+    }
+
+    // Action sheet: the one modal with a dismissible backdrop, so VoiceOver's
+    // traversal ends on a "Dismiss pop-up" element (Flutter twin: ModalBarrier
+    // "Dismiss" from showCupertinoModalPopup).
+    @objc private func presentActionSheet() {
+        let sheet = UIAlertController(
+            title: "Benchmark Action Sheet",
+            message: "Choose an action.",
+            preferredStyle: .actionSheet
+        )
+        for (title, style) in [("Share", UIAlertAction.Style.default),
+                               ("Duplicate", .default),
+                               ("Delete", .destructive),
+                               ("Cancel", .cancel)] {
+            sheet.addAction(UIAlertAction(title: title, style: style) { [weak self] _ in
+                let message = "Action Sheet: \(title)"
+                self?.statusLabel.text = message
+                Self.logger.info("[ModalBarrier] \(message, privacy: .public)")
+            })
+        }
+        // iPad: anchor the popover to the presenting button.
+        sheet.popoverPresentationController?.sourceView = presentActionSheetButton
+        sheet.popoverPresentationController?.sourceRect = presentActionSheetButton.bounds
+        Self.logger.info("[ModalBarrier] Presenting UIAlertController (.actionSheet)")
+        present(sheet, animated: true)
     }
 
     func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
