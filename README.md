@@ -125,7 +125,7 @@ Not covered on purpose: `UiKitView` / WebView embedding (different rig), OS feat
 - [ ] **M8** Swipe right until bonk, then drag a finger over the background. ⟶ *Compare:* the dialog's elements, and whether background buttons are reachable.
 - [ ] **M9** Double-tap **Confirm**. ⟶ *Compare:* where are you, and the status label text.
 - [ ] **M9a** Double-tap **Present Action Sheet**. ⟶ *Compare:* what is spoken on open, and where are you?
-- [ ] **M9b** Swipe right until bonk. ⟶ *Compare:* the elements in order — especially the **last** one (UIKit ends on a full-screen "Dismiss pop-up" element). Double-tap that last element. ⟶ *Compare:* does the sheet close, where are you, and the status label text.
+- [ ] **M9b** Swipe right until bonk. ⟶ *Compare:* the elements in order, and whether there is anything **after Cancel** (a full-screen dismiss element). Double-tap the last element. ⟶ *Compare:* does the sheet close, where are you, and the status label text.
 - [ ] **M10** Double-tap **Present Modal Sheet**. ⟶ *Compare:* where are you?
 - [ ] **M11** Swipe right until bonk, then drag a finger over the dimmed area above the sheet and over where the background buttons were. ⟶ *Compare:* the sheet's elements (is the drag handle one of them?), and whether anything behind the sheet is reachable.
 - [ ] **M12** 2-finger Z-scrub. ⟶ *Compare:* did the sheet close, and where are you?
