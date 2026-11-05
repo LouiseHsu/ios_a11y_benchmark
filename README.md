@@ -1,6 +1,6 @@
 # ios_a11y_benchmark
 
-Two apps with identical screens — one stock **UIKit**, one pure **Cupertino Flutter** — for comparing how VoiceOver, Voice Control, Full Keyboard Access and Switch Control behave on each. The UIKit app is the reference; the Flutter app is under test. Neither contains custom accessibility code beyond what a developer must write (headings, live regions, a label on an icon-only button).
+Two apps with identical screens — one stock **UIKit**, one pure **Cupertino Flutter** - for comparing how VoiceOver, Voice Control, Full Keyboard Access and Switch Control behave on each. Neither app contains custom accessibility code beyond what a developer must write (headings, live regions, a label on an icon-only button).
 
 Each screen exercises one part of the Flutter iOS embedder's translation of semantics into `UIAccessibility`:
 
@@ -17,6 +17,3 @@ Each screen exercises one part of the Flutter iOS embedder's translation of sema
 - `flutter_a11y_benchmark/` — `flutter run --release` (release so the app survives being backgrounded while switching apps).
 - `uikit_a11y_benchmark/` — open `uikit_a11y_benchmark.xcodeproj` in Xcode and run.
 
-Install both on the same device, run one assistive technology at a time, do each step in UIKit first and Flutter second, and record anything that differs.
-
-*Test script and findings log: coming soon.*
