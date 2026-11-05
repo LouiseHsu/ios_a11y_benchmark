@@ -132,15 +132,17 @@ Setup for all entries unless noted: iPhone (two devices: **iOS 18** and **iOS 27
 - **To isolate:** swipe through the vertical list past `Item #15/#20/#30` without manual scrolling. Works → bug is specific to nested horizontal lists (ordering/race). Also bails → general implicit-scroll hand-off bug; the vertical list only looks fine because nothing follows it.
 - **Owner:** embedder-adjacent — node existence is framework (`describeSemanticsClip`/`cacheExtent`); keeping focus inside an implicitly-scrolling container across the `showOnScreen` hand-off is the embedder's (`FlutterScrollableSemanticsObject`, `accessibilityElements`). #195722 (default cache extent → 0.8 × viewport along the scroll axis ≈ 310 pt ≈ 2½ chips here) would move the bail point from Chip 4 to Chip 5–6, not fix it. **Diagnostic:** run the strip with #195722 applied — if the bail point moves with the cache extent, the mechanism above is confirmed.
 - **Related:** #191565 (nested scroll view), #79457 (implicit scrolling with `shrinkWrap`).
-- **Status:** `observed`; no existing issue found.
+- **iOS:** reproduces on **iOS 27**, **not on iOS 18** (same build). Stock `UICollectionView` fine on iOS 27.
+- **Merged with F13:** same mechanism in the opposite direction. **Owner: embedder.** One issue (draft 4 in issue_drafts.md).
+- **Status:** `confirmed` → file (merged with F13).
 
-## F13 · Swiping back up a list, the `CupertinoSliverNavigationBar` large title hijacks VoiceOver focus
+## F13 · Swiping back up a list, the `CupertinoSliverNavigationBar` large title hijacks VoiceOver focus *(merged with F12 — embedder, iOS 27)*
 
 - **Screen / step:** Sliver Scroll · VoiceOver · scroll down a page or two, then swipe **left** repeatedly back toward the top.
 - **UIKit:** focus walks back through every row; the large title re-expands silently and is reached only after `Sliver Item 1`.
 - **Flutter:** as soon as the title begins to re-expand, focus jumps to the heading, skipping the remaining rows above the viewport.
 - **Related:** **#179022** (`PinnedHeaderSliver`, closed Mar 2026, fixed by PR #179023 — change confined to `pinned_header_sliver.dart`) and **#179687** (`SliverResizingHeader`, closed as duplicate). Same symptom; the fix was never applied to `CupertinoSliverNavigationBar`'s own persistent header.
-- **Owner:** cupertino_ui (primary — the fixed sibling proves it is fixable in the framework). Embedder secondary: the `layoutChanged` refocus on header resize may contribute.
+- **Owner:** **embedder** (revised). F12 — the horizontal-list version of the same hand-off, forward instead of backward — is also iOS-27-only and also fine in UIKit; the header is just the container that happens to precede a lazy list. #179023 was a per-widget framework workaround for this seam. Merged with F12 into one embedder issue.
 - **Status:** `confirmed — OS-dependent`. Reproduces on the **iOS 27** device; does **not** reproduce on the **iOS 18** device with identical app code (the earlier "not reproduced" retry and the standalone minimal repro were run on iOS 18). This is platform drift: VoiceOver's handling of a resizing header (or of the embedder's `layoutChanged`/`ScreenChanged` posts during backward traversal) changed between releases.
 - **Closed out:** minimal standalone repro reproduces on iOS 27; UIKit large title on the same device does not hijack. Flutter-specific regression on iOS 27. → **file** (draft 4 in issue_drafts.md).
 - ~~**To close out:** (1) UIKit on iOS 27 — does `UINavigationController` large title also hijack? If yes → iOS behaviour change, Flutter matches it, record as Same. If no → Flutter-specific divergence on the new OS, file with both OS versions. (2) Run the minimal repro on iOS 27; if it reproduces, file with that.~~
