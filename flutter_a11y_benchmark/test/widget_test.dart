@@ -304,10 +304,27 @@ void main() {
       expect(liveData.flagsCollection.isLiveRegion, isTrue);
 
       final SemanticsData bottomField = tester
-          .getSemantics(find.byType(CupertinoTextField).last)
+          .getSemantics(
+            find.widgetWithText(CupertinoTextField, 'Password'),
+          )
           .getSemanticsData();
       expect(bottomField.flagsCollection.isTextField, isTrue);
       expect(bottomField.flagsCollection.isObscured, isTrue);
+
+      // v3: multiline and read-only variants.
+      final SemanticsData notesField = tester
+          .getSemantics(find.widgetWithText(CupertinoTextField, 'Notes'))
+          .getSemanticsData();
+      expect(notesField.flagsCollection.isTextField, isTrue);
+      expect(notesField.flagsCollection.isMultiline, isTrue);
+
+      final SemanticsData readOnlyField = tester
+          .getSemantics(
+            find.widgetWithText(CupertinoTextField, 'Read-only value'),
+          )
+          .getSemanticsData();
+      expect(readOnlyField.flagsCollection.isTextField, isTrue);
+      expect(readOnlyField.flagsCollection.isReadOnly, isTrue);
 
       await tester.tap(find.text('Post Polite Announcement'));
       await tester.pump();
@@ -604,6 +621,113 @@ void traitsAndAttributesTests() {
     await tester.drag(find.text('Item #3'), const Offset(0, -300));
     await tester.pumpAndSettle();
     expect(find.textContaining('contentOffset.y: 0.0'), findsNothing);
+    handle.dispose();
+  });
+
+  v3Tests();
+}
+
+/// v3 fixtures: More Controls and Mutation While Focused.
+void v3Tests() {
+  Future<void> openSection(WidgetTester tester, String header) async {
+    await tester.pumpWidget(const FlutterA11yBenchmarkApp());
+    await tester.tap(find.text('Traversal Hierarchy'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text(header));
+    await tester.pumpAndSettle();
+  }
+
+  Iterable<SemanticsNode> traversal(WidgetTester tester) =>
+      tester.semantics.simulatedAccessibilityTraversal();
+
+  SemanticsNode mergedNode(WidgetTester tester, String label) =>
+      traversal(tester).singleWhere(
+        (SemanticsNode n) => n.getSemanticsData().label == label,
+      );
+
+  testWidgets('more controls: unlabeled tappable emits tap with no label', (
+    WidgetTester tester,
+  ) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+    await openSection(tester, 'More Controls');
+
+    expect(
+      mergedNode(tester, 'More Controls').getSemanticsData().flagsCollection.isHeader,
+      isTrue,
+    );
+
+    // The shape under test: a visible node with a tap action and nothing
+    // else. (The menu rows on the route underneath have the same shape, but
+    // are hidden while this screen is on top.)
+    final List<SemanticsNode> bare = traversal(tester).where((SemanticsNode n) {
+      final SemanticsData d = n.getSemanticsData();
+      return d.hasAction(SemanticsAction.tap) &&
+          d.label.isEmpty &&
+          d.value.isEmpty &&
+          !d.flagsCollection.isHidden &&
+          !d.flagsCollection.isButton &&
+          !d.flagsCollection.isTextField;
+    }).toList();
+    expect(bare, hasLength(1));
+
+    bare.single.owner!.performAction(bare.single.id, SemanticsAction.tap);
+    await tester.pumpAndSettle();
+    expect(find.text('Unlabeled tappable -> tapped'), findsOneWidget);
+    handle.dispose();
+  });
+
+  testWidgets('more controls: picker and context menu are present', (
+    WidgetTester tester,
+  ) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+    await openSection(tester, 'More Controls');
+    expect(find.text('Size (picker wheel)'), findsOneWidget);
+    expect(find.text('Small'), findsOneWidget);
+    expect(find.text('Long-press for context menu'), findsOneWidget);
+    handle.dispose();
+  });
+
+  testWidgets('mutation: label swap, removal + restore, identity replacement', (
+    WidgetTester tester,
+  ) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+    await openSection(tester, 'Mutation While Focused');
+
+    // 1. Label swap keeps the same semantics node id.
+    final int followId = mergedNode(tester, 'Follow').id;
+    await tester.tap(find.text('Follow'));
+    await tester.pumpAndSettle();
+    expect(find.text('Follow'), findsNothing);
+    expect(mergedNode(tester, 'Following').id, followId);
+    expect(find.text('Label-changing button -> Following'), findsOneWidget);
+
+    // 2. Removal takes the node out of the traversal; restore brings it back.
+    expect(find.text('Remove this button'), findsOneWidget);
+    await tester.tap(find.text('Remove this button'));
+    await tester.pumpAndSettle();
+    expect(find.text('Remove this button'), findsNothing);
+    expect(
+      traversal(tester).any(
+        (SemanticsNode n) => n.getSemanticsData().label == 'Remove this button',
+      ),
+      isFalse,
+    );
+    await tester.tap(find.text('Restore removed button'));
+    await tester.pumpAndSettle();
+    expect(find.text('Remove this button'), findsOneWidget);
+
+    // 3. Identity replacement yields a new node id with the same label.
+    const String replaceLabel = 'Replace me (same label, new identity)';
+    await tester.ensureVisible(find.text(replaceLabel));
+    await tester.pumpAndSettle();
+    final int beforeId = mergedNode(tester, replaceLabel).id;
+    await tester.tap(find.text(replaceLabel));
+    await tester.pumpAndSettle();
+    expect(mergedNode(tester, replaceLabel).id, isNot(beforeId));
+    expect(
+      find.text('Identity-replacing button -> generation 1'),
+      findsOneWidget,
+    );
     handle.dispose();
   });
 }
