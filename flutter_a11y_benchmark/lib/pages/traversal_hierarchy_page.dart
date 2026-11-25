@@ -174,7 +174,9 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
 
   void _toggleFollow() {
     setState(() => _isFollowing = !_isFollowing);
-    _recordEvent('Label-changing button -> ${_isFollowing ? 'Following' : 'Follow'}');
+    _recordEvent(
+      'Label-changing button -> ${_isFollowing ? 'Following' : 'Follow'}',
+    );
   }
 
   void _removeSelf() {
@@ -494,6 +496,7 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
         const SizedBox(height: 8),
         // 1. Label changes on tap (same node, new label).
         CupertinoButton.tinted(
+          key: const ValueKey<String>('mutation.follow'),
           padding: buttonPadding,
           onPressed: _toggleFollow,
           child: Text(_isFollowing ? 'Following' : 'Follow'),
@@ -501,14 +504,26 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
         const SizedBox(height: 8),
         // 2. Node removed on tap. The restore button is always present so the
         // fixture can be repeated without leaving the screen.
+        // Every button here carries a stable Key. Without keys, Flutter matches
+        // unkeyed siblings by position and type, so restoring the removed
+        // button would *reuse* the Restore button's Element (and SemanticsNode
+        // id) as the new Remove button, and VoiceOver focus would appear to
+        // slide from Restore onto Remove. That is a framework identity effect,
+        // not the embedder behaviour this fixture is meant to isolate.
         if (_removableButtonPresent)
           CupertinoButton.tinted(
+            key: const ValueKey<String>('mutation.remove'),
             padding: buttonPadding,
             onPressed: _removeSelf,
             child: const Text('Remove this button'),
           ),
-        if (_removableButtonPresent) const SizedBox(height: 8),
+        if (_removableButtonPresent)
+          const SizedBox(
+            key: ValueKey<String>('mutation.remove.gap'),
+            height: 8,
+          ),
         CupertinoButton(
+          key: const ValueKey<String>('mutation.restore'),
           padding: buttonPadding,
           onPressed: _removableButtonPresent ? null : _restoreRemoved,
           child: const Text('Restore removed button'),
@@ -658,7 +673,10 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
           visible: _showHiddenRow,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Text('Hidden row (visible only after toggle)', style: bodyStyle),
+            child: Text(
+              'Hidden row (visible only after toggle)',
+              style: bodyStyle,
+            ),
           ),
         ),
         Offstage(

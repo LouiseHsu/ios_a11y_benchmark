@@ -702,6 +702,9 @@ void v3Tests() {
     expect(find.text('Label-changing button -> Following'), findsOneWidget);
 
     // 2. Removal takes the node out of the traversal; restore brings it back.
+    // The Restore button must keep its own node id across both steps, i.e.
+    // its Element must not be recycled as the re-inserted Remove button.
+    final int restoreId = mergedNode(tester, 'Restore removed button').id;
     expect(find.text('Remove this button'), findsOneWidget);
     await tester.tap(find.text('Remove this button'));
     await tester.pumpAndSettle();
@@ -712,9 +715,12 @@ void v3Tests() {
       ),
       isFalse,
     );
+    expect(mergedNode(tester, 'Restore removed button').id, restoreId);
     await tester.tap(find.text('Restore removed button'));
     await tester.pumpAndSettle();
     expect(find.text('Remove this button'), findsOneWidget);
+    expect(mergedNode(tester, 'Restore removed button').id, restoreId);
+    expect(mergedNode(tester, 'Remove this button').id, isNot(restoreId));
 
     // 3. Identity replacement yields a new node id with the same label.
     const String replaceLabel = 'Replace me (same label, new identity)';
