@@ -13,6 +13,8 @@ final class FocusKeyboardViewController: UIViewController {
     private let sliderValueLabel = UILabel()
     private let slider = UISlider()
     private let bottomTextField = UITextField()
+    private let notesTextView = UITextView()
+    private let readOnlyTextView = UITextView()
     private let lastEventLabel = UILabel()
 
     private var announcementCount = 0
@@ -104,6 +106,17 @@ final class FocusKeyboardViewController: UIViewController {
         // vertical spacing to require scrolling.
         lastEventLabel.heightAnchor.constraint(equalToConstant: 520).isActive = true
 
+        // Multiline notes: twin of CupertinoTextField(minLines: 3, maxLines: 5).
+        // Return inserts a newline; there is no Done key.
+        configureTextView(notesTextView, text: "", isEditable: true)
+        notesTextView.delegate = self
+
+        // Read-only: twin of CupertinoTextField(readOnly: true). UITextField has
+        // no read-only mode (refusing first responder makes it unfocusable), so
+        // the nearest idiom that stays focusable and selectable without a
+        // keyboard is a non-editable UITextView.
+        configureTextView(readOnlyTextView, text: "Read-only value", isEditable: false)
+
         contentStackView.addArrangedSubview(makeLabel("Top Input Region (Pre-filled + Placeholder)"))
         contentStackView.addArrangedSubview(topTextField)
         contentStackView.addArrangedSubview(liveStatusLabel)
@@ -115,6 +128,10 @@ final class FocusKeyboardViewController: UIViewController {
         contentStackView.addArrangedSubview(lastEventLabel)
         contentStackView.addArrangedSubview(makeLabel("Bottom Input Region (Secure Text Entry)"))
         contentStackView.addArrangedSubview(bottomTextField)
+        contentStackView.addArrangedSubview(makeLabel("Multiline Notes (3 lines minimum)"))
+        contentStackView.addArrangedSubview(notesTextView)
+        contentStackView.addArrangedSubview(makeLabel("Read-only Field"))
+        contentStackView.addArrangedSubview(readOnlyTextView)
 
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -153,6 +170,21 @@ final class FocusKeyboardViewController: UIViewController {
         label.text = text
         label.font = .preferredFont(forTextStyle: .headline)
         return label
+    }
+
+    private func configureTextView(_ textView: UITextView, text: String, isEditable: Bool) {
+        textView.text = text
+        textView.isEditable = isEditable
+        textView.isSelectable = true
+        textView.isScrollEnabled = false
+        textView.font = .preferredFont(forTextStyle: .body)
+        textView.adjustsFontForContentSizeCategory = true
+        textView.textContainerInset = UIEdgeInsets(top: 12, left: 8, bottom: 12, right: 8)
+        textView.layer.borderWidth = 1 / UIScreen.main.scale
+        textView.layer.borderColor = UIColor.systemGray4.cgColor
+        textView.layer.cornerRadius = 5
+        // Roughly three body lines, matching the Flutter twin's minLines: 3.
+        textView.heightAnchor.constraint(greaterThanOrEqualToConstant: 88).isActive = true
     }
 
     private func registerNotifications() {
@@ -231,5 +263,15 @@ extension FocusKeyboardViewController: UITextFieldDelegate {
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         textField.resignFirstResponder()
         return true
+    }
+}
+
+// MARK: - UITextViewDelegate
+
+extension FocusKeyboardViewController: UITextViewDelegate {
+
+    func textViewDidChange(_ textView: UITextView) {
+        let text = textView.text ?? ""
+        recordEvent("Multiline Notes Field text changed (isEmpty=\(text.isEmpty), placeholder='Notes')")
     }
 }

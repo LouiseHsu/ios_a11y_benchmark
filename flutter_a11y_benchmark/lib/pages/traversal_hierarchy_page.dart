@@ -44,6 +44,13 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
   // "Traits & Attributes" section state.
   bool _showHiddenRow = false;
   bool _focusRowHighlighted = false;
+  // "More Controls" section state.
+  static const List<String> pickerSizes = <String>['Small', 'Medium', 'Large'];
+  int _pickerIndex = 0;
+  // "Mutation While Focused" section state.
+  bool _isFollowing = false;
+  bool _removableButtonPresent = true;
+  int _replaceGeneration = 0;
   String _status = '';
   late final TapGestureRecognizer _termsLinkRecognizer;
   late final TapGestureRecognizer _privacyLinkRecognizer;
@@ -156,6 +163,33 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
   void _onFocusRowLostFocus() {
     setState(() => _focusRowHighlighted = false);
     _recordEvent('VO focus -> lost (highlight row)');
+  }
+
+  void _onPickerChanged(int index) {
+    setState(() => _pickerIndex = index);
+    _recordEvent('Picker -> ${pickerSizes[index]}');
+  }
+
+  void _onUnlabeledTapped() => _recordEvent('Unlabeled tappable -> tapped');
+
+  void _toggleFollow() {
+    setState(() => _isFollowing = !_isFollowing);
+    _recordEvent('Label-changing button -> ${_isFollowing ? 'Following' : 'Follow'}');
+  }
+
+  void _removeSelf() {
+    setState(() => _removableButtonPresent = false);
+    _recordEvent('Self-removing button -> removed');
+  }
+
+  void _restoreRemoved() {
+    setState(() => _removableButtonPresent = true);
+    _recordEvent('Self-removing button -> restored');
+  }
+
+  void _replaceSelf() {
+    setState(() => _replaceGeneration += 1);
+    _recordEvent('Identity-replacing button -> generation $_replaceGeneration');
   }
 
   @override
@@ -315,10 +349,170 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
               ),
               const SizedBox(height: 24),
               _buildSelectionControlsSection(bodyStyle, secondaryLabelColor),
+              const SizedBox(height: 24),
+              _buildMoreControlsSection(bodyStyle, secondaryLabelColor),
+              const SizedBox(height: 24),
+              _buildMutationSection(bodyStyle, secondaryLabelColor),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  /// "More Controls": the remaining Cupertino semantics shapes that no other
+  /// screen exercises — a picker wheel (adjustable-by-scroll), a long-press
+  /// context menu, and an interactive element with no label and no role.
+  ///
+  /// UIKit twins: `UIPickerView`, `UIContextMenuInteraction`, and a bare
+  /// `UIView` + `UITapGestureRecognizer` with no accessibility configuration.
+  /// The last one is deliberately asymmetric: UIKit does not expose such a view
+  /// to assistive technologies at all, while Flutter emits a node with a `tap`
+  /// action and nothing else — the same shape as a scrollbar thumb or a
+  /// dismissible banner (#157630, #196337), which is what Voice Control badges.
+  Widget _buildMoreControlsSection(
+    TextStyle bodyStyle,
+    Color secondaryLabelColor,
+  ) {
+    final TextStyle titleStyle = CupertinoTheme.of(context)
+        .textTheme
+        .navTitleTextStyle;
+    final TextStyle captionStyle = bodyStyle.copyWith(
+      fontSize: 13,
+      color: secondaryLabelColor,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Semantics(
+          header: true,
+          child: Text('More Controls', style: titleStyle),
+        ),
+        const SizedBox(height: 8),
+        // 1. Picker wheel: `hasImplicitScrolling` + scrollUp/scrollDown with a
+        // value, i.e. "adjustable" via swipe up/down under VoiceOver.
+        Text('Size (picker wheel)', style: captionStyle),
+        SizedBox(
+          height: 120,
+          child: CupertinoPicker(
+            itemExtent: 32,
+            scrollController: FixedExtentScrollController(
+              initialItem: _pickerIndex,
+            ),
+            onSelectedItemChanged: _onPickerChanged,
+            children: <Widget>[
+              for (final String size in pickerSizes)
+                Center(child: Text(size, style: bodyStyle)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        // 2. Context menu: long-press target. Under VoiceOver the menu is
+        // reached via the Actions rotor / "Show more items"; under Voice
+        // Control via "long press <number>".
+        CupertinoContextMenu(
+          actions: <Widget>[
+            CupertinoContextMenuAction(
+              trailingIcon: CupertinoIcons.doc_on_clipboard,
+              onPressed: () {
+                Navigator.of(context).pop();
+                _recordEvent('Context menu -> Copy');
+              },
+              child: const Text('Copy'),
+            ),
+            CupertinoContextMenuAction(
+              trailingIcon: CupertinoIcons.share,
+              onPressed: () {
+                Navigator.of(context).pop();
+                _recordEvent('Context menu -> Share');
+              },
+              child: const Text('Share'),
+            ),
+          ],
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              color: CupertinoColors.tertiarySystemFill.resolveFrom(context),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text('Long-press for context menu', style: bodyStyle),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // 3. Unlabeled tappable: a GestureDetector with no text child and no
+        // Semantics. Visible as a tinted bar; nothing else about it is declared.
+        GestureDetector(
+          onTap: _onUnlabeledTapped,
+          child: Container(
+            height: 44,
+            decoration: BoxDecoration(
+              color: CupertinoColors.systemIndigo.withValues(alpha: 0.25),
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text('Unlabeled tappable bar (no label, no role)', style: captionStyle),
+      ],
+    );
+  }
+
+  /// "Mutation While Focused": elements whose semantics node changes shape
+  /// while an assistive technology has focus on them. Button A in the grid
+  /// already covers "child icon added/removed"; these cover the other three
+  /// structural mutations — label text replaced, node removed, node replaced
+  /// by a new identity with identical appearance.
+  ///
+  /// UIKit twins: `UIButton` title swap, `UIStackView` arranged-subview
+  /// `isHidden`, and removing the `UIButton` instance and inserting a fresh one
+  /// at the same index.
+  Widget _buildMutationSection(TextStyle bodyStyle, Color secondaryLabelColor) {
+    final TextStyle titleStyle = CupertinoTheme.of(context)
+        .textTheme
+        .navTitleTextStyle;
+    const EdgeInsets buttonPadding = EdgeInsets.symmetric(
+      horizontal: 12,
+      vertical: 10,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Semantics(
+          header: true,
+          child: Text('Mutation While Focused', style: titleStyle),
+        ),
+        const SizedBox(height: 8),
+        // 1. Label changes on tap (same node, new label).
+        CupertinoButton.tinted(
+          padding: buttonPadding,
+          onPressed: _toggleFollow,
+          child: Text(_isFollowing ? 'Following' : 'Follow'),
+        ),
+        const SizedBox(height: 8),
+        // 2. Node removed on tap. The restore button is always present so the
+        // fixture can be repeated without leaving the screen.
+        if (_removableButtonPresent)
+          CupertinoButton.tinted(
+            padding: buttonPadding,
+            onPressed: _removeSelf,
+            child: const Text('Remove this button'),
+          ),
+        if (_removableButtonPresent) const SizedBox(height: 8),
+        CupertinoButton(
+          padding: buttonPadding,
+          onPressed: _removableButtonPresent ? null : _restoreRemoved,
+          child: const Text('Restore removed button'),
+        ),
+        const SizedBox(height: 8),
+        // 3. Node replaced on tap: a new Key forces a new Element, State, and
+        // SemanticsNode id while the label and geometry stay identical.
+        CupertinoButton.tinted(
+          key: ValueKey<int>(_replaceGeneration),
+          padding: buttonPadding,
+          onPressed: _replaceSelf,
+          child: const Text('Replace me (same label, new identity)'),
+        ),
+      ],
     );
   }
 

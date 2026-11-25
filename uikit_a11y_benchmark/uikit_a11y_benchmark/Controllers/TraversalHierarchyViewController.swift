@@ -50,6 +50,27 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
     private var isDisclosureExpanded = false
     private var selectedShippingSpeed = TraversalHierarchyViewController.shippingSpeeds[0]
 
+    // "More Controls" section (picker wheel / context menu / unlabeled tappable).
+    private static let pickerSizes = ["Small", "Medium", "Large"]
+    private let moreControlsStack = UIStackView()
+    private let moreControlsHeaderLabel = UILabel()
+    private let pickerCaptionLabel = UILabel()
+    private let sizePicker = UIPickerView()
+    private let contextMenuView = UIView()
+    private let contextMenuLabel = UILabel()
+    private let unlabeledTappableView = UIView()
+    private let unlabeledCaptionLabel = UILabel()
+
+    // "Mutation While Focused" section.
+    private let mutationStack = UIStackView()
+    private let mutationHeaderLabel = UILabel()
+    private let followButton = UIButton(configuration: .tinted())
+    private let removableButton = UIButton(configuration: .tinted())
+    private let restoreButton = UIButton(configuration: .plain())
+    private var replaceableButton = UIButton(configuration: .tinted())
+    private var isFollowing = false
+    private var replaceGeneration = 0
+
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Traversal Hierarchy"
@@ -57,6 +78,8 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
 
         configureViews()
         configureSelectionControls()
+        configureMoreControls()
+        configureMutationSection()
         updateOrderingStatus()
     }
 
@@ -470,8 +493,186 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
             shippingStack.topAnchor.constraint(equalTo: shippingSpeedLabel.bottomAnchor, constant: 4),
             shippingStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             shippingStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            shippingStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -24),
         ])
+        selectionControlsBottomAnchor = shippingStack.bottomAnchor
+    }
+
+    /// Bottom edge of the last Selection Controls view; the sections added
+    /// below it chain from here. Set at the end of `configureSelectionControls`.
+    private var selectionControlsBottomAnchor: NSLayoutYAxisAnchor!
+
+    // MARK: - More Controls (v3)
+
+    /// Twins of the Flutter "More Controls" section:
+    ///  * `CupertinoPicker`      → `UIPickerView` (adjustable: swipe up/down).
+    ///  * `CupertinoContextMenu` → `UIView` + `UIContextMenuInteraction`.
+    ///  * bare `GestureDetector` → `UIView` + `UITapGestureRecognizer` with NO
+    ///                             accessibility configuration. UIKit does not
+    ///                             expose this to assistive technologies; the
+    ///                             Flutter side emits a node with a `tap` action
+    ///                             and nothing else. The divergence is the point.
+    private func configureMoreControls() {
+        moreControlsStack.translatesAutoresizingMaskIntoConstraints = false
+        moreControlsStack.axis = .vertical
+        moreControlsStack.spacing = 8
+
+        moreControlsHeaderLabel.text = "More Controls"
+        moreControlsHeaderLabel.font = .preferredFont(forTextStyle: .headline)
+        moreControlsHeaderLabel.adjustsFontForContentSizeCategory = true
+        moreControlsHeaderLabel.accessibilityTraits = .header
+
+        // 1. Picker wheel.
+        pickerCaptionLabel.text = "Size (picker wheel)"
+        pickerCaptionLabel.font = .preferredFont(forTextStyle: .footnote)
+        pickerCaptionLabel.adjustsFontForContentSizeCategory = true
+        pickerCaptionLabel.textColor = .secondaryLabel
+
+        sizePicker.dataSource = self
+        sizePicker.delegate = self
+        sizePicker.heightAnchor.constraint(equalToConstant: 120).isActive = true
+
+        // 2. Context menu target.
+        contextMenuView.backgroundColor = .tertiarySystemFill
+        contextMenuView.layer.cornerRadius = 8
+        contextMenuView.addInteraction(UIContextMenuInteraction(delegate: self))
+
+        contextMenuLabel.translatesAutoresizingMaskIntoConstraints = false
+        contextMenuLabel.text = "Long-press for context menu"
+        contextMenuLabel.font = .preferredFont(forTextStyle: .body)
+        contextMenuLabel.adjustsFontForContentSizeCategory = true
+        contextMenuLabel.numberOfLines = 0
+        contextMenuView.addSubview(contextMenuLabel)
+
+        // 3. Unlabeled tappable bar.
+        unlabeledTappableView.backgroundColor = .systemIndigo.withAlphaComponent(0.25)
+        unlabeledTappableView.layer.cornerRadius = 8
+        unlabeledTappableView.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        unlabeledTappableView.addGestureRecognizer(
+            UITapGestureRecognizer(target: self, action: #selector(unlabeledTapped))
+        )
+
+        unlabeledCaptionLabel.text = "Unlabeled tappable bar (no label, no role)"
+        unlabeledCaptionLabel.font = .preferredFont(forTextStyle: .footnote)
+        unlabeledCaptionLabel.adjustsFontForContentSizeCategory = true
+        unlabeledCaptionLabel.textColor = .secondaryLabel
+        unlabeledCaptionLabel.numberOfLines = 0
+
+        for item in [
+            moreControlsHeaderLabel,
+            pickerCaptionLabel,
+            sizePicker,
+            contextMenuView,
+            unlabeledTappableView,
+            unlabeledCaptionLabel,
+        ] {
+            moreControlsStack.addArrangedSubview(item)
+        }
+        moreControlsStack.setCustomSpacing(2, after: unlabeledTappableView)
+
+        contentView.addSubview(moreControlsStack)
+
+        NSLayoutConstraint.activate([
+            contextMenuLabel.topAnchor.constraint(equalTo: contextMenuView.topAnchor, constant: 12),
+            contextMenuLabel.leadingAnchor.constraint(equalTo: contextMenuView.leadingAnchor, constant: 12),
+            contextMenuLabel.trailingAnchor.constraint(equalTo: contextMenuView.trailingAnchor, constant: -12),
+            contextMenuLabel.bottomAnchor.constraint(equalTo: contextMenuView.bottomAnchor, constant: -12),
+
+            moreControlsStack.topAnchor.constraint(equalTo: selectionControlsBottomAnchor, constant: 24),
+            moreControlsStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            moreControlsStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+        ])
+    }
+
+    @objc private func unlabeledTapped() {
+        recordEvent("Unlabeled tappable -> tapped")
+    }
+
+    // MARK: - Mutation While Focused (v3)
+
+    /// Twins of the Flutter "Mutation While Focused" section. Button A in the
+    /// grid already covers "child icon added/removed"; these cover label text
+    /// replaced, element removed, and element replaced by a fresh instance with
+    /// identical appearance.
+    private func configureMutationSection() {
+        mutationStack.translatesAutoresizingMaskIntoConstraints = false
+        mutationStack.axis = .vertical
+        mutationStack.spacing = 8
+
+        mutationHeaderLabel.text = "Mutation While Focused"
+        mutationHeaderLabel.font = .preferredFont(forTextStyle: .headline)
+        mutationHeaderLabel.adjustsFontForContentSizeCategory = true
+        mutationHeaderLabel.accessibilityTraits = .header
+
+        // 1. Label changes on tap.
+        followButton.configuration?.title = "Follow"
+        followButton.addTarget(self, action: #selector(toggleFollow), for: .touchUpInside)
+
+        // 2. Element removed on tap (`isHidden` in a UIStackView removes it
+        // from layout and from the accessibility hierarchy).
+        removableButton.configuration?.title = "Remove this button"
+        removableButton.addTarget(self, action: #selector(removeSelf), for: .touchUpInside)
+
+        restoreButton.configuration?.title = "Restore removed button"
+        restoreButton.isEnabled = false
+        restoreButton.addTarget(self, action: #selector(restoreRemoved), for: .touchUpInside)
+
+        // 3. Element replaced on tap.
+        configureReplaceableButton(replaceableButton)
+
+        for item in [
+            mutationHeaderLabel,
+            followButton,
+            removableButton,
+            restoreButton,
+            replaceableButton,
+        ] {
+            mutationStack.addArrangedSubview(item)
+        }
+
+        contentView.addSubview(mutationStack)
+
+        NSLayoutConstraint.activate([
+            mutationStack.topAnchor.constraint(equalTo: moreControlsStack.bottomAnchor, constant: 24),
+            mutationStack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            mutationStack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            mutationStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -24),
+        ])
+    }
+
+    private func configureReplaceableButton(_ button: UIButton) {
+        button.configuration?.title = "Replace me (same label, new identity)"
+        button.addTarget(self, action: #selector(replaceSelf), for: .touchUpInside)
+    }
+
+    @objc private func toggleFollow() {
+        isFollowing.toggle()
+        followButton.configuration?.title = isFollowing ? "Following" : "Follow"
+        recordEvent("Label-changing button -> \(isFollowing ? "Following" : "Follow")")
+    }
+
+    @objc private func removeSelf() {
+        removableButton.isHidden = true
+        restoreButton.isEnabled = true
+        recordEvent("Self-removing button -> removed")
+    }
+
+    @objc private func restoreRemoved() {
+        removableButton.isHidden = false
+        restoreButton.isEnabled = false
+        recordEvent("Self-removing button -> restored")
+    }
+
+    @objc private func replaceSelf() {
+        replaceGeneration += 1
+        guard let index = mutationStack.arrangedSubviews.firstIndex(of: replaceableButton) else { return }
+        let old = replaceableButton
+        let fresh = UIButton(configuration: .tinted())
+        configureReplaceableButton(fresh)
+        mutationStack.removeArrangedSubview(old)
+        old.removeFromSuperview()
+        mutationStack.insertArrangedSubview(fresh, at: index)
+        replaceableButton = fresh
+        recordEvent("Identity-replacing button -> generation \(replaceGeneration)")
     }
 
     @objc private func notificationsChanged(_ sender: UISwitch) {
@@ -560,6 +761,46 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
         statusLabel.text = message
         Self.logger.info("[TraversalHierarchy] \(message, privacy: .public)")
         print("[TraversalHierarchy] \(message)")
+    }
+}
+
+// MARK: - UIPickerViewDataSource / UIPickerViewDelegate
+
+extension TraversalHierarchyViewController: UIPickerViewDataSource, UIPickerViewDelegate {
+
+    func numberOfComponents(in pickerView: UIPickerView) -> Int { 1 }
+
+    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+        Self.pickerSizes.count
+    }
+
+    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
+        Self.pickerSizes[row]
+    }
+
+    func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
+        recordEvent("Picker -> \(Self.pickerSizes[row])")
+    }
+}
+
+// MARK: - UIContextMenuInteractionDelegate
+
+extension TraversalHierarchyViewController: UIContextMenuInteractionDelegate {
+
+    func contextMenuInteraction(
+        _ interaction: UIContextMenuInteraction,
+        configurationForMenuAtLocation location: CGPoint
+    ) -> UIContextMenuConfiguration? {
+        UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
+            UIMenu(children: [
+                UIAction(title: "Copy", image: UIImage(systemName: "doc.on.clipboard")) { _ in
+                    self?.recordEvent("Context menu -> Copy")
+                },
+                UIAction(title: "Share", image: UIImage(systemName: "square.and.arrow.up")) { _ in
+                    self?.recordEvent("Context menu -> Share")
+                },
+            ])
+        }
     }
 }
 

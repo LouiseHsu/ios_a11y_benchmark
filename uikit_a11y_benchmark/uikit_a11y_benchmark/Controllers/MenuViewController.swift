@@ -20,12 +20,12 @@ final class MenuViewController: UIViewController {
         ),
         Destination(
             title: "Traversal Hierarchy",
-            subtitle: "3x3 grid with headers, container ordering & stateful buttons",
+            subtitle: "3x3 grid with headers, container ordering, stateful buttons, controls & mutation fixtures",
             makeViewController: { TraversalHierarchyViewController() }
         ),
         Destination(
             title: "Focus & Keyboard",
-            subtitle: "Prefilled & secure text fields, 25% slider, VO & FKA focus logs",
+            subtitle: "Prefilled, secure, multiline & read-only fields, 25% slider, VO & FKA focus logs",
             makeViewController: { FocusKeyboardViewController() }
         ),
         Destination(
@@ -66,6 +66,18 @@ extension MenuViewController: UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return destinations.count
+    }
+
+    /// Build identification for QA reports: iOS version, bundle version, and
+    /// the benchmark commit if the build injected one (Info.plist key
+    /// `BenchmarkCommit`). The Flutter twin shows the same three lines.
+    func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
+        let os = ProcessInfo.processInfo.operatingSystemVersionString
+        let info = Bundle.main.infoDictionary ?? [:]
+        let version = info["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info["CFBundleVersion"] as? String ?? "?"
+        let commit = info["BenchmarkCommit"] as? String ?? "dev"
+        return "iOS \(os)\napp \(version) (\(build))\nbenchmark commit: \(commit)"
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {

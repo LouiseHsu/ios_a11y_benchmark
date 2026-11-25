@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:cupertino_ui/cupertino_ui.dart';
 
 import 'focus_keyboard_page.dart';
@@ -5,6 +7,11 @@ import 'modal_barrier_page.dart';
 import 'scroll_baseline_page.dart';
 import 'sliver_scroll_page.dart';
 import 'traversal_hierarchy_page.dart';
+
+const String _benchmarkCommit = String.fromEnvironment(
+  'BENCHMARK_COMMIT',
+  defaultValue: 'dev',
+);
 
 /// One row of the root menu; mirrors `MenuViewController.Destination`.
 class MenuDestination {
@@ -35,13 +42,16 @@ class MenuPage extends StatelessWidget {
     ),
     MenuDestination(
       title: 'Traversal Hierarchy',
-      subtitle: '3x3 grid with headers, container ordering & stateful buttons',
+      subtitle:
+          '3x3 grid with headers, container ordering, stateful buttons, '
+          'controls & mutation fixtures',
       builder: (_) => const TraversalHierarchyPage(),
     ),
     MenuDestination(
       title: 'Focus & Keyboard',
       subtitle:
-          'Prefilled & secure text fields, 25% slider, VO & FKA focus logs',
+          'Prefilled, secure, multiline & read-only fields, 25% slider, '
+          'VO & FKA focus logs',
       builder: (_) => const FocusKeyboardPage(),
     ),
     MenuDestination(
@@ -67,6 +77,13 @@ class MenuPage extends StatelessWidget {
         child: ListView(
           children: <Widget>[
             CupertinoListSection.insetGrouped(
+              // Build identification for QA reports. Pass the benchmark commit
+              // at build time: `flutter run --dart-define=BENCHMARK_COMMIT=$(git
+              // rev-parse --short HEAD)`.
+              footer: Text(
+                'iOS ${Platform.operatingSystemVersion}\n'
+                'benchmark commit: $_benchmarkCommit',
+              ),
               children: <Widget>[
                 for (final MenuDestination destination in destinations)
                   _MenuRow(

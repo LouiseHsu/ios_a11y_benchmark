@@ -25,8 +25,14 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
   // placeholder announcement.
   final TextEditingController _topController = TextEditingController(text: 'A');
   final TextEditingController _bottomController = TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
+  final TextEditingController _readOnlyController = TextEditingController(
+    text: 'Read-only value',
+  );
   final FocusNode _topFocus = FocusNode(debugLabel: _topFieldName);
   final FocusNode _bottomFocus = FocusNode(debugLabel: _bottomFieldName);
+  final FocusNode _notesFocus = FocusNode(debugLabel: 'Multiline Notes Field');
+  final FocusNode _readOnlyFocus = FocusNode(debugLabel: 'Read-only Field');
 
   String _lastEvent =
       'Ready. Top field pre-filled, slider at 25%, bottom field is secure.';
@@ -44,14 +50,21 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
     _bottomController.addListener(
       () => _handleTextChanged(_bottomFieldName, _bottomController, 'Password'),
     );
+    _notesController.addListener(
+      () => _handleTextChanged('Multiline Notes Field', _notesController, 'Notes'),
+    );
   }
 
   @override
   void dispose() {
     _topController.dispose();
     _bottomController.dispose();
+    _notesController.dispose();
+    _readOnlyController.dispose();
     _topFocus.dispose();
     _bottomFocus.dispose();
+    _notesFocus.dispose();
+    _readOnlyFocus.dispose();
     super.dispose();
   }
 
@@ -226,6 +239,30 @@ class _FocusKeyboardPageState extends State<FocusKeyboardPage> {
                 obscureText: true,
                 placeholder: 'Password',
                 textInputAction: TextInputAction.done,
+                padding: const EdgeInsets.all(12),
+              ),
+              const SizedBox(height: 20),
+              const _SectionLabel('Multiline Notes (3 lines minimum)'),
+              // `isMultiline`: Return inserts a newline instead of dismissing.
+              // UIKit twin: an editable UITextView.
+              CupertinoTextField(
+                controller: _notesController,
+                focusNode: _notesFocus,
+                placeholder: 'Notes',
+                minLines: 3,
+                maxLines: 5,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                padding: const EdgeInsets.all(12),
+              ),
+              const SizedBox(height: 20),
+              const _SectionLabel('Read-only Field'),
+              // `isReadOnly`: focusable and selectable, but no keyboard and no
+              // edits. UIKit twin: a UITextView with isEditable = false.
+              CupertinoTextField(
+                controller: _readOnlyController,
+                focusNode: _readOnlyFocus,
+                readOnly: true,
                 padding: const EdgeInsets.all(12),
               ),
             ],
