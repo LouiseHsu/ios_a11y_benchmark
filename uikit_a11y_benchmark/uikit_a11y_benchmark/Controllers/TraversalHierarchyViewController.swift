@@ -663,16 +663,21 @@ final class TraversalHierarchyViewController: UIViewController, UITextViewDelega
     }
 
     @objc private func replaceSelf() {
-        replaceGeneration += 1
-        guard let index = mutationStack.arrangedSubviews.firstIndex(of: replaceableButton) else { return }
-        let old = replaceableButton
-        let fresh = UIButton(configuration: .tinted())
-        configureReplaceableButton(fresh)
-        mutationStack.removeArrangedSubview(old)
-        old.removeFromSuperview()
-        mutationStack.insertArrangedSubview(fresh, at: index)
-        replaceableButton = fresh
-        recordEvent("Identity-replacing button -> generation \(replaceGeneration)")
+        // Let the highlight fade finish before swapping the instance out, so the
+        // tap still looks like a tap (mirrors the Flutter twin's 200 ms delay).
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            guard let self else { return }
+            self.replaceGeneration += 1
+            guard let index = self.mutationStack.arrangedSubviews.firstIndex(of: self.replaceableButton) else { return }
+            let old = self.replaceableButton
+            let fresh = UIButton(configuration: .tinted())
+            self.configureReplaceableButton(fresh)
+            self.mutationStack.removeArrangedSubview(old)
+            old.removeFromSuperview()
+            self.mutationStack.insertArrangedSubview(fresh, at: index)
+            self.replaceableButton = fresh
+            self.recordEvent("Identity-replacing button -> generation \(self.replaceGeneration)")
+        }
     }
 
     @objc private func notificationsChanged(_ sender: UISwitch) {

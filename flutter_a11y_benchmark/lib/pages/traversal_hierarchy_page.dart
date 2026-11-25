@@ -188,8 +188,18 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
   }
 
   void _replaceSelf() {
-    setState(() => _replaceGeneration += 1);
-    _recordEvent('Identity-replacing button -> generation $_replaceGeneration');
+    // Let the pressed-state fade finish before swapping the widget out, so the
+    // tap still looks like a tap. Also closer to real apps, which rebuild a
+    // beat after the tap (await, setState from a callback) rather than inline.
+    Future<void>.delayed(const Duration(milliseconds: 200), () {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _replaceGeneration += 1);
+      _recordEvent(
+        'Identity-replacing button -> generation $_replaceGeneration',
+      );
+    });
   }
 
   @override
