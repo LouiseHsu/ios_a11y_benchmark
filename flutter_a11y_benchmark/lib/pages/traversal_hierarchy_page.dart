@@ -287,9 +287,12 @@ class _TraversalHierarchyPageState extends State<TraversalHierarchyPage> {
                 ),
               ),
               if (_disclosureExpanded) ...<Widget>[
-                const SizedBox(height: 6),
+                // Keyed so positional reconciliation cannot recycle the
+                // Text.rich links paragraph below as this detail Text.
+                const SizedBox(key: ValueKey<String>('disclosure.gap'), height: 6),
                 Text(
                   'Hidden detail content revealed when expanded.',
+                  key: const ValueKey<String>('disclosure.detail'),
                   style: bodyStyle.copyWith(
                     fontSize: 13,
                     color: secondaryLabelColor,
